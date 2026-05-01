@@ -1,0 +1,364 @@
+import { useState } from "react";
+import {
+  Phone, Mail, Instagram, Send, MapPin, Calendar, Clock,
+  ChevronRight, Pencil, Camera, Check, X, User,
+} from "lucide-react";
+
+type SkillLevel = "Beginner" | "Intermediate" | "Advanced" | "Pro" | "Elite";
+
+const SKILL_COLOR: Record<SkillLevel, string> = {
+  Beginner:     "text-[#3390ec]",
+  Intermediate: "text-[#4dcd5e]",
+  Advanced:     "text-[#f5c542]",
+  Pro:          "text-[#f97316]",
+  Elite:        "text-[#e04040]",
+};
+
+const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero", "Right Side"];
+
+const DEFAULT_USER = {
+  firstName:  "Alex",
+  lastName:   "Novak",
+  avatar:     "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=300&h=300&fit=crop&crop=face",
+  skillLevel: "Advanced" as SkillLevel,
+  position:   "Outside Hitter",
+  phone:      "+420 777 888 999",
+  email:      "alex.novak@email.com",
+  telegram:   "alex_vb",
+  instagram:  "alex.volleyball",
+};
+
+const UPCOMING_EVENTS = [
+  { id: "u1", title: "FRIDAY PICKUP",       date: "FRI, MAY 2",  time: "19:00 – 21:00", location: "SportCenter Praha 7",     pending: false },
+  { id: "u2", title: "ELITE SCRIMMAGE #48", date: "SAT, MAY 10", time: "14:00 – 17:00", location: "Volleyball Arena Dejvice", pending: true  },
+];
+
+const PAST_EVENTS = [
+  { id: "h1", title: "PRO-AM INVITATIONAL",  date: "APR 19" },
+  { id: "h2", title: "FRIDAY PICKUP",         date: "APR 11" },
+  { id: "h3", title: "ELITE SCRIMMAGE #45",   date: "APR 6"  },
+  { id: "h4", title: "PRIME OPEN #12",        date: "MAR 29" },
+  { id: "h5", title: "FRIDAY PICKUP",         date: "MAR 22" },
+];
+
+type ContactDraft = {
+  fullName: string;
+  phone: string;
+  email: string;
+  telegram: string;
+  instagram: string;
+};
+
+export function Profile() {
+  const [user, setUser] = useState(DEFAULT_USER);
+  const [editingContact, setEditingContact] = useState(false);
+  const [draft, setDraft] = useState<ContactDraft>({
+    fullName: `${DEFAULT_USER.firstName} ${DEFAULT_USER.lastName}`,
+    phone:    DEFAULT_USER.phone,
+    email:    DEFAULT_USER.email,
+    telegram: DEFAULT_USER.telegram,
+    instagram: DEFAULT_USER.instagram,
+  });
+
+  const openContactEdit = () => {
+    setDraft({
+      fullName: `${user.firstName} ${user.lastName}`.trim(),
+      phone:    user.phone,
+      email:    user.email,
+      telegram: user.telegram,
+      instagram: user.instagram,
+    });
+    setEditingContact(true);
+  };
+
+  const cancelContactEdit = () => setEditingContact(false);
+
+  const saveContact = () => {
+    const parts = draft.fullName.trim().split(/\s+/);
+    setUser(p => ({
+      ...p,
+      firstName: parts[0] ?? "",
+      lastName:  parts.slice(1).join(" "),
+      phone:     draft.phone,
+      email:     draft.email,
+      telegram:  draft.telegram,
+      instagram: draft.instagram,
+    }));
+    setEditingContact(false);
+  };
+
+  const setDraftField = (k: keyof ContactDraft, v: string) =>
+    setDraft(p => ({ ...p, [k]: v }));
+
+  const handleAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) setUser(p => ({ ...p, avatar: URL.createObjectURL(f) }));
+  };
+
+  const displayName = `${user.firstName} ${user.lastName}`.trim();
+
+  return (
+    <div className="min-h-full bg-[#0e1621] pb-16 font-sans">
+
+      {/* ── Profile identity ── */}
+      <div className="flex flex-col items-center pt-8 pb-6 px-4">
+
+        {/* Avatar — always tappable */}
+        <label className="relative cursor-pointer mb-4">
+          <img
+            src={user.avatar}
+            alt=""
+            className="w-28 h-28 rounded-full object-cover bg-[#17212b]"
+          />
+          <span className="absolute bottom-0.5 right-0.5 w-7 h-7 rounded-full bg-[#3390ec] border-2 border-[#0e1621] flex items-center justify-center pointer-events-none">
+            <Camera size={13} className="text-white" />
+          </span>
+          <input type="file" accept="image/*" className="hidden" onChange={handleAvatar} />
+        </label>
+
+        {/* Name — display only, updates when contact is saved */}
+        <h1 className="text-xl font-semibold text-white mb-1">{displayName}</h1>
+        <span className={`text-sm font-medium ${SKILL_COLOR[user.skillLevel]}`}>
+          {user.skillLevel}
+        </span>
+      </div>
+
+      <div className="max-w-[600px] mx-auto px-4 flex flex-col gap-6">
+
+        {/* Position — always-editable dropdown, no edit button needed */}
+        <div className="bg-[#17212b] rounded-xl">
+          <div className="flex items-center justify-between px-4 py-3.5">
+            <span className="text-sm text-[#aaa]">Position</span>
+            <select
+              value={user.position}
+              onChange={e => setUser(p => ({ ...p, position: e.target.value }))}
+              className="bg-transparent text-white text-sm focus:outline-none text-right"
+              style={{ colorScheme: "dark" }}
+            >
+              {POSITIONS.map(p => (
+                <option key={p} value={p} style={{ background: "#17212b" }}>{p}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Contact — edit button lives here */}
+        <section>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <SectionLabel>Contact</SectionLabel>
+            {editingContact ? (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={cancelContactEdit}
+                  className="text-sm text-[#aaa] font-medium active:opacity-60 transition-opacity"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveContact}
+                  className="text-sm text-[#3390ec] font-medium active:opacity-70 transition-opacity"
+                >
+                  Save
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={openContactEdit}
+                className="flex items-center gap-1 text-sm text-[#3390ec] font-medium active:opacity-70 transition-opacity"
+              >
+                <Pencil size={13} />
+                Edit
+              </button>
+            )}
+          </div>
+
+          <div className="bg-[#17212b] rounded-xl overflow-hidden">
+
+            {/* Name row */}
+            <ContactRow
+              editing={editingContact}
+              icon={<User size={15} className="text-[#3390ec]" />}
+              iconBg="bg-[#3390ec]/15"
+              label="Name"
+              displayValue={displayName}
+              editValue={draft.fullName}
+              onChange={v => setDraftField("fullName", v)}
+            />
+
+            <ContactRow
+              editing={editingContact}
+              href={`tel:${user.phone.replace(/\s/g, "")}`}
+              icon={<Phone size={15} className="text-[#3390ec]" />}
+              iconBg="bg-[#3390ec]/15"
+              label="Phone"
+              displayValue={user.phone}
+              editValue={draft.phone}
+              onChange={v => setDraftField("phone", v)}
+            />
+            <ContactRow
+              editing={editingContact}
+              href={`mailto:${user.email}`}
+              icon={<Mail size={15} className="text-[#3390ec]" />}
+              iconBg="bg-[#3390ec]/15"
+              label="Email"
+              displayValue={user.email}
+              editValue={draft.email}
+              onChange={v => setDraftField("email", v)}
+            />
+            <ContactRow
+              editing={editingContact}
+              href={`https://t.me/${user.telegram}`}
+              external
+              icon={<Send size={14} className="text-white -ml-0.5" />}
+              iconBg="bg-[#3390ec]"
+              label="Telegram"
+              displayValue={`@${user.telegram}`}
+              editValue={draft.telegram}
+              prefix="@"
+              onChange={v => setDraftField("telegram", v.replace(/^@/, ""))}
+            />
+            <ContactRow
+              editing={editingContact}
+              href={`https://instagram.com/${user.instagram}`}
+              external
+              icon={<Instagram size={15} className="text-white" />}
+              iconBg="bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888]"
+              label="Instagram"
+              displayValue={`@${user.instagram}`}
+              editValue={draft.instagram}
+              prefix="@"
+              onChange={v => setDraftField("instagram", v.replace(/^@/, ""))}
+            />
+          </div>
+        </section>
+
+        {/* Upcoming Events */}
+        <section>
+          <SectionLabel>Upcoming Events</SectionLabel>
+          {UPCOMING_EVENTS.length === 0 ? (
+            <Empty />
+          ) : (
+            <div className="flex flex-col gap-2">
+              {UPCOMING_EVENTS.map(e => (
+                <div key={e.id} className="bg-[#17212b] rounded-xl px-4 py-3.5">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="text-sm font-bold text-white uppercase tracking-wide">{e.title}</span>
+                    {e.pending && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#f5c542]/10 text-[#f5c542] shrink-0">
+                        Pending
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-3 text-xs text-[#aaa]">
+                    <span className="flex items-center gap-1"><Calendar size={11} className="text-[#3390ec]" />{e.date}</span>
+                    <span className="flex items-center gap-1"><Clock    size={11} className="text-[#3390ec]" />{e.time}</span>
+                    <span className="flex items-center gap-1"><MapPin   size={11} className="text-[#3390ec]" />{e.location}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Past Events */}
+        <section>
+          <SectionLabel>Past Events</SectionLabel>
+          {PAST_EVENTS.length === 0 ? (
+            <Empty />
+          ) : (
+            <div className="bg-[#17212b] rounded-xl overflow-hidden">
+              {PAST_EVENTS.map((e, i) => (
+                <div
+                  key={e.id}
+                  className={`flex items-center justify-between px-4 py-2.5 ${i > 0 ? "border-t border-white/[0.06]" : ""}`}
+                >
+                  <span className="text-sm text-white/75 truncate">{e.title}</span>
+                  <span className="text-xs text-[#aaa] shrink-0 ml-3">{e.date}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+      </div>
+    </div>
+  );
+}
+
+// ─── Contact row ──────────────────────────────────────────────────────────────
+
+function ContactRow({
+  editing, href, external, icon, iconBg, label, displayValue, editValue, prefix, onChange,
+}: {
+  editing: boolean;
+  href?: string;
+  external?: boolean;
+  icon: React.ReactNode;
+  iconBg: string;
+  label: string;
+  displayValue: string;
+  editValue: string;
+  prefix?: string;
+  onChange: (v: string) => void;
+}) {
+  const inner = (
+    <>
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}>
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[11px] text-[#aaa] mb-0.5">{label}</div>
+        {editing ? (
+          <div className="flex items-center gap-0.5">
+            {prefix && <span className="text-[#aaa] text-sm">{prefix}</span>}
+            <input
+              value={editValue}
+              onChange={e => onChange(e.target.value)}
+              onClick={e => e.preventDefault()}
+              className="flex-1 bg-transparent text-white text-sm focus:outline-none border-b border-white/15 focus:border-[#3390ec] transition-colors pb-px min-w-0"
+            />
+          </div>
+        ) : (
+          <div className="text-sm text-white truncate">{displayValue}</div>
+        )}
+      </div>
+      {!editing && href && <ChevronRight size={15} className="text-white/20 shrink-0" />}
+    </>
+  );
+
+  if (editing || !href) {
+    return (
+      <div className="flex items-center gap-3 px-4 py-3 border-t border-white/[0.06] first:border-t-0">
+        {inner}
+      </div>
+    );
+  }
+
+  return (
+    <a
+      href={href}
+      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      className="flex items-center gap-3 px-4 py-3 border-t border-white/[0.06] first:border-t-0 hover:bg-white/[0.03] active:bg-white/5 transition-colors"
+    >
+      {inner}
+    </a>
+  );
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">
+      {children}
+    </h2>
+  );
+}
+
+function Empty() {
+  return (
+    <div className="bg-[#17212b] rounded-xl py-6 flex items-center justify-center">
+      <span className="text-sm text-[#aaa]">Nothing here yet</span>
+    </div>
+  );
+}
