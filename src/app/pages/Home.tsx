@@ -82,8 +82,8 @@ const ALL_FILTERS = ["ALL", "TOURNAMENT", "GAMES", "TRAININGS", "EVENTS", "BEACH
 
 // Shared column sizes — identical values used in every row (header, filters, timeline, footer)
 // so the cards column always starts at the exact same horizontal position.
-const DATE_W  = "w-14 md:w-24"; // 56px → 96px
-const DOT_W   = "w-3  md:w-4";  // 12px → 16px
+const DATE_W  = "hidden md:block md:w-24"; // hidden on mobile, 96px on md+
+const DOT_W   = "hidden md:block md:w-4";  // hidden on mobile, 16px on md+
 const COL_GAP = "gap-2 md:gap-3";
 
 function getDayLabel(date: string): string {
@@ -150,7 +150,7 @@ export function Home() {
             <div key={date} className={`flex items-stretch ${COL_GAP} mb-7`}>
 
               {/* Date label — always visible, compact on mobile */}
-              <div className={`${DATE_W} shrink-0 flex flex-col items-end justify-start pt-0.5`}>
+              <div className="hidden md:flex md:w-24 shrink-0 flex-col items-end justify-start pt-0.5">
                 <span className="text-white font-black text-[9px] md:text-[11px] leading-tight text-right break-words">
                   {date}
                 </span>
@@ -160,7 +160,7 @@ export function Home() {
               </div>
 
               {/* Dot + vertical line */}
-              <div className={`${DOT_W} shrink-0 flex flex-col items-center`}>
+              <div className="hidden md:flex md:w-4 shrink-0 flex-col items-center">
                 <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-[#3390ec] border-[1.5px] border-[#0e1621] shrink-0 mt-1 z-10" />
                 {idx < dateGroups.length - 1 && (
                   <div className="w-px flex-1 bg-white/10 mt-1" />
