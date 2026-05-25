@@ -53,8 +53,8 @@ export function EventCard({
           <div className="absolute top-2.5 left-2.5">
             <span className={`text-[10px] font-bold px-2.5 py-1 uppercase tracking-widest rounded-md flex items-center gap-1 backdrop-blur-sm ${
               isRequestOnly
-                ? 'bg-[#e5a93d]/90 text-black'
-                : 'bg-[#22c55e]/90 text-white'
+                ? 'bg-[#eab308]/90 text-black'
+                : 'bg-[#3390ec]/90 text-white'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${isRequestOnly ? 'bg-black/40' : 'bg-white/60'}`}></span>
               {status}

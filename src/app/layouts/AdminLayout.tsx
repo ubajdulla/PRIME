@@ -1,24 +1,22 @@
-import { Outlet, NavLink } from "react-router";
+import { Outlet, NavLink, useLocation } from "react-router";
 import { CalendarDays, Users } from "lucide-react";
 
 export function AdminLayout() {
+  const { pathname } = useLocation();
+  const segments = pathname.replace(/^\/admin\/?/, "").split("/").filter(Boolean);
+  const isSubPage = segments.length >= 2;
+
   return (
-    <div className="min-h-screen bg-[#0e1621] flex flex-col">
-      <div className="bg-[#17212b] border-b border-[#101923] px-4 sticky top-0 z-10">
-        <div className="max-w-[900px] mx-auto">
-          <div className="flex items-center gap-2 pt-4 pb-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#ccff00]" />
-            <span className="text-[#ccff00] font-black uppercase tracking-widest text-[10px]">Admin Panel</span>
-          </div>
-          <div className="flex gap-1">
+    <div className="min-h-screen bg-[#0e1621]">
+      {!isSubPage && (
+        <div className="border-b border-white/[0.06] px-4">
+          <div className="max-w-[900px] mx-auto flex gap-1">
             <AdminTab to="/admin/events" label="Events" icon={<CalendarDays size={14} />} />
             <AdminTab to="/admin/players" label="Players" icon={<Users size={14} />} />
           </div>
         </div>
-      </div>
-      <div className="flex-1">
-        <Outlet />
-      </div>
+      )}
+      <Outlet />
     </div>
   );
 }

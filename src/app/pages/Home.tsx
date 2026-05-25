@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Instagram, Send } from "lucide-react";
 import { EventCard, EventCardProps } from "../components/EventCard";
+import { useLang, type Dict } from "../i18n";
 
 const AVATARS = [
   "https://images.unsplash.com/photo-1667970573560-6ecf6a143514?w=100&h=100&fit=crop",
@@ -78,7 +79,19 @@ const ALL_EVENTS: EventCardProps[] = [
   }
 ];
 
-const ALL_FILTERS = ["ALL", "TOURNAMENT", "GAMES", "TRAININGS", "EVENTS", "BEACH", "JOIN DIRECTLY", "REQUEST ONLY"];
+const ALL_FILTERS = ["ALL", "TOURNAMENT", "GAMES", "TRAININGS", "EVENTS", "BEACH", "JOIN DIRECTLY", "REQUEST ONLY"] as const;
+
+// Maps each filter key to its key in t.home.filters
+const FILTER_KEY: Record<string, keyof Dict["home"]["filters"]> = {
+  ALL: "all",
+  TOURNAMENT: "tournament",
+  GAMES: "games",
+  TRAININGS: "trainings",
+  EVENTS: "events",
+  BEACH: "beach",
+  "JOIN DIRECTLY": "joinDirectly",
+  "REQUEST ONLY": "requestOnly",
+};
 
 // Shared column sizes — identical values used in every row (header, filters, timeline, footer)
 // so the cards column always starts at the exact same horizontal position.
@@ -86,17 +99,19 @@ const DATE_W  = "hidden md:block md:w-24"; // hidden on mobile, 96px on md+
 const DOT_W   = "hidden md:block md:w-4";  // hidden on mobile, 16px on md+
 const COL_GAP = "gap-2 md:gap-3";
 
-function getDayLabel(date: string): string {
-  if (date === "TODAY")    return "Today";
-  if (date === "TOMORROW") return "Tomorrow";
-  const m: Record<string, string> = {
-    MON: "Monday", TUE: "Tuesday", WED: "Wednesday",
-    THU: "Thursday", FRI: "Friday", SAT: "Saturday", SUN: "Sunday",
+function getDayLabel(date: string, t: Dict): string {
+  if (date === "TODAY")    return t.days.today;
+  if (date === "TOMORROW") return t.days.tomorrow;
+  const m: Record<string, keyof Dict["days"]> = {
+    MON: "monday", TUE: "tuesday", WED: "wednesday",
+    THU: "thursday", FRI: "friday", SAT: "saturday", SUN: "sunday",
   };
-  return m[date.split(",")[0].trim()] ?? "";
+  const key = m[date.split(",")[0].trim()];
+  return key ? t.days[key] : "";
 }
 
 export function Home() {
+  const { t } = useLang();
   const [activeFilter, setActiveFilter] = useState("ALL");
 
   const filtered = ALL_EVENTS.filter(e => {
@@ -121,7 +136,7 @@ export function Home() {
           <div className={`${DATE_W} shrink-0`} />
           <div className={`${DOT_W}  shrink-0`} />
           <h2 className="font-black italic text-white tracking-widest uppercase text-2xl min-w-0">
-            Events Feed
+            {t.home.eventsFeed}
           </h2>
         </div>
 
@@ -131,7 +146,7 @@ export function Home() {
           <div className={`${DOT_W}  shrink-0`} />
           <div className="flex-1 min-w-0 flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {ALL_FILTERS.map(f => (
-              <PillFilter key={f} label={f} active={activeFilter === f} onClick={() => setActiveFilter(f)} />
+              <PillFilter key={f} label={t.home.filters[FILTER_KEY[f]]} active={activeFilter === f} onClick={() => setActiveFilter(f)} />
             ))}
           </div>
         </div>
@@ -142,7 +157,7 @@ export function Home() {
             <div className={`flex ${COL_GAP}`}>
               <div className={`${DATE_W} shrink-0`} />
               <div className={`${DOT_W}  shrink-0`} />
-              <p className="flex-1 text-[#79828b] text-sm py-10 text-center">No events found</p>
+              <p className="flex-1 text-[#79828b] text-sm py-10 text-center">{t.home.noEvents}</p>
             </div>
           )}
 
@@ -155,7 +170,7 @@ export function Home() {
                   {date}
                 </span>
                 <span className="text-[#79828b] text-[8px] md:text-[10px] mt-0.5 text-right leading-tight">
-                  {getDayLabel(date)}
+                  {getDayLabel(date, t)}
                 </span>
               </div>
 
@@ -184,7 +199,7 @@ export function Home() {
               <div>
                 <div className="font-black italic text-white text-xl tracking-widest">PRIME</div>
                 <div className="text-[#79828b] text-xs mt-1 leading-relaxed">
-                  Competitive sports events & community
+                  {t.home.tagline}
                 </div>
               </div>
               <div className="flex gap-2 shrink-0">
@@ -197,12 +212,12 @@ export function Home() {
               </div>
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-[#79828b] text-xs mb-4">
-              <a href="#" className="hover:text-white transition-colors">Privacy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms</a>
-              <a href="#" className="hover:text-white transition-colors">Rules</a>
-              <a href="#" className="hover:text-white transition-colors">Contact</a>
+              <a href="#" className="hover:text-white transition-colors">{t.home.footer.privacy}</a>
+              <a href="#" className="hover:text-white transition-colors">{t.home.footer.terms}</a>
+              <a href="#" className="hover:text-white transition-colors">{t.home.footer.rules}</a>
+              <a href="#" className="hover:text-white transition-colors">{t.home.footer.contact}</a>
             </div>
-            <p className="text-[#79828b] text-[10px]">© 2025 PRIME. All rights reserved.</p>
+            <p className="text-[#79828b] text-[10px]">{t.home.copyright}</p>
           </div>
         </div>
 

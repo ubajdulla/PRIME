@@ -1,0 +1,73 @@
+import type { Dict } from "./types";
+
+export const ru: Dict = {
+  nav: {
+    events: "События",
+    alerts: "Уведомления",
+    profile: "Профиль",
+    admin: "Админ",
+  },
+  home: {
+    eventsFeed: "Лента событий",
+    noEvents: "События не найдены",
+    tagline: "Соревновательные спортивные события и сообщество",
+    copyright: "© 2025 PRIME. Все права защищены.",
+    footer: {
+      privacy: "Конфиденциальность",
+      terms: "Условия",
+      rules: "Правила",
+      contact: "Контакты",
+    },
+    filters: {
+      all: "Все",
+      tournament: "Турнир",
+      games: "Игры",
+      trainings: "Тренировки",
+      events: "События",
+      beach: "Пляж",
+      joinDirectly: "Прямой вход",
+      requestOnly: "Только заявка",
+    },
+  },
+  event: {
+    eventDetails: "Детали события",
+    date: "Дата",
+    time: "Время",
+    location: "Место",
+    entryFee: "Взнос",
+    requestOnly: "Только заявка",
+    joinDirectly: "Прямой вход",
+    rosterTitle: "Прозрачный состав",
+    capacity: "Вместимость",
+    joined: "участвует",
+    viewProfile: "Просмотр профиля",
+    groupChat: "Групповой чат",
+    waitlistCount: (n) =>
+      `${n} ${n === 1 ? "игрок" : n < 5 ? "игрока" : "игроков"} в листе ожидания`,
+    sendRequest: "Отправить заявку",
+    directJoin: "Вступить и оплатить",
+    moderator: "Модератор",
+  },
+  admin: {
+    overview: "Обзор",
+    upcomingEvents: "Предстоящие события",
+    pendingRequests: "Ожидающие заявки",
+    activePlayers: "Активные игроки",
+    collectedWeek: "Собрано (неделя)",
+    paid: "оплачено",
+    unpaid: "не оплачено",
+    pendingRequest: (n) =>
+      `${n} ${n === 1 ? "заявка" : n < 5 ? "заявки" : "заявок"} в ожидании`,
+  },
+  days: {
+    today: "Сегодня",
+    tomorrow: "Завтра",
+    monday: "Понедельник",
+    tuesday: "Вторник",
+    wednesday: "Среда",
+    thursday: "Четверг",
+    friday: "Пятница",
+    saturday: "Суббота",
+    sunday: "Воскресенье",
+  },
+};

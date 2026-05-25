@@ -1,9 +1,13 @@
 import { Outlet, NavLink, useNavigate } from "react-router";
 import { Calendar, User, Bell, ShieldCheck } from "lucide-react";
 import logo from "../../imports/Prime_logo_nobg_white_border.png";
+import { useLang, LANG_CYCLE } from "../i18n";
 
 export function MainLayout() {
   const navigate = useNavigate();
+  const { lang, t, setLang } = useLang();
+  const nextLang = LANG_CYCLE[(LANG_CYCLE.indexOf(lang) + 1) % LANG_CYCLE.length];
+  const LANG_LABEL: Record<string, string> = { en: "English", cs: "Čeština", ru: "Русский" };
 
   function handleLogoClick(e: React.MouseEvent) {
     e.preventDefault();
@@ -30,11 +34,27 @@ export function MainLayout() {
 
         {/* Nav items — vertically centered */}
         <nav className="flex flex-col flex-1 justify-center gap-0.5 px-3">
-          <NavItem to="/" end icon={<Calendar size={22} />} label="Events" />
-          <NavItem to="/alerts" icon={<Bell size={22} />} label="Alerts" />
-          <NavItem to="/profile" icon={<User size={22} />} label="Profile" />
-          <NavItem to="/admin" icon={<ShieldCheck size={22} />} label="Admin" />
+          <NavItem to="/" end icon={<Calendar size={22} />} label={t.nav.events} />
+          <NavItem to="/alerts" icon={<Bell size={22} />} label={t.nav.alerts} />
+          <NavItem to="/profile" icon={<User size={22} />} label={t.nav.profile} />
+          <NavItem to="/admin" icon={<ShieldCheck size={22} />} label={t.nav.admin} />
         </nav>
+
+        {/* Language switcher */}
+        <div className="shrink-0 px-3 pb-6">
+          <button
+            onClick={() => setLang(nextLang)}
+            className="flex items-center w-full rounded-xl whitespace-nowrap text-[#8899a6] hover:text-white transition-all duration-200"
+            title={`Switch to ${LANG_LABEL[nextLang]}`}
+          >
+            <span className="flex items-center justify-center w-12 h-12 rounded-xl hover:bg-white/10 font-black text-sm tracking-widest">
+              {lang.toUpperCase()}
+            </span>
+            <span className="text-[15px] font-bold ml-1 select-none opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+              {LANG_LABEL[nextLang]}
+            </span>
+          </button>
+        </div>
       </aside>
 
       {/* Main content — offset only by collapsed sidebar width */}
@@ -49,10 +69,17 @@ export function MainLayout() {
 
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 w-full bg-[#17212b] border-t border-[#101923] flex justify-around items-center p-2 z-50 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] shadow-[0_-4px_20px_rgba(0,0,0,0.2)]">
-        <MobileNavItem to="/" end icon={<Calendar size={24} />} label="Events" />
-        <MobileNavItem to="/alerts" icon={<Bell size={24} />} label="Alerts" />
-        <MobileNavItem to="/profile" icon={<User size={24} />} label="Profile" />
-        <MobileNavItem to="/admin" icon={<ShieldCheck size={24} />} label="Admin" />
+        <MobileNavItem to="/" end icon={<Calendar size={24} />} label={t.nav.events} />
+        <MobileNavItem to="/alerts" icon={<Bell size={24} />} label={t.nav.alerts} />
+        <MobileNavItem to="/profile" icon={<User size={24} />} label={t.nav.profile} />
+        <MobileNavItem to="/admin" icon={<ShieldCheck size={24} />} label={t.nav.admin} />
+        <button
+          onClick={() => setLang(nextLang)}
+          className="flex flex-col items-center gap-1 p-2 min-w-[56px] text-[#79828b] hover:text-white transition-colors"
+        >
+          <span className="text-[14px] font-black">{lang.toUpperCase()}</span>
+          <span className="text-[10px] font-bold">{nextLang.toUpperCase()}</span>
+        </button>
       </nav>
     </div>
   );

@@ -20,6 +20,7 @@ export const router = createBrowserRouter([
       { index: true, Component: Home },
       { path: "alerts", Component: Alerts },
       { path: "profile", Component: Profile },
+      { path: "events/:id", Component: EventDetail },
       {
         path: "admin",
         Component: AdminLayout,
@@ -32,13 +33,6 @@ export const router = createBrowserRouter([
           { path: "players/:level", Component: AdminPlayersList },
         ],
       },
-    ],
-  },
-  {
-    path: "/events",
-    Component: EventLayout,
-    children: [
-      { path: ":id", Component: EventDetail },
     ],
   },
 ]);

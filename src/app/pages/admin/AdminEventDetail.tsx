@@ -7,11 +7,8 @@ import {
 } from "lucide-react";
 import {
   ADMIN_EVENTS, getCategoryStyle,
-  type PaymentStatus, type Player,
+  type PaymentStatus, type Player, type RosterPlayer,
 } from "../../data/adminData";
-import { PlayerProfileModal } from "../../components/PlayerProfileModal";
-
-
 export function AdminEventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -24,15 +21,14 @@ export function AdminEventDetail() {
   // UI state
   const [openMenu,         setOpenMenu]         = useState<string | null>(null);
   const [confirmRemoveId,  setConfirmRemoveId]  = useState<string | null>(null);
-  const [profilePlayer,    setProfilePlayer]    = useState<Player | null>(null);
   const [isPublished,      setIsPublished]      = useState(event?.status !== "draft");
 
   if (!event) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-[#79828b]">
         <p className="font-bold">Event not found</p>
-        <button onClick={() => navigate("/admin/events")} className="text-[#3390ec] text-sm font-bold">
-          ← Back to events
+        <button onClick={() => navigate("/admin/events")} className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold">
+          <ChevronLeft size={18} /> Events
         </button>
       </div>
     );
@@ -101,8 +97,8 @@ export function AdminEventDetail() {
     setRequests(prev => prev.filter(p => p.id !== playerId));
   }
 
-  function openProfile(player: Player) {
-    setProfilePlayer(player);
+  function openProfile(_player: Player) {
+    navigate("/profile");
     setOpenMenu(null);
   }
 
@@ -118,50 +114,49 @@ export function AdminEventDetail() {
   const collectedCZK = (cashPaid + onlinePaid) * event.price;
 
   return (
-    <div className="max-w-[700px] mx-auto px-4 py-6 pb-16">
-
-      {profilePlayer && (
-        <PlayerProfileModal player={profilePlayer} onClose={() => setProfilePlayer(null)} />
-      )}
-
-      {/* Back + edit + publish */}
-      <div className="flex items-center justify-between mb-5">
+    <div>
+      {/* Back button — sticky top bar */}
+      <div className="sticky top-0 z-10 flex items-center px-4 py-3 bg-[#0e1621]/90 backdrop-blur-md border-b border-white/5">
         <button
           onClick={() => navigate("/admin/events")}
           className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
         >
           <ChevronLeft size={18} /> Events
         </button>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate(`/admin/events/create?edit=${event.id}`)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-[#79828b] hover:text-white hover:bg-white/10 transition-colors"
-            title="Edit event"
-          >
-            <Pencil size={14} />
-          </button>
-          {!isPublished && (
-            <button
-              onClick={() => setIsPublished(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#ccff00] text-black text-[11px] font-black uppercase tracking-widest rounded-xl active:scale-95 transition-transform"
-            >
-              <Send size={13} /> Publish Event
-            </button>
-          )}
-          {isPublished && event.status === "draft" && (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-[#4dcd5e]/10 text-[#4dcd5e] text-[11px] font-black uppercase tracking-widest rounded-xl border border-[#4dcd5e]/20">
-              <CheckCircle2 size={13} /> Published
-            </span>
-          )}
-        </div>
       </div>
+
+    <div className="max-w-[700px] mx-auto px-4 py-6 pb-16">
 
       {/* Event header */}
       <div className="mb-2">
         <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded inline-block mb-2 ${getCategoryStyle(event.category)}`}>
           {event.category}
         </span>
-        <h1 className="font-black italic text-xl text-white uppercase tracking-wide leading-tight">{event.title}</h1>
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <h1 className="font-black italic text-xl text-white uppercase tracking-wide leading-tight">{event.title}</h1>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => navigate(`/admin/events/create?edit=${event.id}`)}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-[#79828b] hover:text-white hover:bg-white/10 transition-colors"
+              title="Edit event"
+            >
+              <Pencil size={14} />
+            </button>
+            {!isPublished && (
+              <button
+                onClick={() => setIsPublished(true)}
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#ccff00] text-black text-[11px] font-black uppercase tracking-widest rounded-xl active:scale-95 transition-transform"
+              >
+                <Send size={13} /> Publish Event
+              </button>
+            )}
+            {isPublished && event.status === "draft" && (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-[#4dcd5e]/10 text-[#4dcd5e] text-[11px] font-black uppercase tracking-widest rounded-xl border border-[#4dcd5e]/20">
+                <CheckCircle2 size={13} /> Published
+              </span>
+            )}
+          </div>
+        </div>
         <p className="text-[#79828b] text-xs mt-1">
           {event.date} • {event.time} • {event.location}
           <span className="text-white font-bold"> • {event.priceLabel}</span>
@@ -206,7 +201,6 @@ export function AdminEventDetail() {
             <div className={`flex items-center gap-2 p-3 bg-[#17212b] border transition-colors ${
               openMenu === player.id ? "rounded-t-xl border-b-0 border-white/10" : "rounded-xl border-white/5"
             }`}>
-              <span className="text-[#79828b] text-[11px] font-black w-5 text-right shrink-0">{idx + 1}</span>
               <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-white text-sm truncate">{player.name}</div>
@@ -281,9 +275,8 @@ export function AdminEventDetail() {
         {waitlist.length === 0 && (
           <p className="text-[#79828b] text-sm text-center py-6">No players on waitlist</p>
         )}
-        {waitlist.map((player, idx) => (
+        {waitlist.map((player) => (
           <div key={player.id} className="flex items-center gap-3 p-3 bg-[#17212b] rounded-xl border border-white/5">
-            <span className="text-[#eab308] text-[11px] font-black w-5 text-right shrink-0">#{idx + 1}</span>
             <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="font-bold text-white text-sm truncate">{player.name}</div>
@@ -345,6 +338,7 @@ export function AdminEventDetail() {
           </div>
         </>
       )}
+    </div>
     </div>
   );
 }

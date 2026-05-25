@@ -70,10 +70,9 @@ export function EditProfile() {
       <div className="sticky top-0 z-20 bg-[#0e1621]/90 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-4 py-3">
         <button
           onClick={() => navigate("/profile")}
-          className="flex items-center gap-1.5 text-[#3390ec] font-bold text-sm active:opacity-70 transition-opacity"
+          className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
         >
-          <ChevronLeft size={20} />
-          Back
+          <ChevronLeft size={18} /> Back
         </button>
         <span className="font-black text-white text-base tracking-tight">Edit Profile</span>
         <button

@@ -1,0 +1,73 @@
+import type { Dict } from "./types";
+
+export const cs: Dict = {
+  nav: {
+    events: "Události",
+    alerts: "Upozornění",
+    profile: "Profil",
+    admin: "Admin",
+  },
+  home: {
+    eventsFeed: "Přehled událostí",
+    noEvents: "Žádné události nenalezeny",
+    tagline: "Soutěžní sportovní události & komunita",
+    copyright: "© 2025 PRIME. Všechna práva vyhrazena.",
+    footer: {
+      privacy: "Ochrana dat",
+      terms: "Podmínky",
+      rules: "Pravidla",
+      contact: "Kontakt",
+    },
+    filters: {
+      all: "Vše",
+      tournament: "Turnaj",
+      games: "Zápasy",
+      trainings: "Tréninky",
+      events: "Události",
+      beach: "Pláž",
+      joinDirectly: "Přímé přihlášení",
+      requestOnly: "Jen na žádost",
+    },
+  },
+  event: {
+    eventDetails: "Detail události",
+    date: "Datum",
+    time: "Čas",
+    location: "Místo",
+    entryFee: "Vstupné",
+    requestOnly: "Jen na žádost",
+    joinDirectly: "Přímé přihlášení",
+    rosterTitle: "Transparentní sestava",
+    capacity: "Kapacita",
+    joined: "přihlášeno",
+    viewProfile: "Zobrazit profil",
+    groupChat: "Skupinový chat",
+    waitlistCount: (n) =>
+      `${n} ${n === 1 ? "hráč" : n < 5 ? "hráči" : "hráčů"} na čekací listině`,
+    sendRequest: "Odeslat žádost",
+    directJoin: "Přihlásit se & zaplatit",
+    moderator: "Moderátor",
+  },
+  admin: {
+    overview: "Přehled",
+    upcomingEvents: "Nadcházející události",
+    pendingRequests: "Čekající žádosti",
+    activePlayers: "Aktivní hráči",
+    collectedWeek: "Vybráno (týden)",
+    paid: "zaplaceno",
+    unpaid: "nezaplaceno",
+    pendingRequest: (n) =>
+      `${n} čekající ${n === 1 ? "žádost" : n < 5 ? "žádosti" : "žádostí"}`,
+  },
+  days: {
+    today: "Dnes",
+    tomorrow: "Zítra",
+    monday: "Pondělí",
+    tuesday: "Úterý",
+    wednesday: "Středa",
+    thursday: "Čtvrtek",
+    friday: "Pátek",
+    saturday: "Sobota",
+    sunday: "Neděle",
+  },
+};
