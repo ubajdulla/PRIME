@@ -1,6 +1,15 @@
 import { Link } from "react-router";
 import { MapPin, Calendar, Clock, ChevronRight } from "lucide-react";
 
+const LEVEL_STYLE: Record<string, { bg: string; text: string; border: string }> = {
+  PRIME:        { bg: "bg-[#ccff00]/15", text: "text-[#ccff00]",  border: "border-[#ccff00]/30" },
+  Pro:          { bg: "bg-[#3390ec]/15", text: "text-[#3390ec]",  border: "border-[#3390ec]/30" },
+  Advanced:     { bg: "bg-[#a855f7]/15", text: "text-[#a855f7]",  border: "border-[#a855f7]/30" },
+  Intermediate: { bg: "bg-[#eab308]/15", text: "text-[#eab308]",  border: "border-[#eab308]/30" },
+  Beginner:     { bg: "bg-[#f97316]/15", text: "text-[#f97316]",  border: "border-[#f97316]/30" },
+  Rookie:       { bg: "bg-white/5",      text: "text-[#79828b]",  border: "border-white/10"     },
+};
+
 export interface EventCardProps {
   id: string;
   title: string;
@@ -13,6 +22,7 @@ export interface EventCardProps {
   status: "REQUEST ONLY" | "JOIN DIRECTLY";
   image?: string;
   category?: string;
+  level?: string;
   horizontal?: boolean;
 }
 
@@ -27,6 +37,7 @@ export function EventCard({
   avatars,
   status,
   image,
+  level,
   horizontal = false
 }: EventCardProps) {
   const isRequestOnly = status === "REQUEST ONLY";
@@ -49,7 +60,7 @@ export function EventCard({
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-[#17212b]/50 via-transparent to-transparent" />
 
-          {/* Status badge — overlaid top-left on image */}
+          {/* Badge — overlaid top-left on image */}
           <div className="absolute top-2.5 left-2.5">
             <span className={`text-[10px] font-bold px-2.5 py-1 uppercase tracking-widest rounded-md flex items-center gap-1 backdrop-blur-sm ${
               isRequestOnly
@@ -65,10 +76,20 @@ export function EventCard({
 
       {/* Content */}
       <div className="px-4 pt-3 pb-4 flex flex-col gap-2">
-        {/* Title */}
-        <h3 className="font-black italic text-xl uppercase tracking-wide text-white line-clamp-2 leading-tight">
-          {title}
-        </h3>
+        {/* Title + level */}
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-black italic text-xl uppercase tracking-wide text-white line-clamp-2 leading-tight flex-1">
+            {title}
+          </h3>
+          {level && (() => {
+            const s = LEVEL_STYLE[level] ?? LEVEL_STYLE["Rookie"];
+            return (
+              <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border shrink-0 mt-1 ${s.bg} ${s.text} ${s.border}`}>
+                {level}
+              </span>
+            );
+          })()}
+        </div>
 
         {/* Date & Time */}
         <div className="flex items-center gap-2 text-sm">

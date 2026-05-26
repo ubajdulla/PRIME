@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Instagram, Send } from "lucide-react";
 import { EventCard, EventCardProps } from "../components/EventCard";
 import { useLang, type Dict } from "../i18n";
@@ -23,6 +24,7 @@ const ALL_EVENTS: EventCardProps[] = [
     avatars: AVATARS.slice(0, 3).concat(AVATARS),
     status: "JOIN DIRECTLY",
     category: "GAMES",
+    level: "Advanced",
     image: "https://images.unsplash.com/photo-1546519638405-a4ebb24f9e0b?w=600&h=400&fit=crop",
   },
   {
@@ -49,6 +51,7 @@ const ALL_EVENTS: EventCardProps[] = [
     avatars: AVATARS.slice(1, 3),
     status: "JOIN DIRECTLY",
     category: "TRAININGS",
+    level: "Intermediate",
     image: "https://images.unsplash.com/photo-1504450758481-7338eba7524a?w=600&h=400&fit=crop",
   },
   {
@@ -113,6 +116,7 @@ function getDayLabel(date: string, t: Dict): string {
 export function Home() {
   const { t } = useLang();
   const [activeFilter, setActiveFilter] = useState("ALL");
+  const filterScrollRef = useRef<HTMLDivElement>(null);
 
   const filtered = ALL_EVENTS.filter(e => {
     if (activeFilter === "ALL") return true;
@@ -143,11 +147,39 @@ export function Home() {
         {/* ── Filter bar ───────────────────────────────────────────── */}
         <div className={`flex items-center ${COL_GAP} mb-8`}>
           <div className={`${DATE_W} shrink-0`} />
-          <div className={`${DOT_W}  shrink-0`} />
-          <div className="flex-1 min-w-0 flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {ALL_FILTERS.map(f => (
-              <PillFilter key={f} label={t.home.filters[FILTER_KEY[f]]} active={activeFilter === f} onClick={() => setActiveFilter(f)} />
-            ))}
+          <div className={`${DOT_W} shrink-0`} />
+
+          {/* Pills wrapper — same flex-1 column as event cards */}
+          <div className="flex-1 min-w-0 relative">
+            {/* Left arrow — right edge flush with left edge of event cards, desktop only */}
+            <button
+              className="hidden md:flex absolute -left-11 top-1/2 -translate-y-1/2 items-center justify-center w-8 h-8 rounded-full border border-white/15 bg-[#17212b] text-[#8899a6] hover:text-white hover:border-white/30 transition-all duration-200 z-10"
+              onClick={() => filterScrollRef.current?.scrollBy({ left: -160, behavior: "smooth" })}
+              tabIndex={-1}
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            {/* Mobile: right fade hint to indicate scroll */}
+            <div className="md:hidden absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0e1621] to-transparent pointer-events-none z-10" />
+
+            <div
+              ref={filterScrollRef}
+              className="flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            >
+              {ALL_FILTERS.map(f => (
+                <PillFilter key={f} label={t.home.filters[FILTER_KEY[f]]} active={activeFilter === f} onClick={() => setActiveFilter(f)} />
+              ))}
+            </div>
+
+            {/* Right arrow — left edge flush with right edge of event cards, desktop only */}
+            <button
+              className="hidden md:flex absolute -right-11 top-1/2 -translate-y-1/2 items-center justify-center w-8 h-8 rounded-full border border-white/15 bg-[#17212b] text-[#8899a6] hover:text-white hover:border-white/30 transition-all duration-200 z-10"
+              onClick={() => filterScrollRef.current?.scrollBy({ left: 160, behavior: "smooth" })}
+              tabIndex={-1}
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
         </div>
 

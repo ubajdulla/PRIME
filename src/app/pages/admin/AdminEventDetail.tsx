@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import {
   ChevronLeft, ChevronUp, ChevronDown, MoreVertical,
   CheckCircle2, CreditCard, Banknote, User, ArrowDownToLine,
-  Trash2, Send, CheckCheck, X, Pencil,
+  Trash2, Send, CheckCheck, X, Pencil, AlertTriangle,
 } from "lucide-react";
 import {
   ADMIN_EVENTS, getCategoryStyle,
@@ -22,6 +22,7 @@ export function AdminEventDetail() {
   const [openMenu,         setOpenMenu]         = useState<string | null>(null);
   const [confirmRemoveId,  setConfirmRemoveId]  = useState<string | null>(null);
   const [isPublished,      setIsPublished]      = useState(event?.status !== "draft");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (!event) {
     return (
@@ -115,6 +116,40 @@ export function AdminEventDetail() {
 
   return (
     <div>
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/20 flex items-center justify-center shrink-0">
+                <AlertTriangle size={18} className="text-[#ef4444]" />
+              </div>
+              <div>
+                <h3 className="font-black italic uppercase tracking-widest text-white text-base">Delete Event?</h3>
+                <p className="text-[#79828b] text-xs">This cannot be undone.</p>
+              </div>
+            </div>
+            <p className="text-[#79828b] text-sm mb-5">
+              All roster, waitlist, and request data for <span className="text-white font-bold">{event.title}</span> will be permanently removed.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => navigate("/admin/events")}
+                className="flex-1 py-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-bold text-sm active:scale-[0.98] transition-transform"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Back button — sticky top bar */}
       <div className="sticky top-0 z-10 flex items-center px-4 py-3 bg-[#0e1621]/90 backdrop-blur-md border-b border-white/5">
         <button
@@ -135,6 +170,13 @@ export function AdminEventDetail() {
         <div className="flex items-center justify-between gap-2 mb-1">
           <h1 className="font-black italic text-xl text-white uppercase tracking-wide leading-tight">{event.title}</h1>
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-[#79828b] hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors"
+              title="Delete event"
+            >
+              <Trash2 size={14} />
+            </button>
             <button
               onClick={() => navigate(`/admin/events/create?edit=${event.id}`)}
               className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-[#79828b] hover:text-white hover:bg-white/10 transition-colors"

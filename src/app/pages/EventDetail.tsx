@@ -6,13 +6,19 @@ import {
   Calendar,
   Clock,
   CheckCircle2,
-  Share,
   MoreVertical,
   User,
   Ticket,
+  Check,
+  X,
+  LogOut,
 } from "lucide-react";
 
 const SKILL_ORDER = ["Rookie", "Beginner", "Intermediate", "Advanced", "Pro", "PRIME"];
+
+const EVENT_CATS: Record<string, string> = {
+  e1: "GAMES", e2: "TOURNAMENT", e3: "TRAININGS", e4: "TOURNAMENT", e5: "BEACH",
+};
 
 const ROSTER = [
   { name: "ZeroCool",    role: "Setter",        img: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&h=150&fit=crop" },
@@ -23,47 +29,136 @@ const ROSTER = [
   { name: "ViperX",      role: "Outside Hitter", img: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop" },
 ];
 
+type JoinStatus = null | "joined" | "pending";
+
 export function EventDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [joinStatus, setJoinStatus] = useState<JoinStatus>(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
 
   const isRequestOnly = id === "e2" || id === "e4";
-
-  // Event-level properties (swap for real data when backend ready)
-  const isGame = true;
-  const eventSkillLevel = "Advanced"; // minimum skill level required for this event
-
-  // Show positions only when the event is a game at Advanced level or higher
+  const isGame = (EVENT_CATS[id ?? ""] ?? "") === "GAMES";
+  const eventSkillLevel = "Advanced";
   const showPositions = isGame && SKILL_ORDER.indexOf(eventSkillLevel) >= SKILL_ORDER.indexOf("Advanced");
 
   const theme = {
-    primary: isRequestOnly ? "text-[#ccff00]" : "text-[#3390ec]",
-    bg: isRequestOnly ? "bg-[#ccff00]" : "bg-[#3390ec]",
-    button: isRequestOnly ? "bg-[#ccff00] text-black" : "bg-[#3390ec] text-white",
+    primary: isRequestOnly ? "text-[#eab308]" : "text-[#3390ec]",
+    bg: isRequestOnly ? "bg-[#eab308]" : "bg-[#3390ec]",
+    button: isRequestOnly ? "bg-[#eab308] text-black" : "bg-[#3390ec] text-white",
   };
 
   const title = isRequestOnly ? "ELITE SCRIMMAGE #42" : "PRO-AM INVITATIONAL";
   const maxCapacity = 10;
   const currentCapacity = ROSTER.length;
 
+  function handleJoinClick() {
+    if (joinStatus) {
+      setShowLeaveConfirm(true);
+    } else {
+      setShowJoinModal(true);
+    }
+  }
+
+  function confirmJoin() {
+    setJoinStatus(isRequestOnly ? "pending" : "joined");
+    setShowJoinModal(false);
+  }
+
+  function confirmLeave() {
+    setJoinStatus(null);
+    setShowLeaveConfirm(false);
+  }
+
+  const joinButtonLabel = () => {
+    if (joinStatus === "joined") return "Joined";
+    if (joinStatus === "pending") return "Pending";
+    return isRequestOnly ? "Send a Request" : "Join Directly";
+  };
+
+  const joinButtonClass = () => {
+    if (joinStatus === "joined") return "bg-[#4dcd5e]/10 border border-[#4dcd5e]/30 text-[#4dcd5e]";
+    if (joinStatus === "pending") return "bg-[#eab308]/10 border border-[#eab308]/30 text-[#eab308]";
+    return theme.button;
+  };
+
   return (
     <div className="relative min-h-screen bg-[#0e1621] text-white font-sans overflow-x-hidden selection:bg-white/20">
-      {/* Top Bar */}
-      <div className="sticky top-0 z-50 flex justify-between items-center px-4 py-3 bg-[#0e1621]/90 backdrop-blur-md border-b border-white/5">
+
+      {/* Join confirmation modal */}
+      {showJoinModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">
+              {isRequestOnly ? "Send Request?" : "Join Event?"}
+            </h3>
+            <p className="text-[#79828b] text-sm mb-6">
+              {isRequestOnly
+                ? "Your request will be sent to the organizer for approval."
+                : "You'll be added to the roster immediately."}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowJoinModal(false)}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmJoin}
+                className={`flex-1 py-2.5 rounded-xl font-bold text-sm active:scale-[0.98] transition-transform ${theme.button}`}
+              >
+                {isRequestOnly ? "Send Request" : "Join"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leave confirmation modal */}
+      {showLeaveConfirm && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">
+              {joinStatus === "pending" ? "Cancel Request?" : "Leave Event?"}
+            </h3>
+            <p className="text-[#79828b] text-sm mb-6">
+              {joinStatus === "pending"
+                ? "Your request will be withdrawn."
+                : "You will be removed from the roster."}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLeaveConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
+              >
+                Keep
+              </button>
+              <button
+                onClick={confirmLeave}
+                className="flex-1 py-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-bold text-sm active:scale-[0.98] transition-transform"
+              >
+                {joinStatus === "pending" ? "Cancel Request" : "Leave"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sticky back bar */}
+      <div className="sticky top-0 z-10 flex items-center px-4 py-3 bg-[#0e1621]/90 backdrop-blur-md border-b border-white/5">
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
         >
           <ChevronLeft size={18} /> Back
         </button>
-        <div className="flex-1" />
-        <button className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors">
-          <Share size={18} strokeWidth={2} />
-        </button>
       </div>
 
-      <div className="px-4 pb-12 max-w-[600px] mx-auto mt-4">
+      <div className="px-4 pb-12 max-w-[600px] mx-auto pt-4">
+
         {/* COMPACT UPPER SECTION */}
         <div className="mb-6">
           <h1 className="text-3xl font-black italic uppercase tracking-tight leading-none text-white mb-4">
@@ -130,12 +225,17 @@ export function EventDetail() {
                 <span className="text-sm font-semibold text-white/90">625 CZK</span>
               </div>
             </div>
-            <div className="flex items-center gap-2.5 p-3">
+            <a
+              href="https://maps.google.com/?q=Cyber+Arena+Court+4+Sector+7"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2.5 p-3 hover:bg-white/5 transition-colors rounded-b-xl"
+            >
               <MapPin size={16} className={theme.primary} />
               <span className="text-sm font-semibold text-white/90 truncate">
                 Cyber Arena • Court 4, Sector 7
               </span>
-            </div>
+            </a>
           </div>
 
           <p className="text-[#79828b] text-xs leading-relaxed mt-4 px-1">
@@ -150,10 +250,29 @@ export function EventDetail() {
               {currentCapacity}{" "}
               <span className="text-[#79828b]">/ {maxCapacity} Players</span>
             </h2>
-            <button className={`w-36 py-2 rounded-lg font-bold text-sm transition-transform active:scale-[0.98] shadow-sm ${theme.button}`}>
-              {isRequestOnly ? "Send a Request" : "Join Directly"}
+
+            <button
+              onClick={handleJoinClick}
+              className={`flex items-center gap-1.5 w-36 py-2 justify-center rounded-lg font-bold text-sm transition-all active:scale-[0.98] shadow-sm ${joinButtonClass()}`}
+            >
+              {joinStatus === "joined" && <Check size={14} />}
+              {joinStatus === "pending" && <Check size={14} />}
+              {joinButtonLabel()}
             </button>
           </div>
+
+          {/* Leave / Cancel nudge below button */}
+          {joinStatus && (
+            <div className="flex justify-end mb-3 px-1">
+              <button
+                onClick={() => setShowLeaveConfirm(true)}
+                className="flex items-center gap-1 text-[10px] text-[#ef4444]/70 hover:text-[#ef4444] font-bold uppercase tracking-wider transition-colors"
+              >
+                <LogOut size={10} />
+                {joinStatus === "pending" ? "Cancel request" : "Leave event"}
+              </button>
+            </div>
+          )}
 
           {/* Capacity Bar */}
           <div className="w-full h-1.5 bg-white/5 rounded-full mb-4 overflow-hidden">
@@ -205,19 +324,6 @@ export function EventDetail() {
                     </div>
                   )}
                 </div>
-              </div>
-            ))}
-
-            {/* Empty Slots */}
-            {Array.from({ length: maxCapacity - currentCapacity }).map((_, i) => (
-              <div
-                key={`empty-${i}`}
-                className="flex items-center gap-3 bg-white/5 border border-dashed border-white/10 rounded-xl p-2.5 opacity-60"
-              >
-                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 shrink-0">
-                  <User size={16} className="text-[#79828b]" />
-                </div>
-                <span className="font-bold text-[#79828b] text-sm">Open Slot</span>
               </div>
             ))}
           </div>

@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { useNavigate, Link } from "react-router";
 import {
   Phone, Mail, Instagram, Send, MapPin, Calendar, Clock,
-  ChevronRight, Pencil, Camera, Check, X, User,
+  ChevronRight, Pencil, Camera, LogOut, User,
 } from "lucide-react";
 
 type SkillLevel = "Beginner" | "Intermediate" | "Advanced" | "Pro" | "Elite";
@@ -29,8 +30,8 @@ const DEFAULT_USER = {
 };
 
 const UPCOMING_EVENTS = [
-  { id: "u1", title: "FRIDAY PICKUP",       date: "FRI, MAY 2",  time: "19:00 – 21:00", location: "SportCenter Praha 7",     pending: false },
-  { id: "u2", title: "ELITE SCRIMMAGE #48", date: "SAT, MAY 10", time: "14:00 – 17:00", location: "Volleyball Arena Dejvice", pending: true  },
+  { id: "e1", title: "FRIDAY PICKUP",       date: "FRI, MAY 2",  time: "19:00 – 21:00", location: "SportCenter Praha 7",     pending: false },
+  { id: "e2", title: "ELITE SCRIMMAGE #48", date: "SAT, MAY 10", time: "14:00 – 17:00", location: "Volleyball Arena Dejvice", pending: true  },
 ];
 
 const PAST_EVENTS = [
@@ -50,8 +51,10 @@ type ContactDraft = {
 };
 
 export function Profile() {
+  const navigate = useNavigate();
   const [user, setUser] = useState(DEFAULT_USER);
   const [editingContact, setEditingContact] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [draft, setDraft] = useState<ContactDraft>({
     fullName: `${DEFAULT_USER.firstName} ${DEFAULT_USER.lastName}`,
     phone:    DEFAULT_USER.phone,
@@ -100,6 +103,30 @@ export function Profile() {
   return (
     <div className="min-h-full bg-[#0e1621] pb-16 font-sans">
 
+      {/* Logout confirmation modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">Log Out?</h3>
+            <p className="text-[#79828b] text-sm mb-6">You'll need to sign in again to access your account.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => navigate("/signin")}
+                className="flex-1 py-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-bold text-sm active:scale-[0.98] transition-transform"
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Profile identity ── */}
       <div className="flex flex-col items-center pt-8 pb-6 px-4">
 
@@ -121,6 +148,13 @@ export function Profile() {
         <span className={`text-sm font-medium ${SKILL_COLOR[user.skillLevel]}`}>
           {user.skillLevel}
         </span>
+        <Link
+          to="/profile/edit"
+          className="mt-3 flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-[#79828b] text-xs font-bold hover:text-white hover:border-white/20 transition-colors"
+        >
+          <Pencil size={11} />
+          Edit Profile
+        </Link>
       </div>
 
       <div className="max-w-[600px] mx-auto px-4 flex flex-col gap-6">
@@ -240,7 +274,7 @@ export function Profile() {
           ) : (
             <div className="flex flex-col gap-2">
               {UPCOMING_EVENTS.map(e => (
-                <div key={e.id} className="bg-[#17212b] rounded-xl px-4 py-3.5">
+                <Link key={e.id} to={`/events/${e.id}`} className="block bg-[#17212b] rounded-xl px-4 py-3.5 hover:bg-[#1c2a36] transition-colors">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="text-sm font-bold text-white uppercase tracking-wide">{e.title}</span>
                     {e.pending && (
@@ -254,7 +288,7 @@ export function Profile() {
                     <span className="flex items-center gap-1"><Clock    size={11} className="text-[#3390ec]" />{e.time}</span>
                     <span className="flex items-center gap-1"><MapPin   size={11} className="text-[#3390ec]" />{e.location}</span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -279,6 +313,15 @@ export function Profile() {
             </div>
           )}
         </section>
+
+        {/* Log Out */}
+        <button
+          onClick={() => setShowLogoutConfirm(true)}
+          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-[#ef4444]/20 bg-[#ef4444]/5 text-[#ef4444] text-sm font-bold hover:bg-[#ef4444]/10 active:scale-[0.98] transition-all mt-2 mb-4"
+        >
+          <LogOut size={15} />
+          Log Out
+        </button>
 
       </div>
     </div>

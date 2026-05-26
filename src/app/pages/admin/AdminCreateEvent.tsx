@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { ChevronLeft, ChevronDown, Check, MapPin } from "lucide-react";
-import { SKILL_ORDER } from "../../data/adminData";
+import { SKILL_ORDER, ADMIN_EVENTS } from "../../data/adminData";
 
 const CATEGORIES = ["GAMES", "TOURNAMENT", "TRAININGS", "BEACH", "EVENTS"];
 
@@ -16,21 +16,56 @@ const LOCATIONS = [
 
 export function AdminCreateEvent() {
   const navigate = useNavigate();
-  const [saved, setSaved] = useState(false);
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get("edit");
+  const editEvent = editId ? ADMIN_EVENTS.find(e => e.id === editId) : null;
+  const isEditMode = !!editEvent;
 
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    category: "GAMES",
-    date: "",
-    timeStart: "20:00",
-    timeEnd: "22:00",
-    location: "",
-    price: "",
-    capacity: "12",
-    levelRequired: "Rookie",
-    publishAt: "",
-    notifyBefore: false,
+  const [saved, setSaved] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const locationRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
+        setLocationOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  const [form, setForm] = useState(() => {
+    if (editEvent) {
+      return {
+        title: editEvent.title,
+        description: editEvent.description ?? "",
+        category: editEvent.category,
+        date: "",
+        timeStart: editEvent.time.split(" – ")[0] ?? "20:00",
+        timeEnd: editEvent.time.split(" – ")[1] ?? "22:00",
+        location: editEvent.location,
+        price: editEvent.price > 0 ? String(editEvent.price) : "",
+        capacity: String(editEvent.capacity),
+        levelRequired: "Rookie",
+        publishAt: "",
+        notifyBefore: false,
+      };
+    }
+    return {
+      title: "",
+      description: "",
+      category: "GAMES",
+      date: "",
+      timeStart: "20:00",
+      timeEnd: "22:00",
+      location: "",
+      price: "",
+      capacity: "12",
+      levelRequired: "Rookie",
+      publishAt: "",
+      notifyBefore: false,
+    };
   });
 
   function set(field: string, value: string | boolean) {
@@ -44,6 +79,7 @@ export function AdminCreateEvent() {
 
   const isScheduled = !!form.publishAt && new Date(form.publishAt) > new Date();
   const isFree = form.price === "" || Number(form.price) === 0;
+  const showLevel = form.category === "GAMES" || form.category === "TRAININGS";
 
   if (saved) {
     return (
@@ -52,7 +88,7 @@ export function AdminCreateEvent() {
           <Check size={28} className="text-[#4dcd5e]" />
         </div>
         <p className="text-white font-black text-lg uppercase tracking-widest">
-          {isScheduled ? "Event Scheduled!" : "Event Saved!"}
+          {isScheduled ? "Event Scheduled!" : isEditMode ? "Changes Saved!" : "Event Saved!"}
         </p>
         {isScheduled && (
           <p className="text-[#79828b] text-sm">
@@ -64,15 +100,20 @@ export function AdminCreateEvent() {
   }
 
   return (
-    <div className="max-w-[700px] mx-auto px-3 sm:px-4 py-4 sm:py-6">
-      <button
-        onClick={() => navigate("/admin/events")}
-        className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors mb-5 text-sm font-bold"
-      >
-        <ChevronLeft size={18} /> Events
-      </button>
+    <div>
+      <div className="sticky top-0 z-10 flex items-center px-4 py-3 bg-[#0e1621]/90 backdrop-blur-md border-b border-white/5">
+        <button
+          onClick={() => navigate("/admin/events")}
+          className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
+        >
+          <ChevronLeft size={18} /> Events
+        </button>
+      </div>
 
-      <h1 className="font-black italic text-xl sm:text-2xl text-white uppercase tracking-widest mb-6 sm:mb-8 leading-tight">Create Event</h1>
+      <div className="max-w-[700px] mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <h1 className="font-black italic text-xl sm:text-2xl text-white uppercase tracking-widest mb-6 sm:mb-8 leading-tight">
+        {isEditMode ? "Edit Event" : "Create Event"}
+      </h1>
 
       <div className="flex flex-col gap-5">
         {/* Title */}
@@ -113,6 +154,24 @@ export function AdminCreateEvent() {
           </div>
         </Field>
 
+        {/* Level — only for GAMES and TRAININGS */}
+        {showLevel && (
+          <Field label="Level">
+            <div className="relative">
+              <select
+                value={form.levelRequired}
+                onChange={e => set("levelRequired", e.target.value)}
+                className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-4 py-3 pr-10 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark] appearance-none cursor-pointer"
+              >
+                {SKILL_ORDER.map(lvl => (
+                  <option key={lvl} value={lvl}>{lvl}</option>
+                ))}
+              </select>
+              <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
+            </div>
+          </Field>
+        )}
+
         {/* Date & Time — stacked on mobile, single row on sm+ */}
         <Field label="Date & Time">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -143,18 +202,38 @@ export function AdminCreateEvent() {
         {/* Location */}
         <Field label="Location">
           <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <select
+            <div className="relative flex-1" ref={locationRef}>
+              <input
+                type="text"
                 value={form.location}
-                onChange={e => set("location", e.target.value)}
-                className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-4 py-3 pr-10 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark] appearance-none cursor-pointer"
+                onChange={e => { set("location", e.target.value); setLocationOpen(true); }}
+                onFocus={() => setLocationOpen(true)}
+                placeholder="Type or select venue..."
+                className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-4 py-3 pr-10 text-white text-sm font-bold placeholder:text-[#79828b]/60 focus:outline-none focus:border-[#3390ec]/50 transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => setLocationOpen(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] hover:text-white transition-colors"
               >
-                <option value="" disabled>Select venue...</option>
-                {LOCATIONS.map(loc => (
-                  <option key={loc} value={loc}>{loc}</option>
-                ))}
-              </select>
-              <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
+                <ChevronDown size={16} className={`transition-transform ${locationOpen ? "rotate-180" : ""}`} />
+              </button>
+              {locationOpen && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-[#17212b] border border-white/10 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.4)] z-20 overflow-hidden">
+                  {LOCATIONS.filter(loc =>
+                    !form.location || loc.toLowerCase().includes(form.location.toLowerCase())
+                  ).map(loc => (
+                    <button
+                      key={loc}
+                      type="button"
+                      onClick={() => { set("location", loc); setLocationOpen(false); }}
+                      className="flex items-center w-full px-4 py-2.5 text-sm font-bold text-white hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 text-left"
+                    >
+                      {loc}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <a
               href={`https://www.google.com/maps/search/${encodeURIComponent(form.location || "sports venue")}`}
@@ -186,33 +265,17 @@ export function AdminCreateEvent() {
           )}
         </Field>
 
-        {/* Max Players + Level Required — same row */}
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Max Players">
-            <input
-              type="number"
-              min="2"
-              max="100"
-              value={form.capacity}
-              onChange={e => set("capacity", e.target.value)}
-              className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors"
-            />
-          </Field>
-          <Field label="Level Required">
-            <div className="relative">
-              <select
-                value={form.levelRequired}
-                onChange={e => set("levelRequired", e.target.value)}
-                className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-4 py-3 pr-10 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark] appearance-none cursor-pointer"
-              >
-                {SKILL_ORDER.map(level => (
-                  <option key={level} value={level}>{level}</option>
-                ))}
-              </select>
-              <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-            </div>
-          </Field>
-        </div>
+        {/* Max Players */}
+        <Field label="Max Players">
+          <input
+            type="number"
+            min="2"
+            max="100"
+            value={form.capacity}
+            onChange={e => set("capacity", e.target.value)}
+            className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors"
+          />
+        </Field>
 
         {/* Publish Schedule */}
         <Field label="Publish At">
@@ -235,13 +298,14 @@ export function AdminCreateEvent() {
           </button>
         </Field>
 
-        {/* CTA */}
+        {/* Save */}
         <button
           onClick={handleSave}
-          className="w-full py-4 rounded-xl font-black italic text-base tracking-widest uppercase mt-2 active:scale-[0.98] transition-transform bg-[#ccff00] text-black"
+          className="w-full py-3 rounded-xl font-bold text-sm transition-transform active:scale-[0.98] shadow-sm bg-[#3390ec] text-white"
         >
-          SAVE
+          {isEditMode ? "Save Changes" : "Save Event"}
         </button>
+      </div>
       </div>
     </div>
   );

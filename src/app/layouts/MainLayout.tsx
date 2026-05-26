@@ -44,10 +44,10 @@ export function MainLayout() {
         <div className="shrink-0 px-3 pb-6">
           <button
             onClick={() => setLang(nextLang)}
-            className="flex items-center w-full rounded-xl whitespace-nowrap text-[#8899a6] hover:text-white transition-all duration-200"
+            className="group/item flex items-center w-full rounded-xl whitespace-nowrap text-[#8899a6] hover:text-white transition-all duration-200"
             title={`Switch to ${LANG_LABEL[nextLang]}`}
           >
-            <span className="flex items-center justify-center w-12 h-12 rounded-xl hover:bg-white/10 font-black text-sm tracking-widest">
+            <span className="flex items-center justify-center w-12 h-12 rounded-xl shrink-0 font-black text-sm tracking-widest transition-all duration-200 group-hover/item:bg-white/10">
               {lang.toUpperCase()}
             </span>
             <span className="text-[15px] font-bold ml-1 select-none opacity-0 group-hover:opacity-100 transition-opacity duration-150">
