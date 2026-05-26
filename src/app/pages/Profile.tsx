@@ -21,7 +21,7 @@ const DEFAULT_USER = {
   firstName:  "Alex",
   lastName:   "Novak",
   avatar:     "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=300&h=300&fit=crop&crop=face",
-  skillLevel: "Advanced" as SkillLevel,
+  skillLevel: "Intermediate" as SkillLevel,
   position:   "Outside Hitter",
   phone:      "+420 777 888 999",
   email:      "alex.novak@email.com",
@@ -105,8 +105,8 @@ export function Profile() {
 
       {/* Logout confirmation modal */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)}>
+          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">Log Out?</h3>
             <p className="text-[#79828b] text-sm mb-6">You'll need to sign in again to access your account.</p>
             <div className="flex gap-3">
@@ -148,13 +148,6 @@ export function Profile() {
         <span className={`text-sm font-medium ${SKILL_COLOR[user.skillLevel]}`}>
           {user.skillLevel}
         </span>
-        <Link
-          to="/profile/edit"
-          className="mt-3 flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-[#79828b] text-xs font-bold hover:text-white hover:border-white/20 transition-colors"
-        >
-          <Pencil size={11} />
-          Edit Profile
-        </Link>
       </div>
 
       <div className="max-w-[600px] mx-auto px-4 flex flex-col gap-6">

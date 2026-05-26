@@ -7,7 +7,6 @@ import { Alerts } from "./pages/Alerts";
 import { Profile } from "./pages/Profile";
 import { SignIn } from "./pages/SignIn";
 import { EventDetail } from "./pages/EventDetail";
-import { EditProfile } from "./pages/EditProfile";
 import { NotFound } from "./pages/NotFound";
 import { AdminEvents } from "./pages/admin/AdminEvents";
 import { AdminEventDetail } from "./pages/admin/AdminEventDetail";
@@ -24,8 +23,7 @@ export const router = createBrowserRouter([
       { index: true, Component: Home },
       { path: "alerts", Component: Alerts },
       { path: "profile", Component: Profile },
-      { path: "profile/edit", Component: EditProfile },
-      { path: "events/:id", Component: EventDetail },
+{ path: "events/:id", Component: EventDetail },
       {
         path: "admin",
         Component: AdminLayout,

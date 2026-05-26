@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   ChevronLeft, ChevronUp, ChevronDown, MoreVertical,
@@ -19,10 +19,11 @@ export function AdminEventDetail() {
   const [requests, setRequests] = useState<Player[]>      (event?.requests  ?? []);
 
   // UI state
-  const [openMenu,         setOpenMenu]         = useState<string | null>(null);
-  const [confirmRemoveId,  setConfirmRemoveId]  = useState<string | null>(null);
-  const [isPublished,      setIsPublished]      = useState(event?.status !== "draft");
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [openMenu,              setOpenMenu]              = useState<string | null>(null);
+  const [confirmRemoveId,       setConfirmRemoveId]       = useState<string | null>(null);
+  const [confirmWaitlistRemId,  setConfirmWaitlistRemId]  = useState<string | null>(null);
+  const [isPublished,           setIsPublished]           = useState(event?.status !== "draft");
+  const [showDeleteConfirm,     setShowDeleteConfirm]     = useState(false);
 
   if (!event) {
     return (
@@ -36,11 +37,10 @@ export function AdminEventDetail() {
   }
 
   // ── Actions ────────────────────────────────────────────────
-  function togglePayment(playerId: string) {
-    setRoster(prev => prev.map(p => {
-      if (p.id !== playerId || p.paymentStatus === "online") return p;
-      return { ...p, paymentStatus: p.paymentStatus === "unpaid" ? "cash" : "unpaid" };
-    }));
+  function confirmPayment(playerId: string, newStatus: PaymentStatus) {
+    setRoster(prev => prev.map(p =>
+      p.id === playerId ? { ...p, paymentStatus: newStatus } : p
+    ));
   }
 
   function moveUp(idx: number) {
@@ -74,13 +74,19 @@ export function AdminEventDetail() {
     setWaitlist(prev => prev.filter(p => p.id !== playerId));
   }
 
-  function moveBackToWaitlist(playerId: string) {
-    const player = waitlist.find(p => p.id === playerId);
-    if (!player) return;
+  function removeFromWaitlist(playerId: string) {
     setWaitlist(prev => prev.filter(p => p.id !== playerId));
-    // put back at end of waitlist (nothing in roster, just remove from waitlist)
-    // actually this is "remove from waitlist" — different from roster removal
-    setWaitlist(prev => prev.filter(p => p.id !== playerId));
+    setConfirmWaitlistRemId(null);
+    setOpenMenu(null);
+  }
+
+  function moveWaitlistUp(idx: number) {
+    if (idx === 0) return;
+    setWaitlist(prev => { const a = [...prev]; [a[idx - 1], a[idx]] = [a[idx], a[idx - 1]]; return a; });
+  }
+  function moveWaitlistDown(idx: number) {
+    if (idx === waitlist.length - 1) return;
+    setWaitlist(prev => { const a = [...prev]; [a[idx], a[idx + 1]] = [a[idx + 1], a[idx]]; return a; });
   }
 
   function approveRequest(playerId: string) {
@@ -250,7 +256,7 @@ export function AdminEventDetail() {
               </div>
               {/* Payment toggle */}
               {event.price > 0 && (
-                <PaymentToggle status={player.paymentStatus} onToggle={() => togglePayment(player.id)} />
+                <PaymentToggle status={player.paymentStatus} onConfirm={s => confirmPayment(player.id, s)} />
               )}
               {/* Up/Down */}
               <div className="flex flex-col gap-0.5 shrink-0">
@@ -317,32 +323,82 @@ export function AdminEventDetail() {
         {waitlist.length === 0 && (
           <p className="text-[#79828b] text-sm text-center py-6">No players on waitlist</p>
         )}
-        {waitlist.map((player) => (
-          <div key={player.id} className="flex items-center gap-3 p-3 bg-[#17212b] rounded-xl border border-white/5">
-            <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="font-bold text-white text-sm truncate">{player.name}</div>
-              <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position}</div>
+        {waitlist.map((player, idx) => (
+          <div key={player.id} className="flex flex-col">
+            <div className={`flex items-center gap-2 p-3 bg-[#17212b] border transition-colors ${
+              openMenu === `w-${player.id}` ? "rounded-t-xl border-b-0 border-white/10" : "rounded-xl border-white/5"
+            }`}>
+              <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-white text-sm truncate">{player.name}</div>
+                <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position}</div>
+              </div>
+              {/* Add button — same position/size as PaymentToggle */}
+              <button
+                onClick={() => addToRoster(player.id)}
+                disabled={roster.length >= event.capacity}
+                className={`w-[76px] h-8 flex items-center justify-center gap-1 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 ${
+                  roster.length >= event.capacity
+                    ? "bg-white/5 border-white/10 text-[#79828b] cursor-not-allowed"
+                    : "bg-[#3390ec]/10 border-[#3390ec]/30 text-[#3390ec] hover:bg-[#3390ec]/20 active:scale-95"
+                }`}
+              >
+                <CheckCheck size={12} />
+                {roster.length >= event.capacity ? "Full" : "Add"}
+              </button>
+              {/* Up/Down */}
+              <div className="flex flex-col gap-0.5 shrink-0">
+                <button
+                  onClick={() => moveWaitlistUp(idx)}
+                  disabled={idx === 0}
+                  className={`w-6 h-5 flex items-center justify-center rounded transition-colors ${idx === 0 ? "text-white/10 cursor-not-allowed" : "text-[#79828b] hover:text-white hover:bg-white/5"}`}
+                >
+                  <ChevronUp size={13} />
+                </button>
+                <button
+                  onClick={() => moveWaitlistDown(idx)}
+                  disabled={idx === waitlist.length - 1}
+                  className={`w-6 h-5 flex items-center justify-center rounded transition-colors ${idx === waitlist.length - 1 ? "text-white/10 cursor-not-allowed" : "text-[#79828b] hover:text-white hover:bg-white/5"}`}
+                >
+                  <ChevronDown size={13} />
+                </button>
+              </div>
+              {/* 3-dots */}
+              <button
+                onClick={() => { setOpenMenu(prev => prev === `w-${player.id}` ? null : `w-${player.id}`); setConfirmWaitlistRemId(null); }}
+                className={`w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition-colors ${openMenu === `w-${player.id}` ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
+              >
+                <MoreVertical size={15} />
+              </button>
             </div>
-            <button
-              onClick={() => openProfile(player)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-[#79828b] hover:text-white hover:bg-white/5 transition-colors shrink-0"
-              title="View Profile"
-            >
-              <User size={15} />
-            </button>
-            <button
-              onClick={() => addToRoster(player.id)}
-              disabled={roster.length >= event.capacity}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-colors shrink-0 ${
-                roster.length >= event.capacity
-                  ? "bg-white/5 text-[#79828b] cursor-not-allowed"
-                  : "bg-[#3390ec]/10 text-[#3390ec] border border-[#3390ec]/30 hover:bg-[#3390ec]/20 active:scale-95"
-              }`}
-            >
-              <CheckCheck size={13} />
-              {roster.length >= event.capacity ? "Full" : "Add"}
-            </button>
+
+            {/* Inline action menu */}
+            {openMenu === `w-${player.id}` && (
+              <div className="bg-[#222f3e] rounded-b-xl border border-t-0 border-white/10 overflow-hidden">
+                {confirmWaitlistRemId === player.id ? (
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <span className="text-white text-xs font-bold flex-1">Remove {player.name}?</span>
+                    <button
+                      onClick={() => removeFromWaitlist(player.id)}
+                      className="px-3 py-1.5 bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] text-[11px] font-black uppercase tracking-wider rounded-lg active:scale-95 transition-transform"
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      onClick={() => setConfirmWaitlistRemId(null)}
+                      className="px-3 py-1.5 bg-white/5 text-[#79828b] text-[11px] font-black uppercase tracking-wider rounded-lg hover:text-white transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col">
+                    <MenuAction icon={<User size={14} />} label="View Profile" onClick={() => openProfile(player)} />
+                    <MenuAction icon={<Trash2 size={14} />} label="Remove from Waitlist" danger onClick={() => setConfirmWaitlistRemId(player.id)} />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -416,27 +472,83 @@ function MenuAction({ icon, label, onClick, danger }: { icon: React.ReactNode; l
   );
 }
 
-function PaymentToggle({ status, onToggle }: { status: PaymentStatus; onToggle: () => void }) {
-  if (status === "online") {
-    return (
-      <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#3390ec]/10 border border-[#3390ec]/20 shrink-0">
-        <CreditCard size={12} className="text-[#3390ec]" />
-        <span className="text-[#3390ec] text-[10px] font-black uppercase tracking-wider">Online</span>
-      </div>
-    );
+const PAYMENT_CYCLE: PaymentStatus[] = ["unpaid", "cash", "online"];
+
+function PaymentToggle({ status, onConfirm }: { status: PaymentStatus; onConfirm: (s: PaymentStatus) => void }) {
+  const [pending, setPending] = useState<PaymentStatus>(status);
+  const [progress, setProgress] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startRef = useRef(0);
+
+  useEffect(() => { setPending(status); }, [status]);
+
+  function stopHold() {
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    setProgress(0);
   }
-  if (status === "cash") {
-    return (
-      <button onClick={onToggle} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#4dcd5e]/10 border border-[#4dcd5e]/30 active:scale-95 transition-transform shrink-0" title="Tap to unmark">
-        <CheckCircle2 size={12} className="text-[#4dcd5e]" />
-        <span className="text-[#4dcd5e] text-[10px] font-black uppercase tracking-wider">Cash</span>
-      </button>
-    );
+
+  function onPointerDown() {
+    startRef.current = Date.now();
+    intervalRef.current = setInterval(() => {
+      const pct = Math.min(((Date.now() - startRef.current) / 1500) * 100, 100);
+      setProgress(pct);
+      if (pct >= 100) {
+        clearInterval(intervalRef.current!);
+        intervalRef.current = null;
+        setProgress(0);
+        if (status !== "unpaid") {
+          // undo confirmed payment
+          setPending("unpaid");
+          onConfirm("unpaid");
+        } else {
+          onConfirm(pending);
+        }
+      }
+    }, 16);
   }
+
+  function onPointerUp() {
+    const held = Date.now() - startRef.current;
+    stopHold();
+    // only cycle on quick tap when not yet confirmed
+    if (held < 300 && status === "unpaid") {
+      setPending(prev => PAYMENT_CYCLE[(PAYMENT_CYCLE.indexOf(prev) + 1) % PAYMENT_CYCLE.length]);
+    }
+  }
+
+  const isConfirmed = pending === status;
+  const confirmedAndSet = isConfirmed && status !== "unpaid";
+
+  const label = pending === "cash" ? "Cash" : pending === "online" ? "Online" : "Unpaid";
+  const fillColor = pending === "online" ? "bg-[#3390ec]" : "bg-[#4dcd5e]";
+  const confirmedBg = status === "online" ? "bg-[#3390ec]/10 border-[#3390ec]/25" : "bg-[#4dcd5e]/10 border-[#4dcd5e]/25";
+  const confirmedText = status === "online" ? "text-[#3390ec]" : "text-[#4dcd5e]";
+  const ConfirmedIcon = status === "online" ? CreditCard : Banknote;
+
   return (
-    <button onClick={onToggle} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:border-[#4dcd5e]/40 hover:bg-[#4dcd5e]/5 active:scale-95 transition-all shrink-0" title="Tap to mark cash paid">
-      <Banknote size={12} className="text-[#79828b]" />
-      <span className="text-[#79828b] text-[10px] font-black uppercase tracking-wider">Unpaid</span>
+    <button
+      onPointerDown={onPointerDown}
+      onPointerUp={onPointerUp}
+      onPointerLeave={stopHold}
+      className={`relative w-[76px] h-8 rounded-lg border overflow-hidden shrink-0 select-none touch-none ${
+        confirmedAndSet
+          ? `${confirmedBg}`
+          : "bg-white/5 border-white/10"
+      }`}
+    >
+      {/* hold-progress fill */}
+      {progress > 0 && (
+        <div
+          className={`absolute inset-y-0 left-0 ${fillColor} opacity-25 transition-none`}
+          style={{ width: `${progress}%` }}
+        />
+      )}
+      <div className="relative z-10 flex items-center justify-center gap-1 h-full">
+        {confirmedAndSet && <ConfirmedIcon size={11} className={confirmedText} />}
+        <span className={`text-[10px] font-black uppercase tracking-wider ${confirmedAndSet ? confirmedText : "text-[#79828b]"}`}>
+          {label}
+        </span>
+      </div>
     </button>
   );
 }

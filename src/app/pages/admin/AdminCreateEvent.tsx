@@ -298,13 +298,21 @@ export function AdminCreateEvent() {
           </button>
         </Field>
 
-        {/* Save */}
-        <button
-          onClick={handleSave}
-          className="w-full py-3 rounded-xl font-bold text-sm transition-transform active:scale-[0.98] shadow-sm bg-[#3390ec] text-white"
-        >
-          {isEditMode ? "Save Changes" : "Save Event"}
-        </button>
+        {/* Save / Cancel */}
+        <div className="flex gap-3">
+          <button
+            onClick={() => navigate("/admin/events")}
+            className="flex-1 py-3 rounded-xl font-bold text-sm border border-white/10 text-[#79828b] hover:text-white transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            className="flex-1 py-3 rounded-xl font-bold text-sm transition-transform active:scale-[0.98] bg-[#3390ec] text-white"
+          >
+            {isEditMode ? "Save Changes" : "Save Event"}
+          </button>
+        </div>
       </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   ChevronLeft,
+  ChevronDown,
   MapPin,
   Calendar,
   Clock,
@@ -9,9 +10,7 @@ import {
   MoreVertical,
   User,
   Ticket,
-  Check,
   X,
-  LogOut,
 } from "lucide-react";
 
 const SKILL_ORDER = ["Rookie", "Beginner", "Intermediate", "Advanced", "Pro", "PRIME"];
@@ -27,7 +26,25 @@ const ROSTER = [
   { name: "GlitchKing",  role: "Middle Blocker", img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop" },
   { name: "PrimeAlpha",  role: "Opposite",       img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop" },
   { name: "ViperX",      role: "Outside Hitter", img: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop" },
+  { name: "Anonymous",   role: "Reserved",       img: null as string | null },
 ];
+
+const WAITLIST = [
+  { name: "PixelPunk",  img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop" },
+  { name: "StealthV",   img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop" },
+  { name: "ByteKing",   img: "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=150&h=150&fit=crop" },
+  { name: "XBlaze",     img: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&h=150&fit=crop" },
+  { name: "NovaPulse",  img: "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=150&h=150&fit=crop" },
+  { name: "GridLock",   img: "https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?w=150&h=150&fit=crop" },
+];
+
+const FLAKED = [
+  { name: "GhostRider", img: "https://images.unsplash.com/photo-1463453091185-61582044d556?w=150&h=150&fit=crop" },
+  { name: "ShadowByte", img: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop" },
+];
+
+const PLAYER_AVATAR = "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=150&h=150&fit=crop&crop=face";
+const PLAYER_NAME = "Alex Novak";
 
 type JoinStatus = null | "joined" | "pending";
 
@@ -38,11 +55,15 @@ export function EventDetail() {
   const [joinStatus, setJoinStatus] = useState<JoinStatus>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
 
-  const isRequestOnly = id === "e2" || id === "e4";
+  const playerSkillLevel = "Intermediate";
   const isGame = (EVENT_CATS[id ?? ""] ?? "") === "GAMES";
   const eventSkillLevel = "Advanced";
-  const showPositions = isGame && SKILL_ORDER.indexOf(eventSkillLevel) >= SKILL_ORDER.indexOf("Advanced");
+  const isGameAdvancedPlus = isGame && SKILL_ORDER.indexOf(eventSkillLevel) >= SKILL_ORDER.indexOf("Advanced");
+  const isRequestOnly = isGameAdvancedPlus && SKILL_ORDER.indexOf(playerSkillLevel) < SKILL_ORDER.indexOf(eventSkillLevel);
+  const showPositions = isGameAdvancedPlus;
 
   const theme = {
     primary: isRequestOnly ? "text-[#eab308]" : "text-[#3390ec]",
@@ -58,6 +79,7 @@ export function EventDetail() {
     if (joinStatus) {
       setShowLeaveConfirm(true);
     } else {
+      setSelectedPosition(null);
       setShowJoinModal(true);
     }
   }
@@ -78,27 +100,48 @@ export function EventDetail() {
     return isRequestOnly ? "Send a Request" : "Join Directly";
   };
 
-  const joinButtonClass = () => {
-    if (joinStatus === "joined") return "bg-[#4dcd5e]/10 border border-[#4dcd5e]/30 text-[#4dcd5e]";
-    if (joinStatus === "pending") return "bg-[#eab308]/10 border border-[#eab308]/30 text-[#eab308]";
-    return theme.button;
-  };
-
-  return (
+return (
     <div className="relative min-h-screen bg-[#0e1621] text-white font-sans overflow-x-hidden selection:bg-white/20">
+
+      {/* Invisible backdrop to close any open dropdown menu */}
+      {openMenu && (
+        <div className="fixed inset-0 z-10" onClick={() => setOpenMenu(null)} />
+      )}
 
       {/* Join confirmation modal */}
       {showJoinModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowJoinModal(false)}>
+          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">
               {isRequestOnly ? "Send Request?" : "Join Event?"}
             </h3>
-            <p className="text-[#79828b] text-sm mb-6">
+            <p className="text-[#79828b] text-sm mb-4">
               {isRequestOnly
                 ? "Your request will be sent to the organizer for approval."
                 : "You'll be added to the roster immediately."}
             </p>
+
+            {isGameAdvancedPlus && (
+              <div className="mb-5">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2">Select your position</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero", "Right Side"].map(pos => (
+                    <button
+                      key={pos}
+                      onClick={() => setSelectedPosition(pos)}
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all active:scale-95 ${
+                        selectedPosition === pos
+                          ? "bg-[#3390ec] border-[#3390ec] text-white"
+                          : "bg-white/5 border-white/10 text-[#79828b] hover:text-white hover:border-white/25"
+                      }`}
+                    >
+                      {pos}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-3">
               <button
                 onClick={() => setShowJoinModal(false)}
@@ -108,7 +151,8 @@ export function EventDetail() {
               </button>
               <button
                 onClick={confirmJoin}
-                className={`flex-1 py-2.5 rounded-xl font-bold text-sm active:scale-[0.98] transition-transform ${theme.button}`}
+                disabled={isGameAdvancedPlus && !selectedPosition}
+                className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed ${theme.button}`}
               >
                 {isRequestOnly ? "Send Request" : "Join"}
               </button>
@@ -119,8 +163,8 @@ export function EventDetail() {
 
       {/* Leave confirmation modal */}
       {showLeaveConfirm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLeaveConfirm(false)}>
+          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">
               {joinStatus === "pending" ? "Cancel Request?" : "Leave Event?"}
             </h3>
@@ -253,26 +297,15 @@ export function EventDetail() {
 
             <button
               onClick={handleJoinClick}
-              className={`flex items-center gap-1.5 w-36 py-2 justify-center rounded-lg font-bold text-sm transition-all active:scale-[0.98] shadow-sm ${joinButtonClass()}`}
+              className={`w-36 py-2 justify-center rounded-lg font-bold text-sm transition-all active:scale-[0.98] shadow-sm ${
+                joinStatus
+                  ? `bg-transparent border ${isRequestOnly ? "border-[#eab308] text-[#eab308]" : "border-[#3390ec] text-[#3390ec]"}`
+                  : theme.button
+              }`}
             >
-              {joinStatus === "joined" && <Check size={14} />}
-              {joinStatus === "pending" && <Check size={14} />}
-              {joinButtonLabel()}
+              {joinStatus === "joined" ? "LEAVE" : joinStatus === "pending" ? "CANCEL" : joinButtonLabel()}
             </button>
           </div>
-
-          {/* Leave / Cancel nudge below button */}
-          {joinStatus && (
-            <div className="flex justify-end mb-3 px-1">
-              <button
-                onClick={() => setShowLeaveConfirm(true)}
-                className="flex items-center gap-1 text-[10px] text-[#ef4444]/70 hover:text-[#ef4444] font-bold uppercase tracking-wider transition-colors"
-              >
-                <LogOut size={10} />
-                {joinStatus === "pending" ? "Cancel request" : "Leave event"}
-              </button>
-            </div>
-          )}
 
           {/* Capacity Bar */}
           <div className="w-full h-1.5 bg-white/5 rounded-full mb-4 overflow-hidden">
@@ -289,15 +322,21 @@ export function EventDetail() {
                 key={i}
                 className="flex items-center gap-3 bg-[#17212b] border border-white/5 rounded-xl p-2.5"
               >
-                <img
-                  src={player.img}
-                  alt={player.name}
-                  className="w-10 h-10 rounded-full object-cover border border-white/10 shrink-0"
-                />
+                {player.img ? (
+                  <img
+                    src={player.img}
+                    alt={player.name}
+                    className="w-10 h-10 rounded-full object-cover border border-white/10 shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 shrink-0 flex items-center justify-center">
+                    <User size={16} className="text-white/30" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
-                  <span className="font-bold text-white text-sm block">{player.name}</span>
+                  <span className={`font-bold text-sm block ${player.img ? "text-white" : "text-white/30"}`}>{player.name}</span>
                   {showPositions && (
-                    <span className={`text-[10px] font-bold uppercase tracking-widest ${theme.primary}`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest ${player.img ? theme.primary : "text-white/20"}`}>
                       {player.role}
                     </span>
                   )}
@@ -329,19 +368,122 @@ export function EventDetail() {
           </div>
 
           {/* Waitlist */}
-          <div className="mt-4 flex items-center p-3 bg-[#17212b] border border-white/5 rounded-xl">
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-3">
-                <img src="https://images.unsplash.com/photo-1542204165-65bf26472b9b?w=100&h=100&fit=crop" className="w-8 h-8 rounded-full border-2 border-[#17212b] relative z-30 object-cover" />
-                <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop" className="w-8 h-8 rounded-full border-2 border-[#17212b] relative z-20 object-cover blur-[1px] brightness-75" />
-                <div className="w-8 h-8 rounded-full border-2 border-[#17212b] bg-white/10 relative z-10 flex items-center justify-center text-[10px] font-bold text-white/50">+1</div>
+          {(() => {
+            const stackList = joinStatus === "pending"
+              ? [{ name: PLAYER_NAME, img: PLAYER_AVATAR, isMe: true }, ...WAITLIST.map(p => ({ ...p, isMe: false }))]
+              : WAITLIST.map(p => ({ ...p, isMe: false }));
+            const sortedList = joinStatus === "pending"
+              ? [...WAITLIST.map(p => ({ ...p, isMe: false })), { name: PLAYER_NAME, img: PLAYER_AVATAR, isMe: true }]
+              : WAITLIST.map(p => ({ ...p, isMe: false }));
+            const stackAvatars = stackList.slice(0, 3);
+            const stackExtra = stackList.length - 3;
+            return (
+              <div className="mt-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">Waitlist</p>
+                <div className="bg-[#17212b] border border-white/5 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => setWaitlistOpen(v => !v)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5"
+                  >
+                    <div className="flex -space-x-2.5">
+                      {stackAvatars.map((p, i) => (
+                        <img
+                          key={i}
+                          src={p.img}
+                          alt={p.name}
+                          className="w-8 h-8 rounded-full border-2 border-[#17212b] object-cover"
+                          style={{ zIndex: stackAvatars.length - i }}
+                        />
+                      ))}
+                      {stackExtra > 0 && (
+                        <div className="w-8 h-8 rounded-full border-2 border-[#17212b] bg-white/10 flex items-center justify-center text-[9px] font-bold text-white/50" style={{ zIndex: 0 }}>
+                          +{stackExtra}
+                        </div>
+                      )}
+                    </div>
+                    <span className="flex-1 text-left text-white font-bold text-sm">{stackList.length} Players</span>
+                    <ChevronDown size={15} className={`text-[#79828b] transition-transform duration-300 shrink-0 ${waitlistOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${waitlistOpen ? "max-h-[600px]" : "max-h-0"}`}>
+                    {sortedList.map((player, i) => {
+                      const menuKey = `waitlist-${i}`;
+                      return (
+                        <div key={i} className="flex items-center gap-3 px-3 py-2.5 border-t border-white/[0.05]">
+                          <img src={player.img} alt={player.name} className="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0" />
+                          <span className={`font-bold text-sm flex-1 ${player.isMe ? theme.primary : "text-white"}`}>
+                            {player.name}
+                            {player.isMe && <span className="text-[10px] text-[#79828b] font-bold ml-2 normal-case tracking-normal">You</span>}
+                          </span>
+                          <div className="relative shrink-0">
+                            <button
+                              onClick={() => setOpenMenu(openMenu === menuKey ? null : menuKey)}
+                              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
+                            >
+                              <MoreVertical size={16} />
+                            </button>
+                            {openMenu === menuKey && (
+                              <div
+                                className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
+                                onClick={() => setOpenMenu(null)}
+                              >
+                                <button
+                                  onClick={() => navigate("/profile")}
+                                  className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
+                                >
+                                  <User size={14} />
+                                  View Profile
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <span className="text-white font-bold text-xs">3 Players</span>
-                <span className="text-[10px] text-[#79828b] uppercase font-bold tracking-widest">On Waitlist</span>
+            );
+          })()}
+
+          {/* Flaked */}
+          {FLAKED.length > 0 && (
+            <div className="mt-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">Flaked</p>
+              <div className="bg-[#17212b] border border-white/5 rounded-xl overflow-hidden">
+                {FLAKED.map((player, i) => {
+                  const menuKey = `flaked-${i}`;
+                  return (
+                    <div key={i} className={`flex items-center gap-3 px-3 py-2.5 ${i > 0 ? "border-t border-white/[0.05]" : ""}`}>
+                      <img src={player.img} alt={player.name} className="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0 grayscale opacity-40" />
+                      <span className="font-bold text-sm text-white/25 line-through flex-1">{player.name}</span>
+                      <div className="relative shrink-0">
+                        <button
+                          onClick={() => setOpenMenu(openMenu === menuKey ? null : menuKey)}
+                          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]/40"
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+                        {openMenu === menuKey && (
+                          <div
+                            className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
+                            onClick={() => setOpenMenu(null)}
+                          >
+                            <button
+                              onClick={() => navigate("/profile")}
+                              className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
+                            >
+                              <User size={14} />
+                              View Profile
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
