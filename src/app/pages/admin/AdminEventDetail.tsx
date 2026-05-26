@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import {
   ChevronLeft, ChevronUp, ChevronDown, MoreVertical,
   CheckCircle2, CreditCard, Banknote, User, ArrowDownToLine,
-  Trash2, Send, CheckCheck, X, Pencil, AlertTriangle,
+  Trash2, Send, CheckCheck, Pencil, AlertTriangle, Ban, Share2,
 } from "lucide-react";
 import {
   ADMIN_EVENTS, getCategoryStyle,
@@ -16,7 +16,6 @@ export function AdminEventDetail() {
 
   const [roster,   setRoster]   = useState<RosterPlayer[]>(event?.roster   ?? []);
   const [waitlist, setWaitlist] = useState<Player[]>      (event?.waitlist  ?? []);
-  const [requests, setRequests] = useState<Player[]>      (event?.requests  ?? []);
 
   // UI state
   const [openMenu,              setOpenMenu]              = useState<string | null>(null);
@@ -24,6 +23,12 @@ export function AdminEventDetail() {
   const [confirmWaitlistRemId,  setConfirmWaitlistRemId]  = useState<string | null>(null);
   const [isPublished,           setIsPublished]           = useState(event?.status !== "draft");
   const [showDeleteConfirm,     setShowDeleteConfirm]     = useState(false);
+  const [showCancelConfirm,     setShowCancelConfirm]     = useState(false);
+  const [shareCopied,           setShareCopied]           = useState(false);
+  const [isCanceled,            setIsCanceled]            = useState(() => {
+    const stored = JSON.parse(localStorage.getItem("prime:canceled_events") || "[]");
+    return event ? stored.includes(event.id) : false;
+  });
 
   if (!event) {
     return (
@@ -89,21 +94,6 @@ export function AdminEventDetail() {
     setWaitlist(prev => { const a = [...prev]; [a[idx], a[idx + 1]] = [a[idx + 1], a[idx]]; return a; });
   }
 
-  function approveRequest(playerId: string) {
-    const player = requests.find(p => p.id === playerId);
-    if (!player) return;
-    if (roster.length < event.capacity) {
-      setRoster(prev => [...prev, { ...player, paymentStatus: "unpaid" }]);
-    } else {
-      setWaitlist(prev => [...prev, player]);
-    }
-    setRequests(prev => prev.filter(p => p.id !== playerId));
-  }
-
-  function denyRequest(playerId: string) {
-    setRequests(prev => prev.filter(p => p.id !== playerId));
-  }
-
   function openProfile(_player: Player) {
     navigate("/profile");
     setOpenMenu(null);
@@ -124,7 +114,7 @@ export function AdminEventDetail() {
     <div>
       {/* Delete confirmation modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/20 flex items-center justify-center shrink-0">
@@ -156,6 +146,46 @@ export function AdminEventDetail() {
         </div>
       )}
 
+      {/* Cancel confirmation modal */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-[#eab308]/10 border border-[#eab308]/20 flex items-center justify-center shrink-0">
+                <Ban size={18} className="text-[#eab308]" />
+              </div>
+              <div>
+                <h3 className="font-black italic uppercase tracking-widest text-white text-base">Cancel Event?</h3>
+                <p className="text-[#79828b] text-xs">Players will see the event as canceled.</p>
+              </div>
+            </div>
+            <p className="text-[#79828b] text-sm mb-5">
+              <span className="text-white font-bold">{event.title}</span> will be marked as canceled and remain visible to players.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
+              >
+                Back
+              </button>
+              <button
+                onClick={() => {
+                  const stored = JSON.parse(localStorage.getItem("prime:canceled_events") || "[]");
+                  if (!stored.includes(event.id)) stored.push(event.id);
+                  localStorage.setItem("prime:canceled_events", JSON.stringify(stored));
+                  setIsCanceled(true);
+                  setShowCancelConfirm(false);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-[#eab308]/10 border border-[#eab308]/30 text-[#eab308] font-bold text-sm active:scale-[0.98] transition-transform"
+              >
+                Cancel Event
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Back button — sticky top bar */}
       <div className="sticky top-0 z-10 flex items-center px-4 py-3 bg-[#0e1621]/90 backdrop-blur-md border-b border-white/5">
         <button
@@ -176,13 +206,28 @@ export function AdminEventDetail() {
         <div className="flex items-center justify-between gap-2 mb-1">
           <h1 className="font-black italic text-xl text-white uppercase tracking-wide leading-tight">{event.title}</h1>
           <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-[#79828b] hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors"
-              title="Delete event"
-            >
-              <Trash2 size={14} />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => {
+                  const url = `${window.location.origin}/events/${event.id}`;
+                  if (navigator.share) {
+                    navigator.share({ title: event.title, url });
+                  } else {
+                    navigator.clipboard.writeText(url).then(() => {
+                      setShareCopied(true);
+                      setTimeout(() => setShareCopied(false), 2000);
+                    });
+                  }
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-[#79828b] hover:text-white hover:bg-white/10 transition-colors"
+                title="Share event link"
+              >
+                <Share2 size={14} />
+              </button>
+              {shareCopied && (
+                <span className="absolute -bottom-7 left-1/2 -translate-x-1/2 text-[10px] font-bold text-[#4dcd5e] whitespace-nowrap">Copied!</span>
+              )}
+            </div>
             <button
               onClick={() => navigate(`/admin/events/create?edit=${event.id}`)}
               className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-[#79828b] hover:text-white hover:bg-white/10 transition-colors"
@@ -403,39 +448,29 @@ export function AdminEventDetail() {
         ))}
       </div>
 
-      {/* ── REQUESTS (request-only events) ────────────────────── */}
-      {event.joinType === "request" && (
-        <>
-          <SectionHeader
-            label="Pending Requests"
-            count={String(requests.length)}
-            accent={requests.length > 0 ? "yellow" : undefined}
-          />
-          <div className="flex flex-col gap-2">
-            {requests.length === 0 && (
-              <p className="text-[#79828b] text-sm text-center py-6">No pending requests</p>
-            )}
-            {requests.map(player => (
-              <div key={player.id} className="flex items-center gap-3 p-3 bg-[#17212b] rounded-xl border border-[#eab308]/15">
-                <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-white text-sm truncate">{player.name}</div>
-                  <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position} · {player.skillLevel}</div>
-                </div>
-                <button onClick={() => openProfile(player)} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#79828b] hover:text-white hover:bg-white/5 transition-colors shrink-0">
-                  <User size={15} />
-                </button>
-                <button onClick={() => approveRequest(player.id)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-[#4dcd5e]/10 border border-[#4dcd5e]/30 text-[#4dcd5e] hover:bg-[#4dcd5e]/20 active:scale-95 transition-all shrink-0">
-                  <CheckCircle2 size={17} />
-                </button>
-                <button onClick={() => denyRequest(player.id)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] hover:bg-[#ef4444]/20 active:scale-95 transition-all shrink-0">
-                  <X size={17} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+
+      {/* ── BOTTOM ACTIONS ───────────────────────────────────────── */}
+      <div className="mt-10 pt-6 border-t border-white/5 flex gap-3">
+        <button
+          onClick={() => { if (!isCanceled) setShowCancelConfirm(true); }}
+          disabled={isCanceled}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-black uppercase tracking-widest transition-colors ${
+            isCanceled
+              ? "bg-[#eab308]/10 border-[#eab308]/30 text-[#eab308] cursor-default"
+              : "border-white/10 text-[#79828b] hover:text-[#eab308] hover:border-[#eab308]/30 hover:bg-[#eab308]/5"
+          }`}
+        >
+          <Ban size={15} />
+          {isCanceled ? "Canceled" : "Cancel Event"}
+        </button>
+        <button
+          onClick={() => setShowDeleteConfirm(true)}
+          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#ef4444]/30 text-[#ef4444] bg-[#ef4444]/5 text-sm font-black uppercase tracking-widest hover:bg-[#ef4444]/10 transition-colors"
+        >
+          <Trash2 size={15} />
+          Delete Event
+        </button>
+      </div>
     </div>
     </div>
   );

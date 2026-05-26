@@ -1,6 +1,6 @@
 export type PaymentStatus = "unpaid" | "cash" | "online";
 export type JoinType = "direct" | "request";
-export type EventStatus = "upcoming" | "past" | "draft";
+export type EventStatus = "upcoming" | "past" | "draft" | "canceled";
 
 export interface Player {
   id: string;
@@ -287,8 +287,9 @@ export function getCategoryStyle(category: string): string {
 }
 
 export function getStatusStyle(status: EventStatus): string {
-  if (status === "upcoming") return "bg-[#4dcd5e]/10 text-[#4dcd5e]";
-  if (status === "past")     return "bg-white/5 text-[#79828b]";
-  if (status === "draft")    return "bg-[#eab308]/10 text-[#eab308]";
+  if (status === "upcoming")  return "bg-[#4dcd5e]/10 text-[#4dcd5e]";
+  if (status === "past")      return "bg-white/5 text-[#79828b]";
+  if (status === "draft")     return "bg-[#eab308]/10 text-[#eab308]";
+  if (status === "canceled")  return "bg-[#ef4444]/10 text-[#ef4444]";
   return "bg-white/5 text-white";
 }

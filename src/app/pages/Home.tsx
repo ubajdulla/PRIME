@@ -79,7 +79,22 @@ const ALL_EVENTS: EventCardProps[] = [
     status: "JOIN DIRECTLY",
     category: "BEACH",
     image: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=400&fit=crop",
-  }
+  },
+  {
+    id: "e6",
+    title: "PRIME LEAGUE FINALS",
+    date: "MON, OCT 28",
+    time: "18:00 - 21:00",
+    location: "Main Stadium",
+    price: "500 CZK",
+    capacity: { current: 12, max: 12 },
+    avatars: AVATARS,
+    status: "JOIN DIRECTLY",
+    category: "TOURNAMENT",
+    level: "Pro",
+    image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=600&h=400&fit=crop",
+    canceled: true,
+  },
 ];
 
 const ALL_FILTERS = ["ALL", "TOURNAMENT", "GAMES", "TRAININGS", "EVENTS", "BEACH", "JOIN DIRECTLY", "REQUEST ONLY"] as const;

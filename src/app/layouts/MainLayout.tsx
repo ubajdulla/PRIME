@@ -1,7 +1,14 @@
-import { Outlet, NavLink, useNavigate } from "react-router";
+import { Outlet, NavLink, useNavigate, useLocation } from "react-router";
+import { useEffect } from "react";
 import { Calendar, User, Bell, ShieldCheck } from "lucide-react";
 import logo from "../../imports/Prime_logo_nobg_white_border.png";
 import { useLang, LANG_CYCLE } from "../i18n";
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
 
 export function MainLayout() {
   const navigate = useNavigate();
@@ -17,6 +24,7 @@ export function MainLayout() {
 
   return (
     <div className="min-h-screen bg-[#0e1621] text-white font-sans">
+      <ScrollToTop />
 
       {/* Desktop Sidebar — fixed overlay, expands on hover */}
       <aside
@@ -60,7 +68,7 @@ export function MainLayout() {
       {/* Main content — offset only by collapsed sidebar width */}
       <main className="md:ml-[72px] pb-[80px] md:pb-0 min-h-screen">
         {/* Mobile Header */}
-        <div className="md:hidden w-full flex justify-center items-center py-4 bg-[#17212b] shadow-sm sticky top-0 z-10 border-b border-[#101923] gap-2">
+        <div className="md:hidden w-full flex justify-center items-center py-4 bg-[#17212b] shadow-sm border-b border-[#101923] gap-2">
           <img src={logo} alt="Prime Logo" className="h-7 object-contain" />
           <span className="font-black italic text-xl tracking-tighter text-white">PRIME</span>
         </div>

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   ChevronLeft,
+  ChevronRight,
   ChevronDown,
   MapPin,
   Calendar,
@@ -11,6 +12,7 @@ import {
   User,
   Ticket,
   X,
+  Share2,
 } from "lucide-react";
 
 const SKILL_ORDER = ["Rookie", "Beginner", "Intermediate", "Advanced", "Pro", "PRIME"];
@@ -52,11 +54,52 @@ export function EventDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+  const isCanceled = (() => {
+    try {
+      const stored: string[] = JSON.parse(localStorage.getItem("prime:canceled_events") || "[]");
+      return stored.includes(id ?? "");
+    } catch { return false; }
+  })();
   const [joinStatus, setJoinStatus] = useState<JoinStatus>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
   const [waitlistOpen, setWaitlistOpen] = useState(false);
+  const [swipe, setSwipe] = useState<{ dir: 'left' | 'right' | null; progress: number }>({ dir: null, progress: 0 });
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const touchLocked = useRef<'h' | 'v' | null>(null);
+
+  function onTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    touchLocked.current = null;
+  }
+
+  function onTouchMove(e: React.TouchEvent) {
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    if (!touchLocked.current && (absDx > 8 || absDy > 8)) {
+      touchLocked.current = absDx > absDy ? 'h' : 'v';
+    }
+    if (touchLocked.current !== 'h') {
+      if (swipe.dir !== null) setSwipe({ dir: null, progress: 0 });
+      return;
+    }
+    setSwipe({ dir: dx > 0 ? 'right' : 'left', progress: Math.min(absDx / 100, 1) });
+  }
+
+  function onTouchEnd() {
+    if (swipe.dir && swipe.progress >= 1) {
+      if (swipe.dir === 'right') navigate(-1);
+      else navigate(1);
+    }
+    setSwipe({ dir: null, progress: 0 });
+    touchLocked.current = null;
+  }
 
   const playerSkillLevel = "Intermediate";
   const isGame = (EVENT_CATS[id ?? ""] ?? "") === "GAMES";
@@ -101,7 +144,29 @@ export function EventDetail() {
   };
 
 return (
-    <div className="relative min-h-screen bg-[#0e1621] text-white font-sans overflow-x-hidden selection:bg-white/20">
+    <div
+      className="relative min-h-screen bg-[#0e1621] text-white font-sans overflow-x-hidden selection:bg-white/20"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* Swipe indicator */}
+      {swipe.dir && swipe.progress > 0.1 && (
+        <div className="fixed inset-0 pointer-events-none z-40 flex items-center justify-center">
+          <div
+            className="w-16 h-16 rounded-full bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center"
+            style={{
+              opacity: swipe.progress,
+              transform: `scale(${0.6 + swipe.progress * 0.4})`,
+            }}
+          >
+            {swipe.dir === 'right'
+              ? <ChevronLeft size={28} className="text-white" />
+              : <ChevronRight size={28} className="text-white" />
+            }
+          </div>
+        </div>
+      )}
 
       {/* Invisible backdrop to close any open dropdown menu */}
       {openMenu && (
@@ -110,7 +175,7 @@ return (
 
       {/* Join confirmation modal */}
       {showJoinModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowJoinModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowJoinModal(false)}>
           <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">
               {isRequestOnly ? "Send Request?" : "Join Event?"}
@@ -163,7 +228,7 @@ return (
 
       {/* Leave confirmation modal */}
       {showLeaveConfirm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLeaveConfirm(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLeaveConfirm(false)}>
           <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">
               {joinStatus === "pending" ? "Cancel Request?" : "Leave Event?"}
@@ -192,16 +257,35 @@ return (
       )}
 
       {/* Sticky back bar */}
-      <div className="sticky top-0 z-10 flex items-center px-4 py-3 bg-[#0e1621]/90 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#0e1621]/90 backdrop-blur-md border-b border-white/5">
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
         >
           <ChevronLeft size={18} /> Back
         </button>
+        <div className="relative">
+          <button
+            onClick={() => {
+              const url = window.location.href;
+              if (navigator.share) {
+                navigator.share({ title, url });
+              } else {
+                navigator.clipboard.writeText(url).then(() => {
+                  setShareCopied(true);
+                  setTimeout(() => setShareCopied(false), 2000);
+                });
+              }
+            }}
+            className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
+          >
+            <Share2 size={16} />
+            {shareCopied ? <span className="text-[#4dcd5e] text-xs font-bold">Copied!</span> : <span>Share</span>}
+          </button>
+        </div>
       </div>
 
-      <div className="px-4 pb-12 max-w-[600px] mx-auto pt-4">
+<div className="px-4 pb-12 max-w-[600px] mx-auto pt-4">
 
         {/* COMPACT UPPER SECTION */}
         <div className="mb-6">
@@ -295,16 +379,22 @@ return (
               <span className="text-[#79828b]">/ {maxCapacity} Players</span>
             </h2>
 
-            <button
-              onClick={handleJoinClick}
-              className={`w-36 py-2 justify-center rounded-lg font-bold text-sm transition-all active:scale-[0.98] shadow-sm ${
-                joinStatus
-                  ? `bg-transparent border ${isRequestOnly ? "border-[#eab308] text-[#eab308]" : "border-[#3390ec] text-[#3390ec]"}`
-                  : theme.button
-              }`}
-            >
-              {joinStatus === "joined" ? "LEAVE" : joinStatus === "pending" ? "CANCEL" : joinButtonLabel()}
-            </button>
+            {isCanceled ? (
+              <span className="w-36 py-2 flex items-center justify-center rounded-lg font-bold text-sm bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] cursor-default">
+                CANCELED
+              </span>
+            ) : (
+              <button
+                onClick={handleJoinClick}
+                className={`w-36 py-2 justify-center rounded-lg font-bold text-sm transition-all active:scale-[0.98] shadow-sm ${
+                  joinStatus
+                    ? `bg-transparent border ${isRequestOnly ? "border-[#eab308] text-[#eab308]" : "border-[#3390ec] text-[#3390ec]"}`
+                    : theme.button
+                }`}
+              >
+                {joinStatus === "joined" ? "LEAVE" : joinStatus === "pending" ? "CANCEL" : joinButtonLabel()}
+              </button>
+            )}
           </div>
 
           {/* Capacity Bar */}

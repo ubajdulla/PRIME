@@ -24,6 +24,7 @@ export interface EventCardProps {
   category?: string;
   level?: string;
   horizontal?: boolean;
+  canceled?: boolean;
 }
 
 export function EventCard({
@@ -38,7 +39,8 @@ export function EventCard({
   status,
   image,
   level,
-  horizontal = false
+  horizontal = false,
+  canceled = false,
 }: EventCardProps) {
   const isRequestOnly = status === "REQUEST ONLY";
   const fillPct = Math.min(100, (capacity.current / capacity.max) * 100);
@@ -54,22 +56,35 @@ export function EventCard({
       <div className="px-3 pt-3">
         <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-xl bg-[#222f3e]">
           {image ? (
-            <img src={image} alt={title} className="w-full h-full object-cover" />
+            <img src={image} alt={title} className={`w-full h-full object-cover${canceled ? " grayscale" : ""}`} />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-[#1e2d3d] to-[#17212b]" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-[#17212b]/50 via-transparent to-transparent" />
 
+          {/* Canceled X overlay */}
+          {canceled && (
+            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <line x1="0" y1="0" x2="100" y2="100" stroke="#ef4444" strokeOpacity="0.7" strokeWidth="1.5" />
+              <line x1="100" y1="0" x2="0" y2="100" stroke="#ef4444" strokeOpacity="0.7" strokeWidth="1.5" />
+            </svg>
+          )}
+
           {/* Badge — overlaid top-left on image */}
           <div className="absolute top-2.5 left-2.5">
-            <span className={`text-[10px] font-bold px-2.5 py-1 uppercase tracking-widest rounded-md flex items-center gap-1 backdrop-blur-sm ${
-              isRequestOnly
-                ? 'bg-[#eab308]/90 text-black'
-                : 'bg-[#3390ec]/90 text-white'
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${isRequestOnly ? 'bg-black/40' : 'bg-white/60'}`}></span>
-              {status}
-            </span>
+            {canceled ? (
+              <span className="text-[10px] font-bold px-2.5 py-1 uppercase tracking-widest rounded-md flex items-center gap-1 backdrop-blur-sm bg-[#ef4444]/90 text-white">
+                <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
+                CANCELED
+              </span>
+            ) : (
+              <span className={`text-[10px] font-bold px-2.5 py-1 uppercase tracking-widest rounded-md flex items-center gap-1 backdrop-blur-sm ${
+                isRequestOnly ? 'bg-[#eab308]/90 text-black' : 'bg-[#3390ec]/90 text-white'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${isRequestOnly ? 'bg-black/40' : 'bg-white/60'}`}></span>
+                {status}
+              </span>
+            )}
           </div>
         </div>
       </div>
