@@ -322,10 +322,10 @@ return (
             ) : (
               <button
                 onClick={handleJoinClick}
-                className={`w-36 py-2 justify-center rounded-lg font-bold text-sm transition-all active:scale-[0.98] shadow-sm ${
+                className={`w-36 py-2 justify-center rounded-lg font-bold text-sm transition-all active:scale-[0.98] ${
                   joinStatus
-                    ? `bg-transparent border ${isRequestOnly ? "border-[#eab308] text-[#eab308]" : "border-[#3390ec] text-[#3390ec]"}`
-                    : theme.button
+                    ? `bg-transparent ${isRequestOnly ? "shadow-[inset_0_0_0_1.5px_#eab308] text-[#eab308]" : "shadow-[inset_0_0_0_1.5px_#3390ec] text-[#3390ec]"}`
+                    : `shadow-sm ${theme.button}`
                 }`}
               >
                 {joinStatus === "joined" ? "LEAVE" : joinStatus === "pending" ? "CANCEL" : joinButtonLabel()}

@@ -21,7 +21,7 @@ export function BackBar({ label, to, title, children, zIndex = "z-20" }: BackBar
   return (
     <div className={`sticky top-0 ${zIndex} flex items-center justify-between px-4 py-3 bg-[#0e1621] border-b border-white/5`}>
       <button
-        onClick={() => { navDir.back(); to ? navigate(to) : navigate(-1); }}
+        onClick={() => { navDir.back(); to ? navigate(to, { replace: true }) : navigate(-1); }}
         className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
       >
         <ChevronLeft size={18} />
