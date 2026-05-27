@@ -9,6 +9,7 @@ import {
   ADMIN_EVENTS, getCategoryStyle,
   type PaymentStatus, type Player, type RosterPlayer,
 } from "../../data/adminData";
+import { Toast } from "../../components/ui/Toast";
 export function AdminEventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -24,11 +25,18 @@ export function AdminEventDetail() {
   const [isPublished,           setIsPublished]           = useState(event?.status !== "draft");
   const [showDeleteConfirm,     setShowDeleteConfirm]     = useState(false);
   const [showCancelConfirm,     setShowCancelConfirm]     = useState(false);
-  const [shareCopied,           setShareCopied]           = useState(false);
+  const [toast, setToast] = useState<{ message: string; variant: "success" | "copied" | "publish"; visible: boolean }>({ message: "", variant: "success", visible: false });
   const [isCanceled,            setIsCanceled]            = useState(() => {
     const stored = JSON.parse(localStorage.getItem("prime:canceled_events") || "[]");
     return event ? stored.includes(event.id) : false;
   });
+
+  function fireToast(message: string, variant: "success" | "copied" | "publish") {
+    setToast({ message, variant, visible: true });
+  }
+  function hideToast() {
+    setToast(prev => ({ ...prev, visible: false }));
+  }
 
   if (!event) {
     return (
@@ -111,7 +119,10 @@ export function AdminEventDetail() {
   const collectedCZK = (cashPaid + onlinePaid) * event.price;
 
   return (
-    <div>
+    <div className="flex flex-col min-h-screen">
+      {/* Centered toast */}
+      <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={hideToast} />
+
       {/* Delete confirmation modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -196,7 +207,7 @@ export function AdminEventDetail() {
         </button>
       </div>
 
-    <div className="max-w-[700px] mx-auto px-4 py-6 pb-16">
+    <div className="flex-1 max-w-[700px] mx-auto px-4 py-6 w-full">
 
       {/* Event header */}
       <div className="mb-2">
@@ -206,28 +217,36 @@ export function AdminEventDetail() {
         <div className="flex items-center justify-between gap-2 mb-1">
           <h1 className="font-black italic text-xl text-white uppercase tracking-wide leading-tight">{event.title}</h1>
           <div className="flex items-center gap-2 shrink-0">
-            <div className="relative">
+            {/* Publish first */}
+            {!isPublished && (
               <button
-                onClick={() => {
-                  const url = `${window.location.origin}/events/${event.id}`;
-                  if (navigator.share) {
-                    navigator.share({ title: event.title, url });
-                  } else {
-                    navigator.clipboard.writeText(url).then(() => {
-                      setShareCopied(true);
-                      setTimeout(() => setShareCopied(false), 2000);
-                    });
-                  }
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-[#79828b] hover:text-white hover:bg-white/10 transition-colors"
-                title="Share event link"
+                onClick={() => { setIsPublished(true); fireToast("Event Published!", "publish"); }}
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#3390ec] text-white text-[11px] font-black uppercase tracking-widest rounded-xl active:scale-95 transition-transform"
               >
-                <Share2 size={14} />
+                <Send size={13} /> Publish
               </button>
-              {shareCopied && (
-                <span className="absolute -bottom-7 left-1/2 -translate-x-1/2 text-[10px] font-bold text-[#4dcd5e] whitespace-nowrap">Copied!</span>
-              )}
-            </div>
+            )}
+            {isPublished && event.status === "draft" && (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-[#3390ec]/10 text-[#3390ec] text-[11px] font-black uppercase tracking-widest rounded-xl border border-[#3390ec]/20">
+                <CheckCircle2 size={13} /> Published
+              </span>
+            )}
+            {/* Share */}
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/events/${event.id}`;
+                if (navigator.share) {
+                  navigator.share({ title: event.title, url });
+                } else {
+                  navigator.clipboard.writeText(url).then(() => fireToast("Link Copied!", "copied"));
+                }
+              }}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-[#79828b] hover:text-white hover:bg-white/10 transition-colors"
+              title="Share event link"
+            >
+              <Share2 size={14} />
+            </button>
+            {/* Edit */}
             <button
               onClick={() => navigate(`/admin/events/create?edit=${event.id}`)}
               className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-[#79828b] hover:text-white hover:bg-white/10 transition-colors"
@@ -235,19 +254,6 @@ export function AdminEventDetail() {
             >
               <Pencil size={14} />
             </button>
-            {!isPublished && (
-              <button
-                onClick={() => setIsPublished(true)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#ccff00] text-black text-[11px] font-black uppercase tracking-widest rounded-xl active:scale-95 transition-transform"
-              >
-                <Send size={13} /> Publish Event
-              </button>
-            )}
-            {isPublished && event.status === "draft" && (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-[#4dcd5e]/10 text-[#4dcd5e] text-[11px] font-black uppercase tracking-widest rounded-xl border border-[#4dcd5e]/20">
-                <CheckCircle2 size={13} /> Published
-              </span>
-            )}
           </div>
         </div>
         <p className="text-[#79828b] text-xs mt-1">
@@ -449,29 +455,32 @@ export function AdminEventDetail() {
       </div>
 
 
-      {/* ── BOTTOM ACTIONS ───────────────────────────────────────── */}
-      <div className="mt-10 pt-6 border-t border-white/5 flex gap-3">
-        <button
-          onClick={() => { if (!isCanceled) setShowCancelConfirm(true); }}
-          disabled={isCanceled}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-black uppercase tracking-widest transition-colors ${
-            isCanceled
-              ? "bg-[#eab308]/10 border-[#eab308]/30 text-[#eab308] cursor-default"
-              : "border-white/10 text-[#79828b] hover:text-[#eab308] hover:border-[#eab308]/30 hover:bg-[#eab308]/5"
-          }`}
-        >
-          <Ban size={15} />
-          {isCanceled ? "Canceled" : "Cancel Event"}
-        </button>
-        <button
-          onClick={() => setShowDeleteConfirm(true)}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#ef4444]/30 text-[#ef4444] bg-[#ef4444]/5 text-sm font-black uppercase tracking-widest hover:bg-[#ef4444]/10 transition-colors"
-        >
-          <Trash2 size={15} />
-          Delete Event
-        </button>
-      </div>
     </div>
+
+      {/* ── STICKY BOTTOM ACTIONS ─────────────────────────────────── */}
+      <div className="sticky bottom-20 md:bottom-0 z-40 bg-[#0e1621] border-t border-white/5">
+        <div className="max-w-[700px] mx-auto px-4 py-3 flex gap-3">
+          <button
+            onClick={() => { if (!isCanceled) setShowCancelConfirm(true); }}
+            disabled={isCanceled}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-black uppercase tracking-widest transition-colors ${
+              isCanceled
+                ? "bg-[#eab308]/10 border-[#eab308]/30 text-[#eab308] cursor-default"
+                : "border-white/10 text-[#79828b] hover:text-[#eab308] hover:border-[#eab308]/30 hover:bg-[#eab308]/5"
+            }`}
+          >
+            <Ban size={15} />
+            {isCanceled ? "Canceled" : "Cancel Event"}
+          </button>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#ef4444]/30 text-[#ef4444] bg-[#ef4444]/5 text-sm font-black uppercase tracking-widest hover:bg-[#ef4444]/10 transition-colors"
+          >
+            <Trash2 size={15} />
+            Delete Event
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

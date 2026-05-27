@@ -15,7 +15,7 @@ const SKILL_COLOR: Record<SkillLevel, string> = {
   Elite:        "text-[#e04040]",
 };
 
-const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero", "Right Side"];
+const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
 
 const DEFAULT_USER = {
   firstName:  "Alex",

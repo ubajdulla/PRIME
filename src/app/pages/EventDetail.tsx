@@ -14,6 +14,7 @@ import {
   X,
   Share2,
 } from "lucide-react";
+import { Toast } from "../components/ui/Toast";
 
 const SKILL_ORDER = ["Rookie", "Beginner", "Intermediate", "Advanced", "Pro", "PRIME"];
 
@@ -54,7 +55,10 @@ export function EventDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const [shareCopied, setShareCopied] = useState(false);
+  const [toast, setToast] = useState({ message: "", visible: false });
+  function fireToast(message: string) {
+    setToast({ message, visible: true });
+  }
   const isCanceled = (() => {
     try {
       const stored: string[] = JSON.parse(localStorage.getItem("prime:canceled_events") || "[]");
@@ -150,6 +154,7 @@ return (
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
+      <Toast message={toast.message} visible={toast.visible} variant="copied" onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
       {/* Swipe indicator */}
       {swipe.dir && swipe.progress > 0.1 && (
         <div className="fixed inset-0 pointer-events-none z-40 flex items-center justify-center">
@@ -190,7 +195,7 @@ return (
               <div className="mb-5">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2">Select your position</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero", "Right Side"].map(pos => (
+                  {["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"].map(pos => (
                     <button
                       key={pos}
                       onClick={() => setSelectedPosition(pos)}
@@ -264,25 +269,20 @@ return (
         >
           <ChevronLeft size={18} /> Back
         </button>
-        <div className="relative">
-          <button
-            onClick={() => {
-              const url = window.location.href;
-              if (navigator.share) {
-                navigator.share({ title, url });
-              } else {
-                navigator.clipboard.writeText(url).then(() => {
-                  setShareCopied(true);
-                  setTimeout(() => setShareCopied(false), 2000);
-                });
-              }
-            }}
-            className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
-          >
-            <Share2 size={16} />
-            {shareCopied ? <span className="text-[#4dcd5e] text-xs font-bold">Copied!</span> : <span>Share</span>}
-          </button>
-        </div>
+        <button
+          onClick={() => {
+            const url = window.location.href;
+            if (navigator.share) {
+              navigator.share({ title, url });
+            } else {
+              navigator.clipboard.writeText(url).then(() => fireToast("Link Copied!"));
+            }
+          }}
+          className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
+        >
+          <Share2 size={16} />
+          <span>Share</span>
+        </button>
       </div>
 
 <div className="px-4 pb-12 max-w-[600px] mx-auto pt-4">
