@@ -183,7 +183,7 @@ export function AdminCreateEvent() {
               value={form.title}
               onChange={e => set("title", e.target.value)}
               placeholder="e.g. PRO-AM INVITATIONAL #13"
-              className="w-full bg-[#222f3e] border border-white/10 rounded-md px-4 py-3 text-white text-sm font-bold placeholder:text-[#79828b]/60 focus:outline-none focus:border-[#3390ec]/50 transition-colors"
+              className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 text-white text-sm font-bold placeholder:text-[#79828b]/60 focus:outline-none focus:border-[#3390ec]/50 transition-colors"
             />
           </Field>
 
@@ -264,7 +264,7 @@ export function AdminCreateEvent() {
                 <select
                   value={form.category}
                   onChange={e => set("category", e.target.value)}
-                  className="w-full bg-[#222f3e] border border-white/10 rounded-md px-4 py-3 pr-10 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark] appearance-none cursor-pointer"
+                  className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 pr-10 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark] appearance-none cursor-pointer"
                 >
                   {CATEGORIES.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
@@ -279,7 +279,7 @@ export function AdminCreateEvent() {
                   <select
                     value={form.levelRequired}
                     onChange={e => set("levelRequired", e.target.value)}
-                    className="w-full bg-[#222f3e] border border-white/10 rounded-md px-4 py-3 pr-10 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark] appearance-none cursor-pointer"
+                    className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 pr-10 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark] appearance-none cursor-pointer"
                   >
                     {SKILL_ORDER.map(lvl => (
                       <option key={lvl} value={lvl}>{lvl}</option>
@@ -293,26 +293,26 @@ export function AdminCreateEvent() {
 
           {/* Date & Time */}
           <Field label="Date & Time">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-2">
               <input
                 type="date"
                 value={form.date}
                 onChange={e => set("date", e.target.value)}
-                className="w-full sm:flex-[2] bg-[#222f3e] border border-white/10 rounded-md px-3 py-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+                className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
               />
-              <div className="flex items-center gap-2 sm:contents">
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                 <input
                   type="time"
                   value={form.timeStart}
                   onChange={e => set("timeStart", e.target.value)}
-                  className="flex-1 sm:flex-1 bg-[#222f3e] border border-white/10 rounded-md px-3 py-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+                  className="w-full h-12 min-w-0 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
                 />
-                <span className="text-[#79828b] font-bold text-sm shrink-0">—</span>
+                <span className="text-[#79828b] font-bold text-sm">—</span>
                 <input
                   type="time"
                   value={form.timeEnd}
                   onChange={e => set("timeEnd", e.target.value)}
-                  className="flex-1 sm:flex-1 bg-[#222f3e] border border-white/10 rounded-md px-3 py-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+                  className="w-full h-12 min-w-0 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
                 />
               </div>
             </div>
@@ -328,7 +328,7 @@ export function AdminCreateEvent() {
                   onChange={e => { set("location", e.target.value); setLocationOpen(true); }}
                   onFocus={() => setLocationOpen(true)}
                   placeholder="Type or select venue..."
-                  className="w-full bg-[#222f3e] border border-white/10 rounded-md px-4 py-3 pr-10 text-white text-sm font-bold placeholder:text-[#79828b]/60 focus:outline-none focus:border-[#3390ec]/50 transition-colors"
+                  className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 pr-10 text-white text-sm font-bold placeholder:text-[#79828b]/60 focus:outline-none focus:border-[#3390ec]/50 transition-colors"
                 />
                 <button
                   type="button"
@@ -358,7 +358,7 @@ export function AdminCreateEvent() {
                 href={`https://www.google.com/maps/search/${encodeURIComponent(form.location || "sports venue")}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-3 rounded-md bg-[#222f3e] border border-white/10 text-[#79828b] hover:text-white hover:border-[#3390ec]/30 transition-all text-xs font-black shrink-0"
+                className="flex items-center gap-1.5 px-3 h-12 rounded-md bg-[#222f3e] border border-white/10 text-[#79828b] hover:text-white hover:border-[#3390ec]/30 transition-all text-xs font-black shrink-0"
               >
                 <MapPin size={14} />
                 Maps
@@ -377,7 +377,7 @@ export function AdminCreateEvent() {
                     value={form.price}
                     onChange={e => set("price", e.target.value)}
                     placeholder="0"
-                    className="w-full bg-[#222f3e] border border-white/10 rounded-md px-4 py-3 pr-14 text-white text-sm font-bold placeholder:text-[#79828b]/60 focus:outline-none focus:border-[#3390ec]/50 transition-colors"
+                    className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 pr-14 text-white text-sm font-bold placeholder:text-[#79828b]/60 focus:outline-none focus:border-[#3390ec]/50 transition-colors"
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#79828b]/40 text-sm font-black pointer-events-none select-none">CZK</span>
                 </div>
@@ -394,7 +394,7 @@ export function AdminCreateEvent() {
                   max="100"
                   value={form.capacity}
                   onChange={e => set("capacity", e.target.value)}
-                  className="w-full bg-[#222f3e] border border-white/10 rounded-md px-4 py-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors"
+                  className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors"
                 />
               </Field>
             </div>
@@ -407,18 +407,18 @@ export function AdminCreateEvent() {
                 type="date"
                 value={form.publishDate}
                 onChange={e => set("publishDate", e.target.value)}
-                className="flex-1 min-w-0 bg-[#222f3e] border border-white/10 rounded-md px-3 py-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+                className="flex-1 min-w-0 h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
               />
               <input
                 type="time"
                 value={form.publishTime}
                 onChange={e => set("publishTime", e.target.value)}
-                className="w-28 shrink-0 bg-[#222f3e] border border-white/10 rounded-md px-3 py-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+                className="w-28 shrink-0 h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
               />
               <button
                 onClick={() => set("notifyBefore", !form.notifyBefore)}
                 title="Notify 1 hour before publish"
-                className={`flex items-center justify-center w-[46px] h-[46px] rounded-md border transition-all shrink-0 ${
+                className={`flex items-center justify-center w-12 h-12 rounded-md border transition-all shrink-0 ${
                   form.notifyBefore
                     ? "bg-[#3390ec]/10 border-[#3390ec]/30 text-[#3390ec]"
                     : "bg-[#222f3e] border-white/10 text-[#79828b] hover:border-white/20 hover:text-white"
