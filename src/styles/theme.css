@@ -178,4 +178,13 @@
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
   }
+
+  /* Force date/time inputs to never exceed their container width on any browser/device */
+  input[type="date"],
+  input[type="time"] {
+    box-sizing: border-box;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
 }

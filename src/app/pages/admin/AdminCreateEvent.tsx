@@ -162,7 +162,7 @@ export function AdminCreateEvent() {
   }
 
   return (
-    <div>
+    <div className="overflow-x-hidden">
       {/* Back bar — static (scrolls with page) */}
       <div className="flex items-center px-4 py-3 border-b border-white/5">
         <button
@@ -173,7 +173,7 @@ export function AdminCreateEvent() {
         </button>
       </div>
 
-      <div className="max-w-[700px] mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div className="max-w-[700px] mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <div className="flex flex-col gap-5">
 
           {/* Title */}

@@ -119,7 +119,7 @@ export function AdminEventDetail() {
   const collectedCZK = (cashPaid + onlinePaid) * event.price;
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div>
       {/* Centered toast */}
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={hideToast} />
 
@@ -207,7 +207,7 @@ export function AdminEventDetail() {
         </button>
       </div>
 
-    <div className="flex-1 max-w-[700px] mx-auto px-4 py-6 w-full">
+    <div className="max-w-[700px] mx-auto px-4 py-6">
 
       {/* Event header */}
       <div className="mb-2">
@@ -455,32 +455,29 @@ export function AdminEventDetail() {
       </div>
 
 
-    </div>
-
-      {/* ── STICKY BOTTOM ACTIONS ─────────────────────────────────── */}
-      <div className="sticky bottom-20 md:bottom-0 z-40 bg-[#0e1621] border-t border-white/5">
-        <div className="max-w-[700px] mx-auto px-4 py-3 flex gap-3">
-          <button
-            onClick={() => { if (!isCanceled) setShowCancelConfirm(true); }}
-            disabled={isCanceled}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-black uppercase tracking-widest transition-colors ${
-              isCanceled
-                ? "bg-[#eab308]/10 border-[#eab308]/30 text-[#eab308] cursor-default"
-                : "border-white/10 text-[#79828b] hover:text-[#eab308] hover:border-[#eab308]/30 hover:bg-[#eab308]/5"
-            }`}
-          >
-            <Ban size={15} />
-            {isCanceled ? "Canceled" : "Cancel Event"}
-          </button>
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#ef4444]/30 text-[#ef4444] bg-[#ef4444]/5 text-sm font-black uppercase tracking-widest hover:bg-[#ef4444]/10 transition-colors"
-          >
-            <Trash2 size={15} />
-            Delete Event
-          </button>
-        </div>
+      {/* ── BOTTOM ACTIONS ───────────────────────────────────────── */}
+      <div className="mt-6 pt-4 border-t border-white/5 flex gap-3">
+        <button
+          onClick={() => { if (!isCanceled) setShowCancelConfirm(true); }}
+          disabled={isCanceled}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-black uppercase tracking-widest transition-colors ${
+            isCanceled
+              ? "bg-[#eab308]/10 border-[#eab308]/30 text-[#eab308] cursor-default"
+              : "border-white/10 text-[#79828b] hover:text-[#eab308] hover:border-[#eab308]/30 hover:bg-[#eab308]/5"
+          }`}
+        >
+          <Ban size={15} />
+          {isCanceled ? "Canceled" : "Cancel Event"}
+        </button>
+        <button
+          onClick={() => setShowDeleteConfirm(true)}
+          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#ef4444]/30 text-[#ef4444] bg-[#ef4444]/5 text-sm font-black uppercase tracking-widest hover:bg-[#ef4444]/10 transition-colors"
+        >
+          <Trash2 size={15} />
+          Delete Event
+        </button>
       </div>
+    </div>
     </div>
   );
 }
