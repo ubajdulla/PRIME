@@ -1,6 +1,5 @@
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router";
 import { useLayoutEffect } from "react";
-import { motion } from "motion/react";
 import { Calendar, User, Bell, ShieldCheck } from "lucide-react";
 import logo from "../../imports/Prime_logo_nobg_white_border.png";
 import { useLang, LANG_CYCLE } from "../i18n";
@@ -31,8 +30,6 @@ export function MainLayout() {
     });
     return () => cancelAnimationFrame(raf);
   }, [location.pathname]);
-
-  const dir = navDir.get();
 
   function handleLogoClick(e: React.MouseEvent) {
     e.preventDefault();
@@ -90,16 +87,9 @@ export function MainLayout() {
           <span className="font-black italic text-xl tracking-tighter text-white">PRIME</span>
         </div>
 
-        {/* Animated page area — no animation for admin or nav-tap (dir=0) */}
-        <motion.div
-          key={location.pathname}
-          initial={dir === 0 || location.pathname.startsWith("/admin") ? false : { x: dir > 0 ? "100%" : "-100%" }}
-          animate={{ x: 0 }}
-          transition={{ type: "tween", duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="pb-[80px] md:pb-0"
-        >
+        <div className="pb-[80px] md:pb-0">
           <Outlet />
-        </motion.div>
+        </div>
       </main>
 
       {/* Mobile Bottom Nav */}
