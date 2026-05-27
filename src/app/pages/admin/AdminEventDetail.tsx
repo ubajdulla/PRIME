@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
-  ChevronLeft, ChevronUp, ChevronDown, MoreVertical,
+  ChevronUp, ChevronDown, MoreVertical,
   CheckCircle2, CreditCard, Banknote, User, ArrowDownToLine,
   Trash2, Send, CheckCheck, Pencil, AlertTriangle, Ban, Share2,
 } from "lucide-react";
+import { BackBar } from "../../components/ui/BackBar";
 import {
   ADMIN_EVENTS, getCategoryStyle,
   type PaymentStatus, type Player, type RosterPlayer,
@@ -40,11 +41,11 @@ export function AdminEventDetail() {
 
   if (!event) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-[#79828b]">
-        <p className="font-bold">Event not found</p>
-        <button onClick={() => navigate("/admin/events")} className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold">
-          <ChevronLeft size={18} /> Events
-        </button>
+      <div>
+        <BackBar label="Events" to="/admin/events" />
+        <div className="flex items-center justify-center min-h-[60vh] text-[#79828b]">
+          <p className="font-bold">Event not found</p>
+        </div>
       </div>
     );
   }
@@ -197,17 +198,9 @@ export function AdminEventDetail() {
         </div>
       )}
 
-      {/* Back button — sticky top bar */}
-      <div className="sticky top-0 z-10 flex items-center px-4 py-3 bg-[#0e1621]/90 backdrop-blur-md border-b border-white/5">
-        <button
-          onClick={() => navigate("/admin/events")}
-          className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
-        >
-          <ChevronLeft size={18} /> Events
-        </button>
-      </div>
+      <BackBar label="Events" to="/admin/events" />
 
-    <div className="max-w-[700px] mx-auto px-4 py-6">
+      <div className="max-w-[700px] mx-auto w-full px-4 pt-6 pb-6">
 
       {/* Event header */}
       <div className="mb-2">
@@ -217,20 +210,6 @@ export function AdminEventDetail() {
         <div className="flex items-center justify-between gap-2 mb-1">
           <h1 className="font-black italic text-xl text-white uppercase tracking-wide leading-tight">{event.title}</h1>
           <div className="flex items-center gap-2 shrink-0">
-            {/* Publish first */}
-            {!isPublished && (
-              <button
-                onClick={() => { setIsPublished(true); fireToast("Event Published!", "publish"); }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#3390ec] text-white text-[11px] font-black uppercase tracking-widest rounded-xl active:scale-95 transition-transform"
-              >
-                <Send size={13} /> Publish
-              </button>
-            )}
-            {isPublished && event.status === "draft" && (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-[#3390ec]/10 text-[#3390ec] text-[11px] font-black uppercase tracking-widest rounded-xl border border-[#3390ec]/20">
-                <CheckCircle2 size={13} /> Published
-              </span>
-            )}
             {/* Share */}
             <button
               onClick={() => {
@@ -248,7 +227,7 @@ export function AdminEventDetail() {
             </button>
             {/* Edit */}
             <button
-              onClick={() => navigate(`/admin/events/create?edit=${event.id}`)}
+              onClick={() => navigate(`/admin/events/${event.id}/edit`)}
               className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-[#79828b] hover:text-white hover:bg-white/10 transition-colors"
               title="Edit event"
             >
@@ -260,6 +239,44 @@ export function AdminEventDetail() {
           {event.date} • {event.time} • {event.location}
           <span className="text-white font-bold"> • {event.priceLabel}</span>
         </p>
+      </div>
+
+      {/* ── ACTION BUTTONS — Cancel / Delete / Publish ───────── */}
+      <div className="flex gap-2 mt-5 mb-1">
+        {/* Cancel */}
+        <button
+          onClick={() => { if (!isCanceled) setShowCancelConfirm(true); }}
+          disabled={isCanceled}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-[11px] font-black uppercase tracking-widest transition-colors ${
+            isCanceled
+              ? "bg-[#eab308]/10 border-[#eab308]/30 text-[#eab308] cursor-default"
+              : "border-white/10 text-[#79828b] hover:text-[#eab308] hover:border-[#eab308]/30 hover:bg-[#eab308]/5"
+          }`}
+        >
+          <Ban size={13} />
+          {isCanceled ? "Canceled" : "Cancel"}
+        </button>
+        {/* Delete */}
+        <button
+          onClick={() => setShowDeleteConfirm(true)}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-[#ef4444]/30 text-[#ef4444] bg-[#ef4444]/5 text-[11px] font-black uppercase tracking-widest hover:bg-[#ef4444]/10 transition-colors"
+        >
+          <Trash2 size={13} />
+          Delete
+        </button>
+        {/* Publish */}
+        {!isPublished ? (
+          <button
+            onClick={() => { setIsPublished(true); fireToast("Event Published!", "publish"); }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#3390ec] text-white text-[11px] font-black uppercase tracking-widest rounded-xl active:scale-95 transition-transform"
+          >
+            <Send size={13} /> Publish
+          </button>
+        ) : (
+          <span className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#3390ec]/10 text-[#3390ec] text-[11px] font-black uppercase tracking-widest rounded-xl border border-[#3390ec]/20">
+            <CheckCircle2 size={13} /> Published
+          </span>
+        )}
       </div>
 
       {/* Payment summary */}
@@ -454,30 +471,7 @@ export function AdminEventDetail() {
         ))}
       </div>
 
-
-      {/* ── BOTTOM ACTIONS ───────────────────────────────────────── */}
-      <div className="mt-6 pt-4 border-t border-white/5 flex gap-3">
-        <button
-          onClick={() => { if (!isCanceled) setShowCancelConfirm(true); }}
-          disabled={isCanceled}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-black uppercase tracking-widest transition-colors ${
-            isCanceled
-              ? "bg-[#eab308]/10 border-[#eab308]/30 text-[#eab308] cursor-default"
-              : "border-white/10 text-[#79828b] hover:text-[#eab308] hover:border-[#eab308]/30 hover:bg-[#eab308]/5"
-          }`}
-        >
-          <Ban size={15} />
-          {isCanceled ? "Canceled" : "Cancel Event"}
-        </button>
-        <button
-          onClick={() => setShowDeleteConfirm(true)}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#ef4444]/30 text-[#ef4444] bg-[#ef4444]/5 text-sm font-black uppercase tracking-widest hover:bg-[#ef4444]/10 transition-colors"
-        >
-          <Trash2 size={15} />
-          Delete Event
-        </button>
       </div>
-    </div>
     </div>
   );
 }
@@ -584,7 +578,7 @@ function PaymentToggle({ status, onConfirm }: { status: PaymentStatus; onConfirm
           style={{ width: `${progress}%` }}
         />
       )}
-      <div className="relative z-10 flex items-center justify-center gap-1 h-full">
+      <div className="relative flex items-center justify-center gap-1 h-full">
         {confirmedAndSet && <ConfirmedIcon size={11} className={confirmedText} />}
         <span className={`text-[10px] font-black uppercase tracking-wider ${confirmedAndSet ? confirmedText : "text-[#79828b]"}`}>
           {label}

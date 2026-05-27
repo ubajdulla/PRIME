@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { ChevronLeft, ChevronDown, Search, MoreVertical } from "lucide-react";
+import { ChevronDown, Search, MoreVertical } from "lucide-react";
 import { ALL_PLAYERS, ADMIN_EVENTS, SKILL_STYLE, type Player } from "../../data/adminData";
 import { PlayerProfileModal } from "../../components/PlayerProfileModal";
+import { BackBar } from "../../components/ui/BackBar";
 
-const POSITIONS = ["All", "Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero", "Right Side"];
+const POSITIONS = ["All", "Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
 
 export function AdminPlayersList() {
   const { level } = useParams<{ level: string }>();
@@ -33,18 +34,14 @@ export function AdminPlayersList() {
   });
 
   return (
-    <div className="max-w-[900px] mx-auto px-4 py-8">
+    <div>
       {profilePlayer && (
         <PlayerProfileModal player={profilePlayer} onClose={() => setProfilePlayer(null)} />
       )}
 
-      {/* Header */}
-      <button
-        onClick={() => navigate("/admin/players")}
-        className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold mb-5"
-      >
-        <ChevronLeft size={18} /> Players
-      </button>
+      <BackBar label="Players" to="/admin/players" />
+
+      <div className="max-w-[900px] mx-auto px-4 py-6">
 
       <div className="flex items-center gap-3 mb-6">
         <div className={`w-3 h-3 rounded-full ${style.dot}`} />
@@ -82,7 +79,7 @@ export function AdminPlayersList() {
       </div>
 
       {/* Player list */}
-      <div className="bg-[#17212b] rounded-2xl border border-white/5 overflow-hidden">
+      <div className="bg-[#17212b] rounded-2xl border border-white/5">
         {filtered.length === 0 && (
           <p className="text-[#79828b] text-sm text-center py-10">No players found</p>
         )}
@@ -91,7 +88,7 @@ export function AdminPlayersList() {
           return (
             <div
               key={player.id}
-              className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-white/[0.05]" : ""}`}
+              className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-white/[0.05]" : ""} ${i === 0 ? "rounded-t-2xl" : ""} ${i === filtered.length - 1 ? "rounded-b-2xl" : ""}`}
             >
               <img
                 src={player.avatar}
@@ -142,6 +139,7 @@ export function AdminPlayersList() {
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );

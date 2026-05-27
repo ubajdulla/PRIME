@@ -126,6 +126,9 @@
 
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+    overscroll-behavior-x: none; /* disables browser native swipe-back gesture overlay */
+    overflow-anchor: none;       /* prevents scroll-anchor from fighting our scroll resets */
   }
 
   /**

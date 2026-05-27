@@ -23,7 +23,7 @@ export const router = createBrowserRouter([
       { index: true, Component: Home },
       { path: "alerts", Component: Alerts },
       { path: "profile", Component: Profile },
-{ path: "events/:id", Component: EventDetail },
+      { path: "events/:id", Component: EventDetail },
       {
         path: "admin",
         Component: AdminLayout,
@@ -32,6 +32,7 @@ export const router = createBrowserRouter([
           { path: "events", Component: AdminEvents },
           { path: "events/create", Component: AdminCreateEvent },
           { path: "events/:id", Component: AdminEventDetail },
+          { path: "events/:id/edit", Component: AdminCreateEvent },
           { path: "players", Component: AdminPlayers },
           { path: "players/:level", Component: AdminPlayersList },
         ],

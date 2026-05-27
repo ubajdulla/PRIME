@@ -1,8 +1,6 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
   MapPin,
   Calendar,
@@ -15,6 +13,7 @@ import {
   Share2,
 } from "lucide-react";
 import { Toast } from "../components/ui/Toast";
+import { BackBar } from "../components/ui/BackBar";
 
 const SKILL_ORDER = ["Rookie", "Beginner", "Intermediate", "Advanced", "Pro", "PRIME"];
 
@@ -70,40 +69,6 @@ export function EventDetail() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
   const [waitlistOpen, setWaitlistOpen] = useState(false);
-  const [swipe, setSwipe] = useState<{ dir: 'left' | 'right' | null; progress: number }>({ dir: null, progress: 0 });
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-  const touchLocked = useRef<'h' | 'v' | null>(null);
-
-  function onTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-    touchLocked.current = null;
-  }
-
-  function onTouchMove(e: React.TouchEvent) {
-    const dx = e.touches[0].clientX - touchStartX.current;
-    const dy = e.touches[0].clientY - touchStartY.current;
-    const absDx = Math.abs(dx);
-    const absDy = Math.abs(dy);
-    if (!touchLocked.current && (absDx > 8 || absDy > 8)) {
-      touchLocked.current = absDx > absDy ? 'h' : 'v';
-    }
-    if (touchLocked.current !== 'h') {
-      if (swipe.dir !== null) setSwipe({ dir: null, progress: 0 });
-      return;
-    }
-    setSwipe({ dir: dx > 0 ? 'right' : 'left', progress: Math.min(absDx / 100, 1) });
-  }
-
-  function onTouchEnd() {
-    if (swipe.dir && swipe.progress >= 1) {
-      if (swipe.dir === 'right') navigate(-1);
-      else navigate(1);
-    }
-    setSwipe({ dir: null, progress: 0 });
-    touchLocked.current = null;
-  }
 
   const playerSkillLevel = "Intermediate";
   const isGame = (EVENT_CATS[id ?? ""] ?? "") === "GAMES";
@@ -148,30 +113,8 @@ export function EventDetail() {
   };
 
 return (
-    <div
-      className="relative min-h-screen bg-[#0e1621] text-white font-sans overflow-x-hidden selection:bg-white/20"
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-    >
+    <div className="min-h-screen bg-[#0e1621] text-white font-sans">
       <Toast message={toast.message} visible={toast.visible} variant="copied" onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
-      {/* Swipe indicator */}
-      {swipe.dir && swipe.progress > 0.1 && (
-        <div className="fixed inset-0 pointer-events-none z-40 flex items-center justify-center">
-          <div
-            className="w-16 h-16 rounded-full bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center"
-            style={{
-              opacity: swipe.progress,
-              transform: `scale(${0.6 + swipe.progress * 0.4})`,
-            }}
-          >
-            {swipe.dir === 'right'
-              ? <ChevronLeft size={28} className="text-white" />
-              : <ChevronRight size={28} className="text-white" />
-            }
-          </div>
-        </div>
-      )}
 
       {/* Invisible backdrop to close any open dropdown menu */}
       {openMenu && (
@@ -261,14 +204,7 @@ return (
         </div>
       )}
 
-      {/* Sticky back bar */}
-      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#0e1621]/90 backdrop-blur-md border-b border-white/5">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
-        >
-          <ChevronLeft size={18} /> Back
-        </button>
+      <BackBar label="Events" to="/">
         <button
           onClick={() => {
             const url = window.location.href;
@@ -283,7 +219,7 @@ return (
           <Share2 size={16} />
           <span>Share</span>
         </button>
-      </div>
+      </BackBar>
 
 <div className="px-4 pb-12 max-w-[600px] mx-auto pt-4">
 

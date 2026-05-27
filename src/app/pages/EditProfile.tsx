@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router";
 import {
-  ChevronLeft, Camera, Send, Instagram, Phone, Mail, Check, X
+  Camera, Send, Instagram, Phone, Mail, Check, X
 } from "lucide-react";
+import { BackBar } from "../components/ui/BackBar";
 
 // ─── Shared mock (replace with context / store later) ────────────────────────
 
@@ -66,22 +67,14 @@ export function EditProfile() {
   return (
     <div className="min-h-screen bg-[#0e1621] font-sans pb-32">
 
-      {/* ── Sticky header ── */}
-      <div className="sticky top-0 z-20 bg-[#0e1621]/90 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-4 py-3">
-        <button
-          onClick={() => navigate("/profile")}
-          className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
-        >
-          <ChevronLeft size={18} /> Back
-        </button>
-        <span className="font-black text-white text-base tracking-tight">Edit Profile</span>
+      <BackBar label="Back" to="/profile" title="Edit Profile" zIndex="z-20">
         <button
           onClick={handleSave}
           className="bg-[#3390ec] text-white text-sm font-black px-4 py-1.5 rounded-xl active:opacity-80 transition-opacity shadow-[0_0_14px_rgba(51,144,236,0.25)]"
         >
           Save
         </button>
-      </div>
+      </BackBar>
 
       {/* ── Cover photo ── */}
       <div className="relative">

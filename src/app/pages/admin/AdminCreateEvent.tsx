@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router";
-import { ChevronLeft, ChevronDown, Check, MapPin, Bell, ImageIcon, FolderOpen } from "lucide-react";
+import { useNavigate, useParams } from "react-router";
+import { ChevronDown, Check, MapPin, Bell, ImageIcon, FolderOpen } from "lucide-react";
 import { SKILL_ORDER, ADMIN_EVENTS } from "../../data/adminData";
+import { BackBar } from "../../components/ui/BackBar";
 
 const CATEGORIES = ["GAMES", "TOURNAMENT", "TRAININGS", "BEACH", "EVENTS"];
 
@@ -49,8 +50,7 @@ const CATEGORY_IMAGES: Record<string, string[]> = {
 
 export function AdminCreateEvent() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const editId = searchParams.get("edit");
+  const { id: editId } = useParams<{ id: string }>();
   const editEvent = editId ? ADMIN_EVENTS.find(e => e.id === editId) : null;
   const isEditMode = !!editEvent;
 
@@ -133,7 +133,7 @@ export function AdminCreateEvent() {
 
   function handleSave() {
     setSaved(true);
-    setTimeout(() => navigate("/admin/events"), 1200);
+    setTimeout(() => navigate(isEditMode ? `/admin/events/${editId}` : "/admin/events"), 1200);
   }
 
   const publishAt = form.publishDate
@@ -163,15 +163,10 @@ export function AdminCreateEvent() {
 
   return (
     <div className="overflow-x-hidden">
-      {/* Back bar — static (scrolls with page) */}
-      <div className="flex items-center px-4 py-3 border-b border-white/5">
-        <button
-          onClick={() => navigate("/admin/events")}
-          className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
-        >
-          <ChevronLeft size={18} /> Events
-        </button>
-      </div>
+      <BackBar
+        label={isEditMode ? "Event" : "Events"}
+        to={isEditMode ? `/admin/events/${editId}` : "/admin/events"}
+      />
 
       <div className="max-w-[700px] mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <div className="flex flex-col gap-5">
