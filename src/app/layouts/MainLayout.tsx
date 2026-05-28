@@ -52,7 +52,7 @@ export function MainLayout() {
   }
 
   return (
-    <div className="h-dvh md:min-h-screen bg-[#0e1621] text-white font-sans flex flex-col md:block">
+    <div className="h-full md:min-h-screen bg-[#0e1621] text-white font-sans flex flex-col md:block">
       <NavigationGuard />
 
       {/* Desktop Sidebar */}
@@ -90,7 +90,7 @@ export function MainLayout() {
       </div>
 
       {/* Main content — on mobile this is the scroll container so the iOS indicator stays above the bottom nav */}
-      <main ref={mainRef} className="flex-1 min-h-0 overflow-y-auto md:overflow-visible md:flex-none md:ml-[72px] md:min-h-screen">
+      <main ref={mainRef} className="flex-1 min-h-0 overflow-y-auto overscroll-none md:overflow-visible md:overscroll-auto md:flex-none md:ml-[72px] md:min-h-screen">
         <Outlet />
       </main>
 

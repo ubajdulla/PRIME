@@ -191,3 +191,21 @@
     width: 100% !important;
   }
 }
+
+/* On mobile the scroll happens inside <main>, not the document.
+   position:fixed on body locks the viewport so rubber-band overscroll
+   cannot shift the layout, and the bottom nav stays pinned. */
+@media (max-width: 767px) {
+  html {
+    height: 100%;
+    overflow: hidden;
+  }
+  body {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+}
