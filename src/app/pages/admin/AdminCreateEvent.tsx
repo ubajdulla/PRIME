@@ -102,7 +102,7 @@ export function AdminCreateEvent() {
       timeEnd: "22:00",
       location: "",
       price: "",
-      capacity: "12",
+      capacity: "",
       levelRequired: "Rookie",
       publishDate: "",
       publishTime: "",
@@ -178,7 +178,7 @@ export function AdminCreateEvent() {
               value={form.title}
               onChange={e => set("title", e.target.value)}
               placeholder="e.g. PRO-AM INVITATIONAL #13"
-              className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 text-white text-sm font-bold placeholder:text-[#79828b]/60 focus:outline-none focus:border-[#3390ec]/50 transition-colors"
+              className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors"
             />
           </Field>
 
@@ -189,7 +189,7 @@ export function AdminCreateEvent() {
               onChange={e => set("description", e.target.value)}
               placeholder="Event details, rules, notes..."
               rows={3}
-              className="w-full bg-[#222f3e] border border-white/10 rounded-md px-4 py-3 text-white text-sm font-bold placeholder:text-[#79828b]/60 focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none"
+              className="w-full bg-[#222f3e] border border-white/10 rounded-md px-4 py-3 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none"
             />
           </Field>
 
@@ -286,34 +286,32 @@ export function AdminCreateEvent() {
             )}
           </div>
 
-          {/* Date & Time */}
-          <Field label="Date & Time">
-            <div className="flex flex-col gap-2 w-full overflow-hidden">
-              <input
-                type="date"
-                value={form.date}
-                onChange={e => set("date", e.target.value)}
-                className="w-full min-w-0 h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
-              />
-              <div className="grid items-center gap-2" style={{ gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr)" }}>
-                <input
-                  type="time"
-                  step="900"
-                  value={form.timeStart}
-                  onChange={e => set("timeStart", e.target.value)}
-                  className="w-full min-w-0 h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
-                />
-                <span className="text-[#79828b] font-bold text-sm">—</span>
-                <input
-                  type="time"
-                  step="900"
-                  value={form.timeEnd}
-                  onChange={e => set("timeEnd", e.target.value)}
-                  className="w-full min-w-0 h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
-                />
-              </div>
-            </div>
+          {/* Date */}
+          <Field label="Date">
+            <HintInput type="date" value={form.date} onChange={v => set("date", v)} hint="Select date..." />
           </Field>
+
+          {/* Time */}
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Start Time">
+              <input
+                type="time"
+                step="900"
+                value={form.timeStart}
+                onChange={e => set("timeStart", e.target.value)}
+                className="w-full max-w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+              />
+            </Field>
+            <Field label="End Time">
+              <input
+                type="time"
+                step="900"
+                value={form.timeEnd}
+                onChange={e => set("timeEnd", e.target.value)}
+                className="w-full max-w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+              />
+            </Field>
+          </div>
 
           {/* Location */}
           <Field label="Location">
@@ -325,7 +323,7 @@ export function AdminCreateEvent() {
                   onChange={e => { set("location", e.target.value); setLocationOpen(true); }}
                   onFocus={() => setLocationOpen(true)}
                   placeholder="Type or select venue..."
-                  className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 pr-10 text-white text-sm font-bold placeholder:text-[#79828b]/60 focus:outline-none focus:border-[#3390ec]/50 transition-colors"
+                  className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 pr-10 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors"
                 />
                 <button
                   type="button"
@@ -374,7 +372,7 @@ export function AdminCreateEvent() {
                     value={form.price}
                     onChange={e => set("price", e.target.value)}
                     placeholder="0"
-                    className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 pr-14 text-white text-sm font-bold placeholder:text-[#79828b]/60 focus:outline-none focus:border-[#3390ec]/50 transition-colors"
+                    className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 pr-14 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors"
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#79828b]/40 text-sm font-black pointer-events-none select-none">CZK</span>
                 </div>
@@ -391,7 +389,8 @@ export function AdminCreateEvent() {
                   max="100"
                   value={form.capacity}
                   onChange={e => set("capacity", e.target.value)}
-                  className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors"
+                  placeholder="12"
+                  className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors"
                 />
               </Field>
             </div>
@@ -414,20 +413,9 @@ export function AdminCreateEvent() {
               </button>
             }
           >
-            <div className="flex gap-2 w-full overflow-hidden">
-              <input
-                type="date"
-                value={form.publishDate}
-                onChange={e => set("publishDate", e.target.value)}
-                className="flex-1 min-w-0 h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
-              />
-              <input
-                type="time"
-                step="900"
-                value={form.publishTime}
-                onChange={e => set("publishTime", e.target.value)}
-                className="flex-1 min-w-0 h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <HintInput type="date" value={form.publishDate} onChange={v => set("publishDate", v)} hint="Select date..." />
+              <HintInput type="time" value={form.publishTime} onChange={v => set("publishTime", v)} hint="--:--" step="900" />
             </div>
           </Field>
 
@@ -449,6 +437,31 @@ export function AdminCreateEvent() {
 
         </div>
       </div>
+    </div>
+  );
+}
+
+function HintInput({ type, value, onChange, hint, step }: {
+  type: "date" | "time";
+  value: string;
+  onChange: (v: string) => void;
+  hint: string;
+  step?: string;
+}) {
+  return (
+    <div className="relative">
+      {!value && (
+        <span className="absolute inset-0 flex items-center px-3 text-[#79828b] text-sm font-bold pointer-events-none">
+          {hint}
+        </span>
+      )}
+      <input
+        type={type}
+        value={value}
+        step={step}
+        onChange={e => onChange(e.target.value)}
+        className={`w-full max-w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark] ${value ? "text-white" : "text-transparent"}`}
+      />
     </div>
   );
 }

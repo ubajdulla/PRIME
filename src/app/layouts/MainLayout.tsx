@@ -90,7 +90,7 @@ export function MainLayout() {
       </div>
 
       {/* Main content — on mobile this is the scroll container so the iOS indicator stays above the bottom nav */}
-      <main ref={mainRef} className="flex-1 min-h-0 overflow-y-auto overscroll-none md:overflow-visible md:overscroll-auto md:flex-none md:ml-[72px] md:min-h-screen">
+      <main ref={mainRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-none md:overflow-visible md:overscroll-auto md:flex-none md:ml-[72px] md:min-h-screen">
         <Outlet />
       </main>
 
