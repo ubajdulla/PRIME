@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate, useLocation, useBlocker } from "react-router";
-import { useEffect, useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { Calendar, User, Bell, ShieldCheck } from "lucide-react";
 import logo from "../../imports/Prime_logo_nobg_white_border.png";
 import { useLang, LANG_CYCLE } from "../i18n";
@@ -36,11 +36,13 @@ export function MainLayout() {
   const { lang, t, setLang } = useLang();
   const nextLang = LANG_CYCLE[(LANG_CYCLE.indexOf(lang) + 1) % LANG_CYCLE.length];
   const LANG_LABEL: Record<string, string> = { en: "English", cs: "Čeština", ru: "Русский" };
+  const mainRef = useRef<HTMLElement>(null);
 
   useLayoutEffect(() => {
+    // Mobile: scroll the contained main element; Desktop: scroll the document
+    mainRef.current?.scrollTo(0, 0);
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
   }, [location.pathname]);
 
   function handleLogoClick(e: React.MouseEvent) {
@@ -50,7 +52,7 @@ export function MainLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0e1621] text-white font-sans">
+    <div className="h-dvh md:min-h-screen bg-[#0e1621] text-white font-sans flex flex-col md:block">
       <NavigationGuard />
 
       {/* Desktop Sidebar */}
@@ -81,19 +83,19 @@ export function MainLayout() {
         </div>
       </aside>
 
-      {/* Main content */}
-      <main className="md:ml-[72px] min-h-screen">
-        <div className="md:hidden w-full flex justify-center items-center py-4 bg-[#17212b] shadow-sm border-b border-[#101923] gap-2">
-          <img src={logo} alt="Prime Logo" className="h-7 object-contain" />
-          <span className="font-black italic text-xl tracking-tighter text-white">PRIME</span>
-        </div>
-        <div className="w-full pb-[80px] md:pb-0">
-          <Outlet />
-        </div>
+      {/* Mobile Top Header */}
+      <div className="md:hidden shrink-0 w-full flex justify-center items-center py-4 bg-[#17212b] shadow-sm border-b border-[#101923] gap-2">
+        <img src={logo} alt="Prime Logo" className="h-7 object-contain" />
+        <span className="font-black italic text-xl tracking-tighter text-white">PRIME</span>
+      </div>
+
+      {/* Main content — on mobile this is the scroll container so the iOS indicator stays above the bottom nav */}
+      <main ref={mainRef} className="flex-1 min-h-0 overflow-y-auto md:overflow-visible md:flex-none md:ml-[72px] md:min-h-screen">
+        <Outlet />
       </main>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 w-full bg-[#17212b] border-t border-[#101923] flex justify-around items-center p-2 z-50 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] shadow-[0_-4px_20px_rgba(0,0,0,0.2)]">
+      {/* Mobile Bottom Nav — in document flow (not fixed), so iOS scroll indicator stops here */}
+      <nav className="md:hidden shrink-0 w-full bg-[#17212b] border-t border-[#101923] flex justify-around items-center p-2 z-50 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] shadow-[0_-4px_20px_rgba(0,0,0,0.2)]">
         <MobileNavItem to="/" end icon={<Calendar size={24} />} label={t.nav.events} />
         <MobileNavItem to="/alerts"  icon={<Bell size={24} />}  label={t.nav.alerts}  />
         <MobileNavItem to="/profile" icon={<User size={24} />}  label={t.nav.profile} />
