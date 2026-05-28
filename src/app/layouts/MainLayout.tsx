@@ -95,7 +95,7 @@ export function MainLayout() {
       </main>
 
       {/* Mobile Bottom Nav — in document flow (not fixed), so iOS scroll indicator stops here */}
-      <nav className="md:hidden shrink-0 w-full bg-[#17212b] border-t border-[#101923] flex justify-around items-center p-1 z-50 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] shadow-[0_-4px_20px_rgba(0,0,0,0.2)]">
+      <nav className="md:hidden shrink-0 w-full bg-[#17212b] border-t border-[#101923] flex justify-around items-center p-2 z-50 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] shadow-[0_-4px_20px_rgba(0,0,0,0.2)]">
         <MobileNavItem to="/" end icon={<Calendar size={24} />} label={t.nav.events} />
         <MobileNavItem to="/alerts"  icon={<Bell size={24} />}  label={t.nav.alerts}  />
         <MobileNavItem to="/profile" icon={<User size={24} />}  label={t.nav.profile} />

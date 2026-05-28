@@ -82,8 +82,8 @@ export function AdminCreateEvent() {
         description: editEvent.description ?? "",
         category: editEvent.category,
         date: "",
-        timeStart: editEvent.time.split(" – ")[0] ?? "20:00",
-        timeEnd: editEvent.time.split(" – ")[1] ?? "22:00",
+        timeStart: editEvent.time.split(" - ")[0] ?? "20:00",
+        timeEnd: editEvent.time.split(" - ")[1] ?? "22:00",
         location: editEvent.location,
         price: editEvent.price > 0 ? String(editEvent.price) : "",
         capacity: String(editEvent.capacity),
@@ -288,7 +288,12 @@ export function AdminCreateEvent() {
 
           {/* Date */}
           <Field label="Date">
-            <HintInput type="date" value={form.date} onChange={v => set("date", v)} hint="Select date..." />
+            <input
+              type="date"
+              value={form.date}
+              onChange={e => set("date", e.target.value)}
+              className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+            />
           </Field>
 
           {/* Time */}
@@ -299,7 +304,7 @@ export function AdminCreateEvent() {
                 step="900"
                 value={form.timeStart}
                 onChange={e => set("timeStart", e.target.value)}
-                className="w-full max-w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+                className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
               />
             </Field>
             <Field label="End Time">
@@ -308,7 +313,7 @@ export function AdminCreateEvent() {
                 step="900"
                 value={form.timeEnd}
                 onChange={e => set("timeEnd", e.target.value)}
-                className="w-full max-w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+                className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
               />
             </Field>
           </div>
@@ -414,8 +419,19 @@ export function AdminCreateEvent() {
             }
           >
             <div className="grid grid-cols-2 gap-3">
-              <HintInput type="date" value={form.publishDate} onChange={v => set("publishDate", v)} hint="Select date..." />
-              <HintInput type="time" value={form.publishTime} onChange={v => set("publishTime", v)} hint="--:--" step="900" />
+              <input
+                type="date"
+                value={form.publishDate}
+                onChange={e => set("publishDate", e.target.value)}
+                className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+              />
+              <input
+                type="time"
+                step="900"
+                value={form.publishTime}
+                onChange={e => set("publishTime", e.target.value)}
+                className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+              />
             </div>
           </Field>
 
@@ -441,30 +457,6 @@ export function AdminCreateEvent() {
   );
 }
 
-function HintInput({ type, value, onChange, hint, step }: {
-  type: "date" | "time";
-  value: string;
-  onChange: (v: string) => void;
-  hint: string;
-  step?: string;
-}) {
-  return (
-    <div className="relative">
-      {!value && (
-        <span className="absolute inset-0 flex items-center px-3 text-[#79828b] text-sm font-bold pointer-events-none">
-          {hint}
-        </span>
-      )}
-      <input
-        type={type}
-        value={value}
-        step={step}
-        onChange={e => onChange(e.target.value)}
-        className={`w-full max-w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark] ${value ? "text-white" : "text-transparent"}`}
-      />
-    </div>
-  );
-}
 
 function Field({ label, children, action }: { label: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (

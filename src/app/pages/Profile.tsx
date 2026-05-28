@@ -101,7 +101,7 @@ export function Profile() {
   const displayName = `${user.firstName} ${user.lastName}`.trim();
 
   return (
-    <div className="min-h-full bg-[#0e1621] pb-16 font-sans">
+    <div className="min-h-full bg-[#0e1621] pb-4 font-sans">
 
       {/* Logout confirmation modal */}
       {showLogoutConfirm && (
@@ -310,7 +310,7 @@ export function Profile() {
         {/* Log Out */}
         <button
           onClick={() => setShowLogoutConfirm(true)}
-          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-[#ef4444]/20 bg-[#ef4444]/5 text-[#ef4444] text-sm font-bold hover:bg-[#ef4444]/10 active:scale-[0.98] transition-all mt-2 mb-4"
+          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-[#ef4444]/20 bg-[#ef4444]/5 text-[#ef4444] text-sm font-bold hover:bg-[#ef4444]/10 active:scale-[0.98] transition-all mt-2"
         >
           <LogOut size={15} />
           Log Out
