@@ -48,6 +48,9 @@ const CATEGORY_IMAGES: Record<string, string[]> = {
   ],
 };
 
+const INPUT = "block w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors";
+const INPUT_NATIVE = "block w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]";
+
 export function AdminCreateEvent() {
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id: string }>();
@@ -60,19 +63,15 @@ export function AdminCreateEvent() {
   const [eventImage, setEventImage] = useState<string>(() => CATEGORY_IMAGES["GAMES"][0]);
   const [isCustomImage, setIsCustomImage] = useState(false);
   const locationRef = useRef<HTMLDivElement>(null);
-  const imageDropdownRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
-        setLocationOpen(false);
-      }
-      if (imageDropdownRef.current && !imageDropdownRef.current.contains(e.target as Node)) {
-        setImageDropdownOpen(false);
-      }
+    function handleClick(e: MouseEvent) {
+      if (locationRef.current && !locationRef.current.contains(e.target as Node)) setLocationOpen(false);
+      if (imageRef.current && !imageRef.current.contains(e.target as Node)) setImageDropdownOpen(false);
     }
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
   const [form, setForm] = useState(() => {
@@ -110,7 +109,6 @@ export function AdminCreateEvent() {
     };
   });
 
-  // Auto-select first preset when category changes (unless user picked a custom image)
   useEffect(() => {
     if (!isCustomImage) {
       const presets = CATEGORY_IMAGES[form.category] ?? [];
@@ -153,16 +151,14 @@ export function AdminCreateEvent() {
           {isScheduled ? "Event Scheduled!" : isEditMode ? "Changes Saved!" : "Event Saved!"}
         </p>
         {isScheduled && (
-          <p className="text-[#79828b] text-sm">
-            Publishes {new Date(publishAt).toLocaleString()}
-          </p>
+          <p className="text-[#79828b] text-sm">Publishes {new Date(publishAt).toLocaleString()}</p>
         )}
       </div>
     );
   }
 
   return (
-    <div className="w-full overflow-x-hidden">
+    <div className="bg-[#0e1621]">
       <BackBar
         label={isEditMode ? "Event" : "Events"}
         to={isEditMode ? `/admin/events/${editId}` : "/admin/events"}
@@ -171,14 +167,14 @@ export function AdminCreateEvent() {
       <div className="max-w-[700px] mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <div className="flex flex-col gap-5">
 
-          {/* Title */}
+          {/* Event Title */}
           <Field label="Event Title">
             <input
               type="text"
               value={form.title}
               onChange={e => set("title", e.target.value)}
               placeholder="e.g. PRO-AM INVITATIONAL #13"
-              className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors"
+              className={INPUT}
             />
           </Field>
 
@@ -189,54 +185,44 @@ export function AdminCreateEvent() {
               onChange={e => set("description", e.target.value)}
               placeholder="Event details, rules, notes..."
               rows={3}
-              className="w-full bg-[#222f3e] border border-white/10 rounded-md px-4 py-3 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none"
+              className="block w-full bg-[#222f3e] border border-white/10 rounded-md px-4 py-3 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none"
             />
           </Field>
 
           {/* Event Image */}
           <Field label="Event Image">
-            <div className="relative" ref={imageDropdownRef}>
-              {/* Banner preview */}
+            <div className="relative" ref={imageRef}>
               <div className="w-full h-32 rounded-md overflow-hidden bg-[#222f3e] border border-white/10 mb-2">
-                {eventImage ? (
-                  <img src={eventImage} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <ImageIcon size={24} className="text-[#79828b]" />
-                  </div>
-                )}
+                {eventImage
+                  ? <img src={eventImage} alt="" className="w-full h-full object-cover" />
+                  : <div className="w-full h-full flex items-center justify-center"><ImageIcon size={24} className="text-[#79828b]" /></div>
+                }
               </div>
-              {/* Controls */}
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setImageDropdownOpen(v => !v)}
-                  className="flex items-center justify-center gap-1.5 flex-1 bg-[#222f3e] border border-white/10 rounded-md px-3 py-2 text-[#79828b] hover:text-white text-[11px] font-black uppercase tracking-wider transition-colors"
+                  className="flex items-center justify-center gap-1.5 flex-1 h-9 bg-[#222f3e] border border-white/10 rounded-md px-3 text-[#79828b] hover:text-white text-[11px] font-black uppercase tracking-wider transition-colors"
                 >
                   <ChevronDown size={13} className={`transition-transform ${imageDropdownOpen ? "rotate-180" : ""}`} />
                   Preset
                 </button>
-                <label className="flex items-center justify-center gap-1.5 flex-1 bg-[#222f3e] border border-white/10 rounded-md px-3 py-2 text-[#79828b] hover:text-white text-[11px] font-black uppercase tracking-wider transition-colors cursor-pointer">
+                <label className="flex items-center justify-center gap-1.5 flex-1 h-9 bg-[#222f3e] border border-white/10 rounded-md px-3 text-[#79828b] hover:text-white text-[11px] font-black uppercase tracking-wider transition-colors cursor-pointer">
                   <FolderOpen size={13} />
                   Browse
                   <input type="file" accept="image/*" className="hidden" onChange={handleCustomImage} />
                 </label>
               </div>
-              {/* Preset grid dropdown */}
               {imageDropdownOpen && (
                 <div className="absolute left-0 right-0 top-[calc(100%+4px)] bg-[#17212b] border border-white/10 rounded-md shadow-[0_8px_24px_rgba(0,0,0,0.4)] z-20 p-2.5">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">{form.category}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-[#79828b] mb-2">{form.category}</p>
                   <div className="grid grid-cols-2 gap-1.5">
                     {(CATEGORY_IMAGES[form.category] ?? []).map((img, i) => (
                       <button
                         key={i}
                         type="button"
                         onClick={() => { setEventImage(img); setIsCustomImage(false); setImageDropdownOpen(false); }}
-                        className={`relative w-full h-20 rounded overflow-hidden border-2 transition-all ${
-                          eventImage === img && !isCustomImage
-                            ? "border-[#3390ec]"
-                            : "border-transparent hover:border-white/30"
-                        }`}
+                        className={`relative w-full h-20 rounded overflow-hidden border-2 transition-all ${eventImage === img && !isCustomImage ? "border-[#3390ec]" : "border-transparent hover:border-white/30"}`}
                       >
                         <img src={img} alt="" className="w-full h-full object-cover" />
                         {eventImage === img && !isCustomImage && (
@@ -252,18 +238,16 @@ export function AdminCreateEvent() {
             </div>
           </Field>
 
-          {/* Category + Level — same row, level only for GAMES/TRAININGS */}
+          {/* Category + Level */}
           <div className={`grid gap-3 ${showLevel ? "grid-cols-2" : "grid-cols-1"}`}>
             <Field label="Category">
               <div className="relative">
                 <select
                   value={form.category}
                   onChange={e => set("category", e.target.value)}
-                  className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 pr-10 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark] appearance-none cursor-pointer"
+                  className="block w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 pr-10 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark] appearance-none cursor-pointer"
                 >
-                  {CATEGORIES.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
+                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
                 <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
               </div>
@@ -274,11 +258,9 @@ export function AdminCreateEvent() {
                   <select
                     value={form.levelRequired}
                     onChange={e => set("levelRequired", e.target.value)}
-                    className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 pr-10 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark] appearance-none cursor-pointer"
+                    className="block w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 pr-10 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark] appearance-none cursor-pointer"
                   >
-                    {SKILL_ORDER.map(lvl => (
-                      <option key={lvl} value={lvl}>{lvl}</option>
-                    ))}
+                    {SKILL_ORDER.map(l => <option key={l} value={l}>{l}</option>)}
                   </select>
                   <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
                 </div>
@@ -292,11 +274,11 @@ export function AdminCreateEvent() {
               type="date"
               value={form.date}
               onChange={e => set("date", e.target.value)}
-              className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+              className={INPUT_NATIVE}
             />
           </Field>
 
-          {/* Time */}
+          {/* Start Time + End Time */}
           <div className="grid grid-cols-2 gap-3">
             <Field label="Start Time">
               <input
@@ -304,7 +286,7 @@ export function AdminCreateEvent() {
                 step="900"
                 value={form.timeStart}
                 onChange={e => set("timeStart", e.target.value)}
-                className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+                className={INPUT_NATIVE}
               />
             </Field>
             <Field label="End Time">
@@ -313,22 +295,22 @@ export function AdminCreateEvent() {
                 step="900"
                 value={form.timeEnd}
                 onChange={e => set("timeEnd", e.target.value)}
-                className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+                className={INPUT_NATIVE}
               />
             </Field>
           </div>
 
           {/* Location */}
           <Field label="Location">
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1" ref={locationRef}>
+            <div className="flex gap-2" ref={locationRef}>
+              <div className="relative flex-1 min-w-0">
                 <input
                   type="text"
                   value={form.location}
                   onChange={e => { set("location", e.target.value); setLocationOpen(true); }}
                   onFocus={() => setLocationOpen(true)}
                   placeholder="Type or select venue..."
-                  className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 pr-10 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors"
+                  className={INPUT + " pr-10"}
                 />
                 <button
                   type="button"
@@ -339,14 +321,12 @@ export function AdminCreateEvent() {
                 </button>
                 {locationOpen && (
                   <div className="absolute left-0 right-0 top-full mt-1 bg-[#17212b] border border-white/10 rounded-md shadow-[0_8px_24px_rgba(0,0,0,0.4)] z-20 overflow-hidden">
-                    {LOCATIONS.filter(loc =>
-                      !form.location || loc.toLowerCase().includes(form.location.toLowerCase())
-                    ).map(loc => (
+                    {LOCATIONS.filter(loc => !form.location || loc.toLowerCase().includes(form.location.toLowerCase())).map(loc => (
                       <button
                         key={loc}
                         type="button"
                         onClick={() => { set("location", loc); setLocationOpen(false); }}
-                        className="flex items-center w-full px-4 py-2.5 text-sm font-bold text-white hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 text-left"
+                        className="block w-full px-4 py-2.5 text-sm font-bold text-white hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 text-left"
                       >
                         {loc}
                       </button>
@@ -368,51 +348,42 @@ export function AdminCreateEvent() {
 
           {/* Entry Fee + Max Players */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <Field label="Entry Fee">
-                <div className="relative">
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.price}
-                    onChange={e => set("price", e.target.value)}
-                    placeholder="0"
-                    className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 pr-14 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#79828b]/40 text-sm font-black pointer-events-none select-none">CZK</span>
-                </div>
-                {isFree && (
-                  <p className="text-[#4dcd5e] text-[11px] font-black mt-1.5 uppercase tracking-wider">Free event</p>
-                )}
-              </Field>
-            </div>
-            <div>
-              <Field label="Max Players">
+            <Field label="Entry Fee">
+              <div className="relative">
                 <input
                   type="number"
-                  min="2"
-                  max="100"
-                  value={form.capacity}
-                  onChange={e => set("capacity", e.target.value)}
-                  placeholder="12"
-                  className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors"
+                  min="0"
+                  value={form.price}
+                  onChange={e => set("price", e.target.value)}
+                  placeholder="0"
+                  className={INPUT + " pr-14"}
                 />
-              </Field>
-            </div>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#79828b]/40 text-sm font-black pointer-events-none select-none">CZK</span>
+              </div>
+              {isFree && <p className="text-[#4dcd5e] text-[11px] font-black mt-1.5 uppercase tracking-wider">Free event</p>}
+            </Field>
+            <Field label="Max Players">
+              <input
+                type="number"
+                min="2"
+                max="100"
+                value={form.capacity}
+                onChange={e => set("capacity", e.target.value)}
+                placeholder="12"
+                className={INPUT}
+              />
+            </Field>
           </div>
 
-          {/* Publish Schedule — date + time on one row, bell in label row */}
+          {/* Publish At */}
           <Field
             label="Publish At"
             action={
               <button
+                type="button"
                 onClick={() => set("notifyBefore", !form.notifyBefore)}
                 title="Notify 1 hour before publish"
-                className={`flex items-center justify-center w-7 h-7 rounded-md border transition-all shrink-0 ${
-                  form.notifyBefore
-                    ? "bg-[#3390ec]/10 border-[#3390ec]/30 text-[#3390ec]"
-                    : "bg-[#222f3e] border-white/10 text-[#79828b] hover:border-white/20 hover:text-white"
-                }`}
+                className={`flex items-center justify-center w-7 h-7 rounded-md border transition-all ${form.notifyBefore ? "bg-[#3390ec]/10 border-[#3390ec]/30 text-[#3390ec]" : "bg-[#222f3e] border-white/10 text-[#79828b] hover:border-white/20 hover:text-white"}`}
               >
                 <Bell size={13} />
               </button>
@@ -423,29 +394,31 @@ export function AdminCreateEvent() {
                 type="date"
                 value={form.publishDate}
                 onChange={e => set("publishDate", e.target.value)}
-                className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+                className={INPUT_NATIVE}
               />
               <input
                 type="time"
                 step="900"
                 value={form.publishTime}
                 onChange={e => set("publishTime", e.target.value)}
-                className="w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+                className={INPUT_NATIVE}
               />
             </div>
           </Field>
 
-          {/* Save / Cancel */}
+          {/* Cancel + Save */}
           <div className="flex gap-3">
             <button
-              onClick={() => navigate("/admin/events")}
+              type="button"
+              onClick={() => navigate(isEditMode ? `/admin/events/${editId}` : "/admin/events")}
               className="flex-1 py-3 rounded-md font-bold text-sm border border-white/10 text-[#79828b] hover:text-white transition-colors"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={handleSave}
-              className="flex-1 py-3 rounded-md font-bold text-sm transition-transform active:scale-[0.98] bg-[#3390ec] text-white"
+              className="flex-1 py-3 rounded-md font-bold text-sm bg-[#3390ec] text-white active:scale-[0.98] transition-transform"
             >
               {isEditMode ? "Save Changes" : "Save Event"}
             </button>
@@ -457,12 +430,11 @@ export function AdminCreateEvent() {
   );
 }
 
-
 function Field({ label, children, action }: { label: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <label className="text-[#79828b] text-[11px] font-black uppercase tracking-widest">{label}</label>
+        <span className="text-[#79828b] text-[11px] font-black uppercase tracking-widest">{label}</span>
         {action}
       </div>
       {children}
