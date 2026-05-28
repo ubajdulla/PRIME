@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { ChevronDown, Check, MapPin, Bell, ImageIcon, FolderOpen } from "lucide-react";
+import { Check, MapPin, Bell, ImageIcon, FolderOpen, ChevronDown } from "lucide-react";
 import { SKILL_ORDER, ADMIN_EVENTS } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
 
@@ -48,8 +48,19 @@ const CATEGORY_IMAGES: Record<string, string[]> = {
   ],
 };
 
-const INPUT = "block w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors";
-const INPUT_NATIVE = "block w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]";
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
+const MINUTES = ["00", "15", "30", "45"];
+const DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0"));
+const MONTHS = [
+  { v: "01", l: "January" }, { v: "02", l: "February" }, { v: "03", l: "March" },
+  { v: "04", l: "April" }, { v: "05", l: "May" }, { v: "06", l: "June" },
+  { v: "07", l: "July" }, { v: "08", l: "August" }, { v: "09", l: "September" },
+  { v: "10", l: "October" }, { v: "11", l: "November" }, { v: "12", l: "December" },
+];
+const YEARS = Array.from({ length: 4 }, (_, i) => String(new Date().getFullYear() + i));
+
+const SEL = "block w-full h-12 bg-[#222f3e] border border-white/10 rounded-xl px-3 pr-8 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors appearance-none cursor-pointer [color-scheme:dark]";
+const INP = "block w-full h-12 bg-[#222f3e] border border-white/10 rounded-xl px-4 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors";
 
 export function AdminCreateEvent() {
   const navigate = useNavigate();
@@ -57,91 +68,75 @@ export function AdminCreateEvent() {
   const editEvent = editId ? ADMIN_EVENTS.find(e => e.id === editId) : null;
   const isEditMode = !!editEvent;
 
-  const [saved, setSaved] = useState(false);
+  const [done, setDone] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
-  const [imageDropdownOpen, setImageDropdownOpen] = useState(false);
-  const [eventImage, setEventImage] = useState<string>(() => CATEGORY_IMAGES["GAMES"][0]);
-  const [isCustomImage, setIsCustomImage] = useState(false);
+  const [imageOpen, setImageOpen] = useState(false);
+  const [customImage, setCustomImage] = useState(false);
+  const [image, setImage] = useState<string>(() => CATEGORY_IMAGES["GAMES"][0]);
   const locationRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
+    const handler = (e: MouseEvent) => {
       if (locationRef.current && !locationRef.current.contains(e.target as Node)) setLocationOpen(false);
-      if (imageRef.current && !imageRef.current.contains(e.target as Node)) setImageDropdownOpen(false);
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+      if (imageRef.current && !imageRef.current.contains(e.target as Node)) setImageOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const [form, setForm] = useState(() => {
-    if (editEvent) {
-      return {
-        title: editEvent.title,
-        description: editEvent.description ?? "",
-        category: editEvent.category,
-        date: "",
-        timeStart: editEvent.time.split(" - ")[0] ?? "20:00",
-        timeEnd: editEvent.time.split(" - ")[1] ?? "22:00",
-        location: editEvent.location,
-        price: editEvent.price > 0 ? String(editEvent.price) : "",
-        capacity: String(editEvent.capacity),
-        levelRequired: "Rookie",
-        publishDate: "",
-        publishTime: "",
-        notifyBefore: false,
-      };
-    }
-    return {
-      title: "",
-      description: "",
-      category: "GAMES",
-      date: "",
-      timeStart: "20:00",
-      timeEnd: "22:00",
-      location: "",
-      price: "",
-      capacity: "",
-      levelRequired: "Rookie",
-      publishDate: "",
-      publishTime: "",
-      notifyBefore: false,
-    };
+  const parseTime = (t: string) => ({ h: t.split(":")[0] ?? "20", m: t.split(":")[1] ?? "00" });
+  const startTime = editEvent ? parseTime(editEvent.time.split(" - ")[0] ?? "20:00") : { h: "20", m: "00" };
+  const endTime   = editEvent ? parseTime(editEvent.time.split(" - ")[1] ?? "22:00") : { h: "22", m: "00" };
+
+  const [f, setF] = useState({
+    title:       editEvent?.title ?? "",
+    description: editEvent?.description ?? "",
+    category:    editEvent?.category ?? "GAMES",
+    level:       "Rookie",
+    location:    editEvent?.location ?? "",
+    price:       editEvent && editEvent.price > 0 ? String(editEvent.price) : "",
+    capacity:    editEvent ? String(editEvent.capacity) : "",
+    // date
+    day: "", month: "", year: "",
+    // time
+    startH: startTime.h, startM: startTime.m,
+    endH:   endTime.h,   endM:   endTime.m,
+    // publish
+    pubDay: "", pubMonth: "", pubYear: "",
+    pubH: "", pubM: "00",
+    notify: false,
   });
 
   useEffect(() => {
-    if (!isCustomImage) {
-      const presets = CATEGORY_IMAGES[form.category] ?? [];
-      if (presets.length > 0) setEventImage(presets[0]);
+    if (!customImage) {
+      const imgs = CATEGORY_IMAGES[f.category] ?? [];
+      if (imgs.length) setImage(imgs[0]);
     }
-  }, [form.category]);
+  }, [f.category]);
 
-  function set(field: string, value: string | boolean) {
-    setForm(prev => ({ ...prev, [field]: value }));
-  }
+  const s = (k: string, v: string | boolean) => setF(p => ({ ...p, [k]: v }));
 
-  function handleCustomImage(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setEventImage(URL.createObjectURL(file));
-      setIsCustomImage(true);
-      setImageDropdownOpen(false);
-    }
-  }
+    if (file) { setImage(URL.createObjectURL(file)); setCustomImage(true); setImageOpen(false); }
+  };
+
+  const showLevel = f.category === "GAMES" || f.category === "TRAININGS";
+  const isFree = f.price === "" || Number(f.price) === 0;
+  const hasPublish = f.pubDay && f.pubMonth && f.pubYear;
+
+  const publishAt = hasPublish
+    ? `${f.pubYear}-${f.pubMonth}-${f.pubDay}T${f.pubH || "00"}:${f.pubM}`
+    : "";
+  const isScheduled = !!publishAt && new Date(publishAt) > new Date();
 
   function handleSave() {
-    setSaved(true);
+    setDone(true);
     setTimeout(() => navigate(isEditMode ? `/admin/events/${editId}` : "/admin/events"), 1200);
   }
 
-  const publishAt = form.publishDate
-    ? form.publishTime ? `${form.publishDate}T${form.publishTime}` : form.publishDate
-    : "";
-  const isScheduled = !!publishAt && new Date(publishAt) > new Date();
-  const isFree = form.price === "" || Number(form.price) === 0;
-  const showLevel = form.category === "GAMES" || form.category === "TRAININGS";
-
-  if (saved) {
+  if (done) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="w-16 h-16 rounded-full bg-[#4dcd5e]/10 border border-[#4dcd5e]/30 flex items-center justify-center">
@@ -150,287 +145,286 @@ export function AdminCreateEvent() {
         <p className="text-white font-black text-lg uppercase tracking-widest">
           {isScheduled ? "Event Scheduled!" : isEditMode ? "Changes Saved!" : "Event Saved!"}
         </p>
-        {isScheduled && (
-          <p className="text-[#79828b] text-sm">Publishes {new Date(publishAt).toLocaleString()}</p>
-        )}
+        {isScheduled && <p className="text-[#79828b] text-sm">Publishes {new Date(publishAt).toLocaleString()}</p>}
       </div>
     );
   }
 
   return (
-    <div className="bg-[#0e1621]">
+    <div className="bg-[#0e1621] min-h-screen">
       <BackBar
         label={isEditMode ? "Event" : "Events"}
         to={isEditMode ? `/admin/events/${editId}` : "/admin/events"}
       />
 
-      <div className="max-w-[700px] mx-auto px-4 sm:px-6 py-4 sm:py-6">
-        <div className="flex flex-col gap-5">
+      <div className="max-w-[700px] mx-auto px-4 sm:px-6 py-5 flex flex-col gap-5">
 
-          {/* Event Title */}
-          <Field label="Event Title">
-            <input
-              type="text"
-              value={form.title}
-              onChange={e => set("title", e.target.value)}
-              placeholder="e.g. PRO-AM INVITATIONAL #13"
-              className={INPUT}
-            />
-          </Field>
+        {/* Title */}
+        <Row label="Event Title">
+          <input type="text" value={f.title} onChange={e => s("title", e.target.value)}
+            placeholder="e.g. PRO-AM INVITATIONAL #13" className={INP} />
+        </Row>
 
-          {/* Description */}
-          <Field label="Description">
-            <textarea
-              value={form.description}
-              onChange={e => set("description", e.target.value)}
-              placeholder="Event details, rules, notes..."
-              rows={3}
-              className="block w-full bg-[#222f3e] border border-white/10 rounded-md px-4 py-3 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none"
-            />
-          </Field>
+        {/* Description */}
+        <Row label="Description">
+          <textarea value={f.description} onChange={e => s("description", e.target.value)}
+            placeholder="Event details, rules, notes..." rows={3}
+            className="block w-full bg-[#222f3e] border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none" />
+        </Row>
 
-          {/* Event Image */}
-          <Field label="Event Image">
-            <div className="relative" ref={imageRef}>
-              <div className="w-full h-32 rounded-md overflow-hidden bg-[#222f3e] border border-white/10 mb-2">
-                {eventImage
-                  ? <img src={eventImage} alt="" className="w-full h-full object-cover" />
-                  : <div className="w-full h-full flex items-center justify-center"><ImageIcon size={24} className="text-[#79828b]" /></div>
-                }
+        {/* Image */}
+        <Row label="Event Image">
+          <div className="relative" ref={imageRef}>
+            <div className="w-full h-28 rounded-xl overflow-hidden bg-[#222f3e] border border-white/10 mb-2">
+              {image
+                ? <img src={image} alt="" className="w-full h-full object-cover" />
+                : <div className="w-full h-full flex items-center justify-center"><ImageIcon size={22} className="text-[#79828b]" /></div>
+              }
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setImageOpen(v => !v)}
+                className="flex items-center justify-center gap-1.5 flex-1 h-9 bg-[#222f3e] border border-white/10 rounded-xl text-[#79828b] hover:text-white text-[11px] font-black uppercase tracking-wider transition-colors">
+                <ChevronDown size={12} className={`transition-transform ${imageOpen ? "rotate-180" : ""}`} />
+                Preset
+              </button>
+              <label className="flex items-center justify-center gap-1.5 flex-1 h-9 bg-[#222f3e] border border-white/10 rounded-xl text-[#79828b] hover:text-white text-[11px] font-black uppercase tracking-wider transition-colors cursor-pointer">
+                <FolderOpen size={12} />
+                Browse
+                <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
+              </label>
+            </div>
+            {imageOpen && (
+              <div className="absolute left-0 right-0 top-[calc(100%+4px)] bg-[#17212b] border border-white/10 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.4)] z-20 p-2.5">
+                <p className="text-[9px] font-black uppercase tracking-widest text-[#79828b] mb-2">{f.category}</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {(CATEGORY_IMAGES[f.category] ?? []).map((img, i) => (
+                    <button key={i} type="button"
+                      onClick={() => { setImage(img); setCustomImage(false); setImageOpen(false); }}
+                      className={`relative w-full h-20 rounded-lg overflow-hidden border-2 transition-all ${img === image && !customImage ? "border-[#3390ec]" : "border-transparent hover:border-white/30"}`}>
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      {img === image && !customImage && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-[#3390ec]/20">
+                          <Check size={14} className="text-white" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setImageDropdownOpen(v => !v)}
-                  className="flex items-center justify-center gap-1.5 flex-1 h-9 bg-[#222f3e] border border-white/10 rounded-md px-3 text-[#79828b] hover:text-white text-[11px] font-black uppercase tracking-wider transition-colors"
-                >
-                  <ChevronDown size={13} className={`transition-transform ${imageDropdownOpen ? "rotate-180" : ""}`} />
-                  Preset
-                </button>
-                <label className="flex items-center justify-center gap-1.5 flex-1 h-9 bg-[#222f3e] border border-white/10 rounded-md px-3 text-[#79828b] hover:text-white text-[11px] font-black uppercase tracking-wider transition-colors cursor-pointer">
-                  <FolderOpen size={13} />
-                  Browse
-                  <input type="file" accept="image/*" className="hidden" onChange={handleCustomImage} />
-                </label>
+            )}
+          </div>
+        </Row>
+
+        {/* Category + Level */}
+        <div className={`grid gap-3 ${showLevel ? "grid-cols-2" : "grid-cols-1"}`}>
+          <Row label="Category">
+            <div className="relative">
+              <select value={f.category} onChange={e => s("category", e.target.value)} className={SEL}>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
+            </div>
+          </Row>
+          {showLevel && (
+            <Row label="Level">
+              <div className="relative">
+                <select value={f.level} onChange={e => s("level", e.target.value)} className={SEL}>
+                  {SKILL_ORDER.map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
               </div>
-              {imageDropdownOpen && (
-                <div className="absolute left-0 right-0 top-[calc(100%+4px)] bg-[#17212b] border border-white/10 rounded-md shadow-[0_8px_24px_rgba(0,0,0,0.4)] z-20 p-2.5">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-[#79828b] mb-2">{form.category}</p>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {(CATEGORY_IMAGES[form.category] ?? []).map((img, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => { setEventImage(img); setIsCustomImage(false); setImageDropdownOpen(false); }}
-                        className={`relative w-full h-20 rounded overflow-hidden border-2 transition-all ${eventImage === img && !isCustomImage ? "border-[#3390ec]" : "border-transparent hover:border-white/30"}`}
-                      >
-                        <img src={img} alt="" className="w-full h-full object-cover" />
-                        {eventImage === img && !isCustomImage && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-[#3390ec]/20">
-                            <Check size={14} className="text-white drop-shadow" />
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
+            </Row>
+          )}
+        </div>
+
+        {/* Date — three selects: day / month / year */}
+        <Row label="Date">
+          <div className="grid grid-cols-3 gap-2">
+            <div className="relative">
+              <select value={f.day} onChange={e => s("day", e.target.value)} className={SEL}>
+                <option value="">Day</option>
+                {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
+            </div>
+            <div className="relative">
+              <select value={f.month} onChange={e => s("month", e.target.value)} className={SEL}>
+                <option value="">Month</option>
+                {MONTHS.map(m => <option key={m.v} value={m.v}>{m.l}</option>)}
+              </select>
+              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
+            </div>
+            <div className="relative">
+              <select value={f.year} onChange={e => s("year", e.target.value)} className={SEL}>
+                <option value="">Year</option>
+                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
+            </div>
+          </div>
+        </Row>
+
+        {/* Start Time + End Time — hour : minute selects */}
+        <div className="grid grid-cols-2 gap-3">
+          <Row label="Start Time">
+            <div className="flex items-center gap-1">
+              <div className="relative flex-1">
+                <select value={f.startH} onChange={e => s("startH", e.target.value)} className={SEL}>
+                  {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+                <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
+              </div>
+              <span className="text-[#79828b] font-bold text-sm shrink-0">:</span>
+              <div className="relative flex-1">
+                <select value={f.startM} onChange={e => s("startM", e.target.value)} className={SEL}>
+                  {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+                <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
+              </div>
+            </div>
+          </Row>
+          <Row label="End Time">
+            <div className="flex items-center gap-1">
+              <div className="relative flex-1">
+                <select value={f.endH} onChange={e => s("endH", e.target.value)} className={SEL}>
+                  {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+                <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
+              </div>
+              <span className="text-[#79828b] font-bold text-sm shrink-0">:</span>
+              <div className="relative flex-1">
+                <select value={f.endM} onChange={e => s("endM", e.target.value)} className={SEL}>
+                  {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+                <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
+              </div>
+            </div>
+          </Row>
+        </div>
+
+        {/* Location */}
+        <Row label="Location">
+          <div className="flex gap-2" ref={locationRef}>
+            <div className="relative flex-1 min-w-0">
+              <input type="text" value={f.location}
+                onChange={e => { s("location", e.target.value); setLocationOpen(true); }}
+                onFocus={() => setLocationOpen(true)}
+                placeholder="Type or select venue..."
+                className={INP + " pr-10"} />
+              <button type="button" onClick={() => setLocationOpen(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] hover:text-white transition-colors">
+                <ChevronDown size={15} className={`transition-transform ${locationOpen ? "rotate-180" : ""}`} />
+              </button>
+              {locationOpen && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-[#17212b] border border-white/10 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.4)] z-20 overflow-hidden">
+                  {LOCATIONS.filter(l => !f.location || l.toLowerCase().includes(f.location.toLowerCase())).map(l => (
+                    <button key={l} type="button" onClick={() => { s("location", l); setLocationOpen(false); }}
+                      className="block w-full px-4 py-2.5 text-sm font-bold text-white hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 text-left">
+                      {l}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
-          </Field>
-
-          {/* Category + Level */}
-          <div className={`grid gap-3 ${showLevel ? "grid-cols-2" : "grid-cols-1"}`}>
-            <Field label="Category">
-              <div className="relative">
-                <select
-                  value={form.category}
-                  onChange={e => set("category", e.target.value)}
-                  className="block w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 pr-10 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark] appearance-none cursor-pointer"
-                >
-                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-              </div>
-            </Field>
-            {showLevel && (
-              <Field label="Level">
-                <div className="relative">
-                  <select
-                    value={form.levelRequired}
-                    onChange={e => set("levelRequired", e.target.value)}
-                    className="block w-full h-12 bg-[#222f3e] border border-white/10 rounded-md px-4 pr-10 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark] appearance-none cursor-pointer"
-                  >
-                    {SKILL_ORDER.map(l => <option key={l} value={l}>{l}</option>)}
-                  </select>
-                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-                </div>
-              </Field>
-            )}
+            <a href={`https://www.google.com/maps/search/${encodeURIComponent(f.location || "sports venue")}`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 h-12 rounded-xl bg-[#222f3e] border border-white/10 text-[#79828b] hover:text-white text-xs font-black shrink-0 transition-colors">
+              <MapPin size={14} />
+              Maps
+            </a>
           </div>
+        </Row>
 
-          {/* Date */}
-          <Field label="Date">
-            <input
-              type="date"
-              value={form.date}
-              onChange={e => set("date", e.target.value)}
-              className={INPUT_NATIVE}
-            />
-          </Field>
-
-          {/* Start Time + End Time */}
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Start Time">
-              <input
-                type="time"
-                step="900"
-                value={form.timeStart}
-                onChange={e => set("timeStart", e.target.value)}
-                className={INPUT_NATIVE}
-              />
-            </Field>
-            <Field label="End Time">
-              <input
-                type="time"
-                step="900"
-                value={form.timeEnd}
-                onChange={e => set("timeEnd", e.target.value)}
-                className={INPUT_NATIVE}
-              />
-            </Field>
-          </div>
-
-          {/* Location */}
-          <Field label="Location">
-            <div className="flex gap-2" ref={locationRef}>
-              <div className="relative flex-1 min-w-0">
-                <input
-                  type="text"
-                  value={form.location}
-                  onChange={e => { set("location", e.target.value); setLocationOpen(true); }}
-                  onFocus={() => setLocationOpen(true)}
-                  placeholder="Type or select venue..."
-                  className={INPUT + " pr-10"}
-                />
-                <button
-                  type="button"
-                  onClick={() => setLocationOpen(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] hover:text-white transition-colors"
-                >
-                  <ChevronDown size={16} className={`transition-transform ${locationOpen ? "rotate-180" : ""}`} />
-                </button>
-                {locationOpen && (
-                  <div className="absolute left-0 right-0 top-full mt-1 bg-[#17212b] border border-white/10 rounded-md shadow-[0_8px_24px_rgba(0,0,0,0.4)] z-20 overflow-hidden">
-                    {LOCATIONS.filter(loc => !form.location || loc.toLowerCase().includes(form.location.toLowerCase())).map(loc => (
-                      <button
-                        key={loc}
-                        type="button"
-                        onClick={() => { set("location", loc); setLocationOpen(false); }}
-                        className="block w-full px-4 py-2.5 text-sm font-bold text-white hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 text-left"
-                      >
-                        {loc}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <a
-                href={`https://www.google.com/maps/search/${encodeURIComponent(form.location || "sports venue")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 h-12 rounded-md bg-[#222f3e] border border-white/10 text-[#79828b] hover:text-white hover:border-[#3390ec]/30 transition-all text-xs font-black shrink-0"
-              >
-                <MapPin size={14} />
-                Maps
-              </a>
+        {/* Entry Fee + Max Players */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Row label="Entry Fee">
+            <div className="relative">
+              <input type="number" min="0" value={f.price} onChange={e => s("price", e.target.value)}
+                placeholder="0" className={INP + " pr-14"} />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#79828b]/40 text-sm font-black pointer-events-none select-none">CZK</span>
             </div>
-          </Field>
-
-          {/* Entry Fee + Max Players */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Entry Fee">
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  value={form.price}
-                  onChange={e => set("price", e.target.value)}
-                  placeholder="0"
-                  className={INPUT + " pr-14"}
-                />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#79828b]/40 text-sm font-black pointer-events-none select-none">CZK</span>
-              </div>
-              {isFree && <p className="text-[#4dcd5e] text-[11px] font-black mt-1.5 uppercase tracking-wider">Free event</p>}
-            </Field>
-            <Field label="Max Players">
-              <input
-                type="number"
-                min="2"
-                max="100"
-                value={form.capacity}
-                onChange={e => set("capacity", e.target.value)}
-                placeholder="12"
-                className={INPUT}
-              />
-            </Field>
-          </div>
-
-          {/* Publish At */}
-          <Field
-            label="Publish At"
-            action={
-              <button
-                type="button"
-                onClick={() => set("notifyBefore", !form.notifyBefore)}
-                title="Notify 1 hour before publish"
-                className={`flex items-center justify-center w-7 h-7 rounded-md border transition-all ${form.notifyBefore ? "bg-[#3390ec]/10 border-[#3390ec]/30 text-[#3390ec]" : "bg-[#222f3e] border-white/10 text-[#79828b] hover:border-white/20 hover:text-white"}`}
-              >
-                <Bell size={13} />
-              </button>
-            }
-          >
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                type="date"
-                value={form.publishDate}
-                onChange={e => set("publishDate", e.target.value)}
-                className={INPUT_NATIVE}
-              />
-              <input
-                type="time"
-                step="900"
-                value={form.publishTime}
-                onChange={e => set("publishTime", e.target.value)}
-                className={INPUT_NATIVE}
-              />
-            </div>
-          </Field>
-
-          {/* Cancel + Save */}
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => navigate(isEditMode ? `/admin/events/${editId}` : "/admin/events")}
-              className="flex-1 py-3 rounded-md font-bold text-sm border border-white/10 text-[#79828b] hover:text-white transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="flex-1 py-3 rounded-md font-bold text-sm bg-[#3390ec] text-white active:scale-[0.98] transition-transform"
-            >
-              {isEditMode ? "Save Changes" : "Save Event"}
-            </button>
-          </div>
-
+            {isFree && <p className="text-[#4dcd5e] text-[11px] font-black mt-1.5 uppercase tracking-wider">Free event</p>}
+          </Row>
+          <Row label="Max Players">
+            <input type="number" min="2" max="100" value={f.capacity}
+              onChange={e => s("capacity", e.target.value)}
+              placeholder="12" className={INP} />
+          </Row>
         </div>
+
+        {/* Publish At */}
+        <Row
+          label="Publish At"
+          action={
+            <button type="button" onClick={() => s("notify", !f.notify)}
+              title="Notify 1 hour before publish"
+              className={`flex items-center justify-center w-7 h-7 rounded-lg border transition-all ${f.notify ? "bg-[#3390ec]/10 border-[#3390ec]/30 text-[#3390ec]" : "bg-[#222f3e] border-white/10 text-[#79828b] hover:border-white/20 hover:text-white"}`}>
+              <Bell size={13} />
+            </button>
+          }
+        >
+          {/* Publish date: day / month / year */}
+          <div className="grid grid-cols-3 gap-2 mb-2">
+            <div className="relative">
+              <select value={f.pubDay} onChange={e => s("pubDay", e.target.value)} className={SEL}>
+                <option value="">Day</option>
+                {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
+            </div>
+            <div className="relative">
+              <select value={f.pubMonth} onChange={e => s("pubMonth", e.target.value)} className={SEL}>
+                <option value="">Month</option>
+                {MONTHS.map(m => <option key={m.v} value={m.v}>{m.l}</option>)}
+              </select>
+              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
+            </div>
+            <div className="relative">
+              <select value={f.pubYear} onChange={e => s("pubYear", e.target.value)} className={SEL}>
+                <option value="">Year</option>
+                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
+            </div>
+          </div>
+          {/* Publish time: hour : minute */}
+          <div className="flex items-center gap-1">
+            <div className="relative flex-1">
+              <select value={f.pubH} onChange={e => s("pubH", e.target.value)} className={SEL}>
+                <option value="">Hour</option>
+                {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
+              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
+            </div>
+            <span className="text-[#79828b] font-bold text-sm shrink-0">:</span>
+            <div className="relative flex-1">
+              <select value={f.pubM} onChange={e => s("pubM", e.target.value)} className={SEL}>
+                {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
+            </div>
+          </div>
+        </Row>
+
+        {/* Cancel + Save */}
+        <div className="flex gap-3 pt-1">
+          <button type="button"
+            onClick={() => navigate(isEditMode ? `/admin/events/${editId}` : "/admin/events")}
+            className="flex-1 py-3.5 rounded-xl font-bold text-sm border border-white/10 text-[#79828b] hover:text-white transition-colors">
+            Cancel
+          </button>
+          <button type="button" onClick={handleSave}
+            className="flex-1 py-3.5 rounded-xl font-bold text-sm bg-[#3390ec] text-white active:scale-[0.98] transition-transform">
+            {isEditMode ? "Save Changes" : "Save Event"}
+          </button>
+        </div>
+
       </div>
     </div>
   );
 }
 
-function Field({ label, children, action }: { label: string; children: React.ReactNode; action?: React.ReactNode }) {
+function Row({ label, children, action }: { label: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
