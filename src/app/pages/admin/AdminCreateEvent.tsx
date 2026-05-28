@@ -162,7 +162,7 @@ export function AdminCreateEvent() {
   }
 
   return (
-    <div className="overflow-x-hidden">
+    <div className="w-full overflow-x-hidden">
       <BackBar
         label={isEditMode ? "Event" : "Events"}
         to={isEditMode ? `/admin/events/${editId}` : "/admin/events"}
@@ -298,6 +298,7 @@ export function AdminCreateEvent() {
               <div className="grid items-center gap-2" style={{ gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr)" }}>
                 <input
                   type="time"
+                  step="900"
                   value={form.timeStart}
                   onChange={e => set("timeStart", e.target.value)}
                   className="w-full min-w-0 h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
@@ -305,6 +306,7 @@ export function AdminCreateEvent() {
                 <span className="text-[#79828b] font-bold text-sm">—</span>
                 <input
                   type="time"
+                  step="900"
                   value={form.timeEnd}
                   onChange={e => set("timeEnd", e.target.value)}
                   className="w-full min-w-0 h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
@@ -395,34 +397,37 @@ export function AdminCreateEvent() {
             </div>
           </div>
 
-          {/* Publish Schedule — date full width, time + bell on row below */}
-          <Field label="Publish At">
-            <div className="flex flex-col gap-2 w-full overflow-hidden">
+          {/* Publish Schedule — date + time on one row, bell in label row */}
+          <Field
+            label="Publish At"
+            action={
+              <button
+                onClick={() => set("notifyBefore", !form.notifyBefore)}
+                title="Notify 1 hour before publish"
+                className={`flex items-center justify-center w-7 h-7 rounded-md border transition-all shrink-0 ${
+                  form.notifyBefore
+                    ? "bg-[#3390ec]/10 border-[#3390ec]/30 text-[#3390ec]"
+                    : "bg-[#222f3e] border-white/10 text-[#79828b] hover:border-white/20 hover:text-white"
+                }`}
+              >
+                <Bell size={13} />
+              </button>
+            }
+          >
+            <div className="flex gap-2 w-full overflow-hidden">
               <input
                 type="date"
                 value={form.publishDate}
                 onChange={e => set("publishDate", e.target.value)}
-                className="w-full min-w-0 h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+                className="flex-1 min-w-0 h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
               />
-              <div className="flex items-center gap-2">
-                <input
-                  type="time"
-                  value={form.publishTime}
-                  onChange={e => set("publishTime", e.target.value)}
-                  className="flex-1 min-w-0 h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
-                />
-                <button
-                  onClick={() => set("notifyBefore", !form.notifyBefore)}
-                  title="Notify 1 hour before publish"
-                  className={`flex items-center justify-center w-12 h-12 rounded-md border transition-all shrink-0 ${
-                    form.notifyBefore
-                      ? "bg-[#3390ec]/10 border-[#3390ec]/30 text-[#3390ec]"
-                      : "bg-[#222f3e] border-white/10 text-[#79828b] hover:border-white/20 hover:text-white"
-                  }`}
-                >
-                  <Bell size={16} />
-                </button>
-              </div>
+              <input
+                type="time"
+                step="900"
+                value={form.publishTime}
+                onChange={e => set("publishTime", e.target.value)}
+                className="flex-1 min-w-0 h-12 bg-[#222f3e] border border-white/10 rounded-md px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]"
+              />
             </div>
           </Field>
 
@@ -448,10 +453,13 @@ export function AdminCreateEvent() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children, action }: { label: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-[#79828b] text-[11px] font-black uppercase tracking-widest mb-2">{label}</label>
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-[#79828b] text-[11px] font-black uppercase tracking-widest">{label}</label>
+        {action}
+      </div>
       {children}
     </div>
   );

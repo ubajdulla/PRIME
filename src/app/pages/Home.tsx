@@ -180,7 +180,7 @@ export function Home() {
 
             <div
               ref={filterScrollRef}
-              className="flex gap-2 overflow-x-auto overscroll-x-contain touch-pan-y [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+              className="flex gap-2 overflow-x-auto overscroll-x-contain touch-pan-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
             >
               {ALL_FILTERS.map(f => (
                 <PillFilter key={f} label={t.home.filters[FILTER_KEY[f]]} active={activeFilter === f} onClick={() => setActiveFilter(f)} />
