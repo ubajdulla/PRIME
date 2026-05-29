@@ -31,7 +31,7 @@ export function AdminEventDetail() {
   const [showPublishConfirm,   setShowPublishConfirm]   = useState(false);
   const [showActionDropdown,   setShowActionDropdown]   = useState(false);
   const [anonymousName,        setAnonymousName]        = useState("Anonymous");
-  const [anonymousCount,       setAnonymousCount]       = useState(0);
+  const [anonymousAddCount,    setAnonymousAddCount]    = useState(1);
   const [editingAnonName,      setEditingAnonName]      = useState(false);
   const [toast, setToast] = useState<{ message: string; variant: "success" | "copied" | "publish"; visible: boolean }>({ message: "", variant: "success", visible: false });
   const [isCanceled, setIsCanceled] = useState(() => {
@@ -98,8 +98,6 @@ export function AdminEventDetail() {
   }
 
   function addToRoster(playerId: string) {
-    const totalOccupied = roster.length + anonymousCount;
-    if (totalOccupied >= event.capacity) return;
     const player = waitlist.find(p => p.id === playerId);
     if (!player) return;
     setRoster(prev => [...prev, { ...player, paymentStatus: "unpaid" }]);
@@ -134,7 +132,7 @@ export function AdminEventDetail() {
   }
 
   // ── Derived ────────────────────────────────────────────────
-  const totalPlayers  = roster.length + anonymousCount;
+  const totalPlayers  = roster.length;
   const isFull        = totalPlayers >= event.capacity;
   const cashPaid      = roster.filter(p => p.paymentStatus === "cash").length;
   const onlinePaid    = roster.filter(p => p.paymentStatus === "online").length;
@@ -509,32 +507,30 @@ export function AdminEventDetail() {
                 )}
                 <div className="text-[#79828b] text-[11px] uppercase tracking-wider mt-0.5">Reserved</div>
               </div>
-              {/* Count control */}
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => setAnonymousCount(c => Math.max(0, c - 1))}
-                  disabled={anonymousCount === 0}
-                  className={`w-7 h-7 rounded-lg border flex items-center justify-center font-black text-base leading-none transition-colors ${
-                    anonymousCount === 0
-                      ? "border-white/5 text-white/15 cursor-not-allowed"
-                      : "border-white/10 text-[#79828b] hover:text-white hover:border-white/25"
-                  }`}
-                >
-                  −
-                </button>
-                <span className="text-white font-black text-sm w-5 text-center">{anonymousCount}</span>
-                <button
-                  onClick={() => setAnonymousCount(c => Math.min(event.capacity - roster.length, c + 1))}
-                  disabled={isFull}
-                  className={`w-7 h-7 rounded-lg border flex items-center justify-center font-black text-base leading-none transition-colors ${
-                    isFull
-                      ? "border-white/5 text-white/15 cursor-not-allowed"
-                      : "border-white/10 text-[#79828b] hover:text-white hover:border-white/25"
-                  }`}
-                >
-                  +
-                </button>
-              </div>
+              <input
+                type="number"
+                min={1}
+                value={anonymousAddCount}
+                onChange={e => setAnonymousAddCount(Math.max(1, Number(e.target.value) || 1))}
+                className="w-10 h-8 bg-white/5 border border-white/10 rounded-lg text-white font-black text-sm text-center outline-none focus:border-white/25 shrink-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <button
+                onClick={() => {
+                  const newPlayers: RosterPlayer[] = Array.from({ length: anonymousAddCount }, (_, i) => ({
+                    id: `anon-${Date.now()}-${i}`,
+                    name: anonymousName,
+                    avatar: "",
+                    position: "—",
+                    skillLevel: "",
+                    paymentStatus: "unpaid",
+                  }));
+                  setRoster(prev => [...prev, ...newPlayers]);
+                }}
+                className="w-[76px] h-8 flex items-center justify-center gap-1 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-[#3390ec]/10 border-[#3390ec]/30 text-[#3390ec] hover:bg-[#3390ec]/20 active:scale-95"
+              >
+                <CheckCheck size={12} />
+                Add
+              </button>
             </div>
           </div>
 
@@ -548,7 +544,10 @@ export function AdminEventDetail() {
                 <div className={`flex items-center gap-2 p-3 bg-[#17212b] border transition-colors ${
                   openMenu === player.id ? "rounded-t-xl border-b-0 border-white/10" : "rounded-xl border-white/5"
                 }`}>
-                  <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
+                  {player.avatar
+                    ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
+                    : <div className="w-10 h-10 rounded-full border-2 border-[#0e1621] bg-white/5 flex items-center justify-center shrink-0"><User size={16} className="text-white/30" /></div>
+                  }
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-white text-sm truncate">{player.name}</div>
                     <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position}</div>
@@ -601,9 +600,13 @@ export function AdminEventDetail() {
                       </div>
                     ) : (
                       <div className="flex flex-col">
-                        <MenuAction icon={<User size={14} />} label="View Profile" onClick={() => openProfile(player)} />
-                        <MenuAction icon={<ArrowDownToLine size={14} />} label="Move to Waitlist" onClick={() => moveToWaitlist(player.id)} />
-                        <MenuAction icon={<Trash2 size={14} />} label="Remove from Event" danger onClick={() => setConfirmRemoveId(player.id)} />
+                        {!player.id.startsWith("anon-") && (
+                          <>
+                            <MenuAction icon={<User size={14} />} label="View Profile" onClick={() => openProfile(player)} />
+                            <MenuAction icon={<ArrowDownToLine size={14} />} label="Move to Waitlist" onClick={() => moveToWaitlist(player.id)} />
+                          </>
+                        )}
+                        <MenuAction icon={<Trash2 size={14} />} label="Remove from Event" danger onClick={() => player.id.startsWith("anon-") ? removeFromEvent(player.id) : setConfirmRemoveId(player.id)} />
                       </div>
                     )}
                   </div>
@@ -615,7 +618,7 @@ export function AdminEventDetail() {
           {/* ── WAITLIST ──────────────────────────────────────── */}
           <SectionHeader label="Waitlist" count={String(waitlist.length)} />
 
-          <div className="flex flex-col gap-2 mb-8">
+          <div className="flex flex-col gap-2 mb-3">
             {waitlist.length === 0 && (
               <p className="text-[#79828b] text-sm text-center py-6">No players on waitlist</p>
             )}
@@ -624,22 +627,20 @@ export function AdminEventDetail() {
                 <div className={`flex items-center gap-2 p-3 bg-[#17212b] border transition-colors ${
                   openMenu === `w-${player.id}` ? "rounded-t-xl border-b-0 border-white/10" : "rounded-xl border-white/5"
                 }`}>
-                  <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
+                  {player.avatar
+                    ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
+                    : <div className="w-10 h-10 rounded-full border-2 border-[#0e1621] bg-white/5 flex items-center justify-center shrink-0"><User size={16} className="text-white/30" /></div>
+                  }
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-white text-sm truncate">{player.name}</div>
                     <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position}</div>
                   </div>
                   <button
                     onClick={() => addToRoster(player.id)}
-                    disabled={isFull}
-                    className={`w-[76px] h-8 flex items-center justify-center gap-1 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 ${
-                      isFull
-                        ? "bg-white/5 border-white/10 text-[#79828b] cursor-not-allowed"
-                        : "bg-[#3390ec]/10 border-[#3390ec]/30 text-[#3390ec] hover:bg-[#3390ec]/20 active:scale-95"
-                    }`}
+                    className="w-[76px] h-8 flex items-center justify-center gap-1 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-[#3390ec]/10 border-[#3390ec]/30 text-[#3390ec] hover:bg-[#3390ec]/20 active:scale-95"
                   >
                     <CheckCheck size={12} />
-                    {isFull ? "Full" : "Add"}
+                    Add
                   </button>
                   <div className="flex flex-col gap-0.5 shrink-0">
                     <button

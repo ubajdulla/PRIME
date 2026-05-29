@@ -33,8 +33,8 @@ export function Toast({ message, visible, variant = "success", onHide }: ToastPr
   };
 
   return (
-    <div className="fixed bottom-20 sm:bottom-6 z-[60] pointer-events-none flex justify-center sm:justify-end px-6 inset-x-0">
-      <div className="bg-[#1c2b3a] border border-white/15 rounded-2xl px-5 py-3.5 shadow-2xl flex items-center gap-3 max-w-xs w-full">
+    <div className="fixed bottom-24 sm:bottom-6 z-[60] pointer-events-none flex justify-end px-4 inset-x-0">
+      <div className="bg-[#1c2b3a] border border-white/15 rounded-2xl px-4 py-3 shadow-2xl flex items-center gap-2.5 max-w-[220px]">
         <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${colorMap[variant]}`}>
           {iconMap[variant]}
         </div>
