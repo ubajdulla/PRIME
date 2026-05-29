@@ -177,7 +177,7 @@ export function AdminPlayerProfile() {
 
       {/* Suspend modal */}
       {showSuspendModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-4 shadow-2xl">
             <div className="flex items-center gap-2.5 mb-3">
               <div className="w-8 h-8 rounded-xl bg-[#eab308]/10 border border-[#eab308]/20 flex items-center justify-center shrink-0">
@@ -192,7 +192,8 @@ export function AdminPlayerProfile() {
               <div>
                 <label className="text-[10px] font-black uppercase tracking-widest text-[#79828b] block mb-1">Suspended until</label>
                 <input type="date" min={today} value={suspendDate} onChange={e => setSuspendDate(e.target.value)}
-                  className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-3 py-2 text-white text-sm font-bold focus:outline-none focus:border-[#eab308]/50 transition-colors [color-scheme:dark]" />
+                  style={{ colorScheme: "dark" }}
+                  className="w-full h-10 bg-[#222f3e] border border-white/10 rounded-xl px-3 text-white text-sm font-bold focus:outline-none focus:border-[#eab308]/50 transition-colors appearance-none" />
               </div>
               <div>
                 <label className="text-[10px] font-black uppercase tracking-widest text-[#79828b] block mb-1">
