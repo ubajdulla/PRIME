@@ -3,7 +3,8 @@ import { useNavigate, useParams } from "react-router";
 import {
   ChevronUp, ChevronDown, MoreVertical,
   CheckCircle2, CreditCard, Banknote, User, ArrowDownToLine,
-  Trash2, Send, CheckCheck, Pencil, AlertTriangle, Ban, Share2,
+  Trash2, Send, CheckCheck, AlertTriangle, Ban, Share2,
+  MapPin, Calendar, Clock, Ticket, Pencil, RotateCcw, ArrowLeftRight,
 } from "lucide-react";
 import { BackBar } from "../../components/ui/BackBar";
 import {
@@ -11,6 +12,7 @@ import {
   type PaymentStatus, type Player, type RosterPlayer,
 } from "../../data/adminData";
 import { Toast } from "../../components/ui/Toast";
+
 export function AdminEventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -19,15 +21,19 @@ export function AdminEventDetail() {
   const [roster,   setRoster]   = useState<RosterPlayer[]>(event?.roster   ?? []);
   const [waitlist, setWaitlist] = useState<Player[]>      (event?.waitlist  ?? []);
 
-  // UI state
-  const [openMenu,              setOpenMenu]              = useState<string | null>(null);
-  const [confirmRemoveId,       setConfirmRemoveId]       = useState<string | null>(null);
-  const [confirmWaitlistRemId,  setConfirmWaitlistRemId]  = useState<string | null>(null);
-  const [isPublished,           setIsPublished]           = useState(event?.status !== "draft");
-  const [showDeleteConfirm,     setShowDeleteConfirm]     = useState(false);
-  const [showCancelConfirm,     setShowCancelConfirm]     = useState(false);
+  const [openMenu,             setOpenMenu]             = useState<string | null>(null);
+  const [confirmRemoveId,      setConfirmRemoveId]      = useState<string | null>(null);
+  const [confirmWaitlistRemId, setConfirmWaitlistRemId] = useState<string | null>(null);
+  const [isPublished,          setIsPublished]          = useState(event?.status !== "draft");
+  const [showDeleteConfirm,    setShowDeleteConfirm]    = useState(false);
+  const [showCancelConfirm,    setShowCancelConfirm]    = useState(false);
+  const [showPublishConfirm,   setShowPublishConfirm]   = useState(false);
+  const [showActionDropdown,   setShowActionDropdown]   = useState(false);
+  const [anonymousName,        setAnonymousName]        = useState("Anonymous");
+  const [anonymousCount,       setAnonymousCount]       = useState(0);
+  const [editingAnonName,      setEditingAnonName]      = useState(false);
   const [toast, setToast] = useState<{ message: string; variant: "success" | "copied" | "publish"; visible: boolean }>({ message: "", variant: "success", visible: false });
-  const [isCanceled,            setIsCanceled]            = useState(() => {
+  const [isCanceled, setIsCanceled] = useState(() => {
     const stored = JSON.parse(localStorage.getItem("prime:canceled_events") || "[]");
     return event ? stored.includes(event.id) : false;
   });
@@ -38,6 +44,15 @@ export function AdminEventDetail() {
   function hideToast() {
     setToast(prev => ({ ...prev, visible: false }));
   }
+
+  useEffect(() => {
+    function close() {
+      setShowActionDropdown(false);
+      setOpenMenu(null);
+    }
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
 
   if (!event) {
     return (
@@ -81,7 +96,8 @@ export function AdminEventDetail() {
   }
 
   function addToRoster(playerId: string) {
-    if (roster.length >= event.capacity) return;
+    const totalOccupied = roster.length + anonymousCount;
+    if (totalOccupied >= event.capacity) return;
     const player = waitlist.find(p => p.id === playerId);
     if (!player) return;
     setRoster(prev => [...prev, { ...player, paymentStatus: "unpaid" }]);
@@ -108,23 +124,77 @@ export function AdminEventDetail() {
     setOpenMenu(null);
   }
 
-  function toggleMenu(playerId: string) {
-    setOpenMenu(prev => prev === playerId ? null : playerId);
+  function toggleMenu(key: string) {
+    setOpenMenu(prev => prev === key ? null : key);
     setConfirmRemoveId(null);
   }
 
-  // ── Payment stats ──────────────────────────────────────────
-  const cashPaid   = roster.filter(p => p.paymentStatus === "cash").length;
-  const onlinePaid = roster.filter(p => p.paymentStatus === "online").length;
-  const unpaid     = roster.filter(p => p.paymentStatus === "unpaid").length;
-  const collectedCZK = (cashPaid + onlinePaid) * event.price;
+  // ── Derived ────────────────────────────────────────────────
+  const totalPlayers  = roster.length + anonymousCount;
+  const isFull        = totalPlayers >= event.capacity;
+  const cashPaid      = roster.filter(p => p.paymentStatus === "cash").length;
+  const onlinePaid    = roster.filter(p => p.paymentStatus === "online").length;
+  const unpaid        = roster.filter(p => p.paymentStatus === "unpaid").length;
+  const collectedCZK  = (cashPaid + onlinePaid) * event.price;
+
+  const dropdownLabel = isCanceled ? "Canceled" : isPublished ? "Published" : "Draft";
+  const dropdownCls   = isCanceled
+    ? "shadow-[inset_0_0_0_1.5px_#eab308] text-[#eab308]"
+    : isPublished
+      ? "shadow-[inset_0_0_0_1.5px_#3390ec] text-[#3390ec]"
+      : "bg-[#3390ec] text-white shadow-sm";
+
+  function reactivateEvent() {
+    const stored: string[] = JSON.parse(localStorage.getItem("prime:canceled_events") || "[]");
+    localStorage.setItem("prime:canceled_events", JSON.stringify(stored.filter(eid => eid !== event.id)));
+    setIsCanceled(false);
+    setShowActionDropdown(false);
+    fireToast("Event Reactivated!", "success");
+  }
 
   return (
-    <div>
-      {/* Centered toast */}
+    <div className="min-h-screen bg-[#0e1621] text-white font-sans">
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={hideToast} />
 
-      {/* Delete confirmation modal */}
+      {/* ── Publish confirm ─────────────────────────────────── */}
+      {showPublishConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-[#3390ec]/10 border border-[#3390ec]/20 flex items-center justify-center shrink-0">
+                <Send size={18} className="text-[#3390ec]" />
+              </div>
+              <div>
+                <h3 className="font-black italic uppercase tracking-widest text-white text-base">Publish Event?</h3>
+                <p className="text-[#79828b] text-xs">Players will be able to join.</p>
+              </div>
+            </div>
+            <p className="text-[#79828b] text-sm mb-5">
+              <span className="text-white font-bold">{event.title}</span> will be visible and open for sign-ups.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowPublishConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setIsPublished(true);
+                  setShowPublishConfirm(false);
+                  fireToast("Event Published!", "publish");
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-[#3390ec] text-white font-bold text-sm active:scale-[0.98] transition-transform"
+              >
+                Publish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete confirm ───────────────────────────────────── */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
@@ -158,7 +228,7 @@ export function AdminEventDetail() {
         </div>
       )}
 
-      {/* Cancel confirmation modal */}
+      {/* ── Cancel confirm ───────────────────────────────────── */}
       {showCancelConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
@@ -198,34 +268,34 @@ export function AdminEventDetail() {
         </div>
       )}
 
-      <BackBar label="Events" to="/admin/events" />
+      {/* BackBar with share button */}
+      <BackBar label="Events" to="/admin/events">
+        <button
+          onClick={() => {
+            const url = `${window.location.origin}/events/${event.id}`;
+            if (navigator.share) {
+              navigator.share({ title: event.title, url });
+            } else {
+              navigator.clipboard.writeText(url).then(() => fireToast("Link Copied!", "copied"));
+            }
+          }}
+          className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
+        >
+          <Share2 size={16} />
+          <span>Share</span>
+        </button>
+      </BackBar>
 
-      <div className="max-w-[700px] mx-auto w-full px-4 pt-6 pb-6">
+      <div className="px-4 pb-12 max-w-[600px] mx-auto pt-4">
 
-      {/* Event header */}
-      <div className="mb-2">
-        <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded inline-block mb-2 ${getCategoryStyle(event.category)}`}>
-          {event.category}
-        </span>
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <h1 className="font-black italic text-xl text-white uppercase tracking-wide leading-tight">{event.title}</h1>
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Share */}
-            <button
-              onClick={() => {
-                const url = `${window.location.origin}/events/${event.id}`;
-                if (navigator.share) {
-                  navigator.share({ title: event.title, url });
-                } else {
-                  navigator.clipboard.writeText(url).then(() => fireToast("Link Copied!", "copied"));
-                }
-              }}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-[#79828b] hover:text-white hover:bg-white/10 transition-colors"
-              title="Share event link"
-            >
-              <Share2 size={14} />
-            </button>
-            {/* Edit */}
+        {/* ── TOP SECTION ─────────────────────────────────────── */}
+        <div className="mb-6">
+
+          {/* Category badge + Edit button */}
+          <div className="flex items-center justify-between mb-2">
+            <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded inline-block ${getCategoryStyle(event.category)}`}>
+              {event.category}
+            </span>
             <button
               onClick={() => navigate(`/admin/events/${event.id}/edit`)}
               className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-[#79828b] hover:text-white hover:bg-white/10 transition-colors"
@@ -234,243 +304,393 @@ export function AdminEventDetail() {
               <Pencil size={14} />
             </button>
           </div>
-        </div>
-        <p className="text-[#79828b] text-xs mt-1">
-          {event.date} • {event.time} • {event.location}
-          <span className="text-white font-bold"> • {event.priceLabel}</span>
-        </p>
-      </div>
 
-      {/* ── ACTION BUTTONS — Cancel / Delete / Publish ───────── */}
-      <div className="flex gap-2 mt-5 mb-1">
-        {/* Cancel */}
-        <button
-          onClick={() => { if (!isCanceled) setShowCancelConfirm(true); }}
-          disabled={isCanceled}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-[11px] font-black uppercase tracking-widest transition-colors ${
-            isCanceled
-              ? "bg-[#eab308]/10 border-[#eab308]/30 text-[#eab308] cursor-default"
-              : "border-white/10 text-[#79828b] hover:text-[#eab308] hover:border-[#eab308]/30 hover:bg-[#eab308]/5"
-          }`}
-        >
-          <Ban size={13} />
-          {isCanceled ? "Canceled" : "Cancel"}
-        </button>
-        {/* Delete */}
-        <button
-          onClick={() => setShowDeleteConfirm(true)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-[#ef4444]/30 text-[#ef4444] bg-[#ef4444]/5 text-[11px] font-black uppercase tracking-widest hover:bg-[#ef4444]/10 transition-colors"
-        >
-          <Trash2 size={13} />
-          Delete
-        </button>
-        {/* Publish */}
-        {!isPublished ? (
-          <button
-            onClick={() => { setIsPublished(true); fireToast("Event Published!", "publish"); }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#3390ec] text-white text-[11px] font-black uppercase tracking-widest rounded-xl active:scale-95 transition-transform"
-          >
-            <Send size={13} /> Publish
-          </button>
-        ) : (
-          <span className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#3390ec]/10 text-[#3390ec] text-[11px] font-black uppercase tracking-widest rounded-xl border border-[#3390ec]/20">
-            <CheckCircle2 size={13} /> Published
-          </span>
-        )}
-      </div>
+          {/* Event title */}
+          <h1 className="text-3xl font-black italic uppercase tracking-tight leading-none text-white mb-4">
+            {event.title}
+          </h1>
 
-      {/* Payment summary */}
-      {event.price > 0 && (
-        <div className="bg-[#17212b] rounded-xl p-4 border border-white/5 mt-5 mb-7">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[#79828b] text-[11px] font-black uppercase tracking-widest">Payments</span>
-            <span className="text-white font-black text-sm">
-              {collectedCZK.toLocaleString()} / {(roster.length * event.price).toLocaleString()} CZK
-            </span>
-          </div>
-          <div className="h-2 bg-white/5 rounded-full overflow-hidden mb-3 flex">
-            <div className="h-full bg-[#4dcd5e] transition-all" style={{ width: roster.length > 0 ? `${(cashPaid / roster.length) * 100}%` : "0%" }} />
-            <div className="h-full bg-[#3390ec] transition-all" style={{ width: roster.length > 0 ? `${(onlinePaid / roster.length) * 100}%` : "0%" }} />
-          </div>
-          <div className="flex gap-4 flex-wrap">
-            <LegendDot color="#4dcd5e" label={`${cashPaid} cash`} />
-            <LegendDot color="#3390ec" label={`${onlinePaid} online`} />
-            <LegendDot color="#ffffff30" label={`${unpaid} unpaid`} textColor="text-[#79828b]" />
-          </div>
-        </div>
-      )}
-
-      {/* ── ROSTER ──────────────────────────────────────────── */}
-      <SectionHeader
-        label="Roster"
-        count={`${roster.length}/${event.capacity}`}
-        full={roster.length >= event.capacity}
-      />
-
-      <div className="flex flex-col gap-2 mb-8">
-        {roster.length === 0 && (
-          <p className="text-[#79828b] text-sm text-center py-6">No players on roster yet</p>
-        )}
-        {roster.map((player, idx) => (
-          <div key={player.id} className="flex flex-col">
-            {/* Main row */}
-            <div className={`flex items-center gap-2 p-3 bg-[#17212b] border transition-colors ${
-              openMenu === player.id ? "rounded-t-xl border-b-0 border-white/10" : "rounded-xl border-white/5"
-            }`}>
-              <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-white text-sm truncate">{player.name}</div>
-                <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position}</div>
+          {/* Moderator card */}
+          <div className="flex items-center justify-between bg-[#17212b] border border-white/5 rounded-xl p-2.5 mb-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <img
+                  src={event.moderator.avatar}
+                  alt={event.moderator.name}
+                  className="w-11 h-11 rounded-full object-cover border border-white/10"
+                />
+                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#3390ec] rounded-full flex items-center justify-center border-2 border-[#17212b]">
+                  <CheckCircle2 size={10} className="text-white" strokeWidth={3} />
+                </div>
               </div>
-              {/* Payment toggle */}
-              {event.price > 0 && (
-                <PaymentToggle status={player.paymentStatus} onConfirm={s => confirmPayment(player.id, s)} />
+              <div>
+                <div className="text-[10px] font-bold text-[#79828b] uppercase tracking-widest leading-tight">Moderator</div>
+                <div className="text-white font-bold text-sm">{event.moderator.name}</div>
+              </div>
+            </div>
+            <div className="relative" onMouseDown={e => e.stopPropagation()}>
+              <button
+                onClick={() => toggleMenu("moderator")}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
+              >
+                <MoreVertical size={18} />
+              </button>
+              {openMenu === "moderator" && (
+                <div className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[160px]">
+                  <button
+                    onClick={() => { navigate("/profile"); setOpenMenu(null); }}
+                    className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
+                  >
+                    <User size={14} />
+                    View Profile
+                  </button>
+                  <button
+                    onClick={() => setOpenMenu(null)}
+                    className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left border-t border-white/5"
+                  >
+                    <ArrowLeftRight size={14} />
+                    Switch Moderator
+                  </button>
+                </div>
               )}
-              {/* Up/Down */}
-              <div className="flex flex-col gap-0.5 shrink-0">
-                <button
-                  onClick={() => moveUp(idx)}
-                  disabled={idx === 0}
-                  className={`w-6 h-5 flex items-center justify-center rounded transition-colors ${idx === 0 ? "text-white/10 cursor-not-allowed" : "text-[#79828b] hover:text-white hover:bg-white/5"}`}
-                >
-                  <ChevronUp size={13} />
-                </button>
-                <button
-                  onClick={() => moveDown(idx)}
-                  disabled={idx === roster.length - 1}
-                  className={`w-6 h-5 flex items-center justify-center rounded transition-colors ${idx === roster.length - 1 ? "text-white/10 cursor-not-allowed" : "text-[#79828b] hover:text-white hover:bg-white/5"}`}
-                >
-                  <ChevronDown size={13} />
-                </button>
-              </div>
-              {/* Menu toggle */}
-              <button
-                onClick={() => toggleMenu(player.id)}
-                className={`w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition-colors ${openMenu === player.id ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
-              >
-                <MoreVertical size={15} />
-              </button>
             </div>
-
-            {/* Inline action menu */}
-            {openMenu === player.id && (
-              <div className="bg-[#222f3e] rounded-b-xl border border-t-0 border-white/10 overflow-hidden">
-                {confirmRemoveId === player.id ? (
-                  <div className="flex items-center gap-3 px-4 py-3">
-                    <span className="text-white text-xs font-bold flex-1">Remove {player.name}?</span>
-                    <button
-                      onClick={() => removeFromEvent(player.id)}
-                      className="px-3 py-1.5 bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] text-[11px] font-black uppercase tracking-wider rounded-lg active:scale-95 transition-transform"
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      onClick={() => setConfirmRemoveId(null)}
-                      className="px-3 py-1.5 bg-white/5 text-[#79828b] text-[11px] font-black uppercase tracking-wider rounded-lg hover:text-white transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col">
-                    <MenuAction icon={<User size={14} />} label="View Profile" onClick={() => openProfile(player)} />
-                    <MenuAction icon={<ArrowDownToLine size={14} />} label="Move to Waitlist" onClick={() => moveToWaitlist(player.id)} />
-                    <MenuAction icon={<Trash2 size={14} />} label="Remove from Event" danger onClick={() => setConfirmRemoveId(player.id)} />
-                  </div>
-                )}
-              </div>
-            )}
           </div>
-        ))}
-      </div>
 
-      {/* ── WAITLIST ─────────────────────────────────────────── */}
-      <SectionHeader label="Waitlist" count={String(waitlist.length)} />
+          {/* Info panel */}
+          <div className="bg-[#17212b] border border-white/5 rounded-xl flex flex-col">
+            <div className="flex justify-between items-center p-3 border-b border-white/5 flex-wrap gap-2">
+              <div className="flex items-center gap-2.5">
+                <Calendar size={16} className="text-[#3390ec]" />
+                <span className="text-sm font-semibold text-white/90">{event.date}</span>
+              </div>
+              <div className="hidden sm:block w-[1px] h-4 bg-white/10" />
+              <div className="flex items-center gap-2.5">
+                <Clock size={16} className="text-[#3390ec]" />
+                <span className="text-sm font-semibold text-white/90">{event.time}</span>
+              </div>
+              <div className="hidden sm:block w-[1px] h-4 bg-white/10" />
+              <div className="flex items-center gap-2.5">
+                <Ticket size={16} className="text-[#3390ec]" />
+                <span className="text-sm font-semibold text-white/90">{event.priceLabel}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5 p-3 rounded-b-xl">
+              <MapPin size={16} className="text-[#3390ec]" />
+              <span className="text-sm font-semibold text-white/90 truncate">{event.location}</span>
+            </div>
+          </div>
 
-      <div className="flex flex-col gap-2 mb-8">
-        {waitlist.length === 0 && (
-          <p className="text-[#79828b] text-sm text-center py-6">No players on waitlist</p>
+          {event.description && (
+            <p className="text-[#79828b] text-xs leading-relaxed mt-4 px-1">
+              {event.description}
+            </p>
+          )}
+        </div>
+
+        {/* ── PAYMENTS (first) ─────────────────────────────────── */}
+        {event.price > 0 && (
+          <div className="bg-[#17212b] rounded-xl p-4 border border-white/5 mb-5">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[#79828b] text-[11px] font-black uppercase tracking-widest">Payments</span>
+              <span className="text-white font-black text-sm">
+                {collectedCZK.toLocaleString()} / {(roster.length * event.price).toLocaleString()} CZK
+              </span>
+            </div>
+            <div className="h-2 bg-white/5 rounded-full overflow-hidden mb-3 flex">
+              <div className="h-full bg-[#4dcd5e] transition-all" style={{ width: roster.length > 0 ? `${(cashPaid / roster.length) * 100}%` : "0%" }} />
+              <div className="h-full bg-[#3390ec] transition-all" style={{ width: roster.length > 0 ? `${(onlinePaid / roster.length) * 100}%` : "0%" }} />
+            </div>
+            <div className="flex gap-4 flex-wrap">
+              <LegendDot color="#4dcd5e" label={`${cashPaid} cash`} />
+              <LegendDot color="#3390ec" label={`${onlinePaid} online`} />
+              <LegendDot color="#ffffff30" label={`${unpaid} unpaid`} textColor="text-[#79828b]" />
+            </div>
+          </div>
         )}
-        {waitlist.map((player, idx) => (
-          <div key={player.id} className="flex flex-col">
-            <div className={`flex items-center gap-2 p-3 bg-[#17212b] border transition-colors ${
-              openMenu === `w-${player.id}` ? "rounded-t-xl border-b-0 border-white/10" : "rounded-xl border-white/5"
-            }`}>
-              <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-white text-sm truncate">{player.name}</div>
-                <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position}</div>
-              </div>
-              {/* Add button — same position/size as PaymentToggle */}
-              <button
-                onClick={() => addToRoster(player.id)}
-                disabled={roster.length >= event.capacity}
-                className={`w-[76px] h-8 flex items-center justify-center gap-1 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 ${
-                  roster.length >= event.capacity
-                    ? "bg-white/5 border-white/10 text-[#79828b] cursor-not-allowed"
-                    : "bg-[#3390ec]/10 border-[#3390ec]/30 text-[#3390ec] hover:bg-[#3390ec]/20 active:scale-95"
-                }`}
-              >
-                <CheckCheck size={12} />
-                {roster.length >= event.capacity ? "Full" : "Add"}
-              </button>
-              {/* Up/Down */}
-              <div className="flex flex-col gap-0.5 shrink-0">
-                <button
-                  onClick={() => moveWaitlistUp(idx)}
-                  disabled={idx === 0}
-                  className={`w-6 h-5 flex items-center justify-center rounded transition-colors ${idx === 0 ? "text-white/10 cursor-not-allowed" : "text-[#79828b] hover:text-white hover:bg-white/5"}`}
-                >
-                  <ChevronUp size={13} />
-                </button>
-                <button
-                  onClick={() => moveWaitlistDown(idx)}
-                  disabled={idx === waitlist.length - 1}
-                  className={`w-6 h-5 flex items-center justify-center rounded transition-colors ${idx === waitlist.length - 1 ? "text-white/10 cursor-not-allowed" : "text-[#79828b] hover:text-white hover:bg-white/5"}`}
-                >
-                  <ChevronDown size={13} />
-                </button>
-              </div>
-              {/* 3-dots */}
-              <button
-                onClick={() => { setOpenMenu(prev => prev === `w-${player.id}` ? null : `w-${player.id}`); setConfirmWaitlistRemId(null); }}
-                className={`w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition-colors ${openMenu === `w-${player.id}` ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
-              >
-                <MoreVertical size={15} />
-              </button>
-            </div>
 
-            {/* Inline action menu */}
-            {openMenu === `w-${player.id}` && (
-              <div className="bg-[#222f3e] rounded-b-xl border border-t-0 border-white/10 overflow-hidden">
-                {confirmWaitlistRemId === player.id ? (
-                  <div className="flex items-center gap-3 px-4 py-3">
-                    <span className="text-white text-xs font-bold flex-1">Remove {player.name}?</span>
+        {/* ── ROSTER SECTION ──────────────────────────────────── */}
+        <div>
+          {/* Capacity indicator + Action dropdown */}
+          <div className="flex justify-between items-center mb-3 px-1">
+            <h2 className="font-bold text-lg text-white">
+              {totalPlayers}{" "}
+              <span className="text-[#79828b]">/ {event.capacity} Players</span>
+            </h2>
+
+            {/* Action dropdown (replaces CTA button) */}
+            <div className="relative" onMouseDown={e => e.stopPropagation()}>
+              <button
+                onClick={() => setShowActionDropdown(v => !v)}
+                className={`w-36 py-2 px-3 flex items-center justify-between rounded-lg font-bold text-sm transition-all active:scale-[0.98] ${dropdownCls}`}
+              >
+                <span>{dropdownLabel}</span>
+                <ChevronDown size={13} className={`transition-transform duration-200 shrink-0 ${showActionDropdown ? "rotate-180" : ""}`} />
+              </button>
+
+              {showActionDropdown && (
+                <div className="absolute right-0 top-full mt-1.5 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.6)] z-20 overflow-hidden w-full">
+                  {!isPublished && !isCanceled && (
                     <button
-                      onClick={() => removeFromWaitlist(player.id)}
-                      className="px-3 py-1.5 bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] text-[11px] font-black uppercase tracking-wider rounded-lg active:scale-95 transition-transform"
+                      onClick={() => { setShowPublishConfirm(true); setShowActionDropdown(false); }}
+                      className="flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#3390ec] hover:bg-[#3390ec]/5 transition-colors text-left"
                     >
-                      Confirm
+                      <Send size={14} />
+                      Publish
+                    </button>
+                  )}
+                  {isCanceled ? (
+                    <button
+                      onClick={reactivateEvent}
+                      className="flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#eab308] hover:bg-[#eab308]/5 transition-colors text-left"
+                    >
+                      <RotateCcw size={14} />
+                      Reactivate
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => { setShowCancelConfirm(true); setShowActionDropdown(false); }}
+                      className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#eab308] hover:bg-[#eab308]/5 transition-colors text-left ${!isPublished ? "border-t border-white/5" : ""}`}
+                    >
+                      <Ban size={14} />
+                      Cancel Event
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setShowDeleteConfirm(true); setShowActionDropdown(false); }}
+                    className="flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#ef4444] hover:bg-[#ef4444]/5 transition-colors text-left border-t border-white/5"
+                  >
+                    <Trash2 size={14} />
+                    Delete Event
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Capacity bar */}
+          <div className="w-full h-1.5 bg-white/5 rounded-full mb-5 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${isCanceled ? "bg-[#ef4444]" : "bg-[#3390ec]"}`}
+              style={{ width: `${Math.min((totalPlayers / event.capacity) * 100, 100)}%` }}
+            />
+          </div>
+
+          {/* Anonymous player card */}
+          <div className="mx-0 mb-4">
+            <div className="bg-[#17212b] border border-dashed border-white/[0.12] rounded-xl p-3 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                <User size={16} className="text-white/30" />
+              </div>
+              <div className="flex-1 min-w-0">
+                {editingAnonName ? (
+                  <input
+                    autoFocus
+                    value={anonymousName}
+                    onChange={e => setAnonymousName(e.target.value)}
+                    onBlur={() => setEditingAnonName(false)}
+                    onKeyDown={e => e.key === "Enter" && setEditingAnonName(false)}
+                    className="bg-transparent text-white/60 font-bold text-sm outline-none border-b border-white/20 w-full pb-0.5"
+                  />
+                ) : (
+                  <button
+                    onClick={() => setEditingAnonName(true)}
+                    className="flex items-center gap-1.5 group"
+                  >
+                    <span className="font-bold text-white/40 text-sm group-hover:text-white/60 transition-colors">
+                      {anonymousName}
+                    </span>
+                    <Pencil size={10} className="text-white/20 group-hover:text-white/40 transition-colors" />
+                  </button>
+                )}
+                <div className="text-[#79828b] text-[11px] uppercase tracking-wider mt-0.5">Reserved</div>
+              </div>
+              {/* Count control */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setAnonymousCount(c => Math.max(0, c - 1))}
+                  disabled={anonymousCount === 0}
+                  className={`w-7 h-7 rounded-lg border flex items-center justify-center font-black text-base leading-none transition-colors ${
+                    anonymousCount === 0
+                      ? "border-white/5 text-white/15 cursor-not-allowed"
+                      : "border-white/10 text-[#79828b] hover:text-white hover:border-white/25"
+                  }`}
+                >
+                  −
+                </button>
+                <span className="text-white font-black text-sm w-5 text-center">{anonymousCount}</span>
+                <button
+                  onClick={() => setAnonymousCount(c => Math.min(event.capacity - roster.length, c + 1))}
+                  disabled={isFull}
+                  className={`w-7 h-7 rounded-lg border flex items-center justify-center font-black text-base leading-none transition-colors ${
+                    isFull
+                      ? "border-white/5 text-white/15 cursor-not-allowed"
+                      : "border-white/10 text-[#79828b] hover:text-white hover:border-white/25"
+                  }`}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Roster list */}
+          <div className="flex flex-col gap-2 mb-8">
+            {roster.length === 0 && (
+              <p className="text-[#79828b] text-sm text-center py-6">No players on roster yet</p>
+            )}
+            {roster.map((player, idx) => (
+              <div key={player.id} className="flex flex-col">
+                <div className={`flex items-center gap-2 p-3 bg-[#17212b] border transition-colors ${
+                  openMenu === player.id ? "rounded-t-xl border-b-0 border-white/10" : "rounded-xl border-white/5"
+                }`}>
+                  <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-white text-sm truncate">{player.name}</div>
+                    <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position}</div>
+                  </div>
+                  {event.price > 0 && (
+                    <PaymentToggle status={player.paymentStatus} onConfirm={s => confirmPayment(player.id, s)} />
+                  )}
+                  <div className="flex flex-col gap-0.5 shrink-0">
+                    <button
+                      onClick={() => moveUp(idx)}
+                      disabled={idx === 0}
+                      className={`w-6 h-5 flex items-center justify-center rounded transition-colors ${idx === 0 ? "text-white/10 cursor-not-allowed" : "text-[#79828b] hover:text-white hover:bg-white/5"}`}
+                    >
+                      <ChevronUp size={13} />
                     </button>
                     <button
-                      onClick={() => setConfirmWaitlistRemId(null)}
-                      className="px-3 py-1.5 bg-white/5 text-[#79828b] text-[11px] font-black uppercase tracking-wider rounded-lg hover:text-white transition-colors"
+                      onClick={() => moveDown(idx)}
+                      disabled={idx === roster.length - 1}
+                      className={`w-6 h-5 flex items-center justify-center rounded transition-colors ${idx === roster.length - 1 ? "text-white/10 cursor-not-allowed" : "text-[#79828b] hover:text-white hover:bg-white/5"}`}
                     >
-                      Cancel
+                      <ChevronDown size={13} />
                     </button>
                   </div>
-                ) : (
-                  <div className="flex flex-col">
-                    <MenuAction icon={<User size={14} />} label="View Profile" onClick={() => openProfile(player)} />
-                    <MenuAction icon={<Trash2 size={14} />} label="Remove from Waitlist" danger onClick={() => setConfirmWaitlistRemId(player.id)} />
+                  <button
+                    onMouseDown={e => e.stopPropagation()}
+                    onClick={() => toggleMenu(player.id)}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition-colors ${openMenu === player.id ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
+                  >
+                    <MoreVertical size={15} />
+                  </button>
+                </div>
+
+                {openMenu === player.id && (
+                  <div onMouseDown={e => e.stopPropagation()} className="bg-[#222f3e] rounded-b-xl border border-t-0 border-white/10 overflow-hidden relative z-20">
+                    {confirmRemoveId === player.id ? (
+                      <div className="flex items-center gap-3 px-4 py-3">
+                        <span className="text-white text-xs font-bold flex-1">Remove {player.name}?</span>
+                        <button
+                          onClick={() => removeFromEvent(player.id)}
+                          className="px-3 py-1.5 bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] text-[11px] font-black uppercase tracking-wider rounded-lg active:scale-95 transition-transform"
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          onClick={() => setConfirmRemoveId(null)}
+                          className="px-3 py-1.5 bg-white/5 text-[#79828b] text-[11px] font-black uppercase tracking-wider rounded-lg hover:text-white transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col">
+                        <MenuAction icon={<User size={14} />} label="View Profile" onClick={() => openProfile(player)} />
+                        <MenuAction icon={<ArrowDownToLine size={14} />} label="Move to Waitlist" onClick={() => moveToWaitlist(player.id)} />
+                        <MenuAction icon={<Trash2 size={14} />} label="Remove from Event" danger onClick={() => setConfirmRemoveId(player.id)} />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
+            ))}
           </div>
-        ))}
-      </div>
 
+          {/* ── WAITLIST ──────────────────────────────────────── */}
+          <SectionHeader label="Waitlist" count={String(waitlist.length)} />
+
+          <div className="flex flex-col gap-2 mb-8">
+            {waitlist.length === 0 && (
+              <p className="text-[#79828b] text-sm text-center py-6">No players on waitlist</p>
+            )}
+            {waitlist.map((player, idx) => (
+              <div key={player.id} className="flex flex-col">
+                <div className={`flex items-center gap-2 p-3 bg-[#17212b] border transition-colors ${
+                  openMenu === `w-${player.id}` ? "rounded-t-xl border-b-0 border-white/10" : "rounded-xl border-white/5"
+                }`}>
+                  <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-white text-sm truncate">{player.name}</div>
+                    <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position}</div>
+                  </div>
+                  <button
+                    onClick={() => addToRoster(player.id)}
+                    disabled={isFull}
+                    className={`w-[76px] h-8 flex items-center justify-center gap-1 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 ${
+                      isFull
+                        ? "bg-white/5 border-white/10 text-[#79828b] cursor-not-allowed"
+                        : "bg-[#3390ec]/10 border-[#3390ec]/30 text-[#3390ec] hover:bg-[#3390ec]/20 active:scale-95"
+                    }`}
+                  >
+                    <CheckCheck size={12} />
+                    {isFull ? "Full" : "Add"}
+                  </button>
+                  <div className="flex flex-col gap-0.5 shrink-0">
+                    <button
+                      onClick={() => moveWaitlistUp(idx)}
+                      disabled={idx === 0}
+                      className={`w-6 h-5 flex items-center justify-center rounded transition-colors ${idx === 0 ? "text-white/10 cursor-not-allowed" : "text-[#79828b] hover:text-white hover:bg-white/5"}`}
+                    >
+                      <ChevronUp size={13} />
+                    </button>
+                    <button
+                      onClick={() => moveWaitlistDown(idx)}
+                      disabled={idx === waitlist.length - 1}
+                      className={`w-6 h-5 flex items-center justify-center rounded transition-colors ${idx === waitlist.length - 1 ? "text-white/10 cursor-not-allowed" : "text-[#79828b] hover:text-white hover:bg-white/5"}`}
+                    >
+                      <ChevronDown size={13} />
+                    </button>
+                  </div>
+                  <button
+                    onMouseDown={e => e.stopPropagation()}
+                    onClick={() => { setOpenMenu(prev => prev === `w-${player.id}` ? null : `w-${player.id}`); setConfirmWaitlistRemId(null); }}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition-colors ${openMenu === `w-${player.id}` ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
+                  >
+                    <MoreVertical size={15} />
+                  </button>
+                </div>
+
+                {openMenu === `w-${player.id}` && (
+                  <div onMouseDown={e => e.stopPropagation()} className="bg-[#222f3e] rounded-b-xl border border-t-0 border-white/10 overflow-hidden relative z-20">
+                    {confirmWaitlistRemId === player.id ? (
+                      <div className="flex items-center gap-3 px-4 py-3">
+                        <span className="text-white text-xs font-bold flex-1">Remove {player.name}?</span>
+                        <button
+                          onClick={() => removeFromWaitlist(player.id)}
+                          className="px-3 py-1.5 bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] text-[11px] font-black uppercase tracking-wider rounded-lg active:scale-95 transition-transform"
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          onClick={() => setConfirmWaitlistRemId(null)}
+                          className="px-3 py-1.5 bg-white/5 text-[#79828b] text-[11px] font-black uppercase tracking-wider rounded-lg hover:text-white transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col">
+                        <MenuAction icon={<User size={14} />} label="View Profile" onClick={() => openProfile(player)} />
+                        <MenuAction icon={<Trash2 size={14} />} label="Remove from Waitlist" danger onClick={() => setConfirmWaitlistRemId(player.id)} />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -532,7 +752,6 @@ function PaymentToggle({ status, onConfirm }: { status: PaymentStatus; onConfirm
         intervalRef.current = null;
         setProgress(0);
         if (status !== "unpaid") {
-          // undo confirmed payment
           setPending("unpaid");
           onConfirm("unpaid");
         } else {
@@ -545,7 +764,6 @@ function PaymentToggle({ status, onConfirm }: { status: PaymentStatus; onConfirm
   function onPointerUp() {
     const held = Date.now() - startRef.current;
     stopHold();
-    // only cycle on quick tap when not yet confirmed
     if (held < 300 && status === "unpaid") {
       setPending(prev => PAYMENT_CYCLE[(PAYMENT_CYCLE.indexOf(prev) + 1) % PAYMENT_CYCLE.length]);
     }
@@ -566,12 +784,9 @@ function PaymentToggle({ status, onConfirm }: { status: PaymentStatus; onConfirm
       onPointerUp={onPointerUp}
       onPointerLeave={stopHold}
       className={`relative w-[76px] h-8 rounded-lg border overflow-hidden shrink-0 select-none touch-none ${
-        confirmedAndSet
-          ? `${confirmedBg}`
-          : "bg-white/5 border-white/10"
+        confirmedAndSet ? `${confirmedBg}` : "bg-white/5 border-white/10"
       }`}
     >
-      {/* hold-progress fill */}
       {progress > 0 && (
         <div
           className={`absolute inset-y-0 left-0 ${fillColor} opacity-25 transition-none`}
@@ -596,4 +811,3 @@ function LegendDot({ color, label, textColor }: { color: string; label: string; 
     </div>
   );
 }
-

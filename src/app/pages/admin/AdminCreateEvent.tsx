@@ -50,14 +50,6 @@ const CATEGORY_IMAGES: Record<string, string[]> = {
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = ["00", "15", "30", "45"];
-const DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0"));
-const MONTHS = [
-  { v: "01", l: "January" }, { v: "02", l: "February" }, { v: "03", l: "March" },
-  { v: "04", l: "April" }, { v: "05", l: "May" }, { v: "06", l: "June" },
-  { v: "07", l: "July" }, { v: "08", l: "August" }, { v: "09", l: "September" },
-  { v: "10", l: "October" }, { v: "11", l: "November" }, { v: "12", l: "December" },
-];
-const YEARS = Array.from({ length: 4 }, (_, i) => String(new Date().getFullYear() + i));
 
 const SEL = "block w-full h-12 bg-[#222f3e] border border-white/10 rounded-xl px-3 pr-8 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors appearance-none cursor-pointer [color-scheme:dark]";
 const INP = "block w-full h-12 bg-[#222f3e] border border-white/10 rounded-xl px-4 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors";
@@ -97,13 +89,10 @@ export function AdminCreateEvent() {
     location:    editEvent?.location ?? "",
     price:       editEvent && editEvent.price > 0 ? String(editEvent.price) : "",
     capacity:    editEvent ? String(editEvent.capacity) : "",
-    // date
-    day: "", month: "", year: "",
-    // time
+    date: "",
     startH: startTime.h, startM: startTime.m,
     endH:   endTime.h,   endM:   endTime.m,
-    // publish
-    pubDay: "", pubMonth: "", pubYear: "",
+    pubDate: "",
     pubH: "", pubM: "00",
     notify: false,
   });
@@ -123,11 +112,10 @@ export function AdminCreateEvent() {
   };
 
   const showLevel = f.category === "GAMES" || f.category === "TRAININGS";
-  const isFree = f.price === "" || Number(f.price) === 0;
-  const hasPublish = f.pubDay && f.pubMonth && f.pubYear;
+  const hasPublish = !!f.pubDate;
 
   const publishAt = hasPublish
-    ? `${f.pubYear}-${f.pubMonth}-${f.pubDay}T${f.pubH || "00"}:${f.pubM}`
+    ? `${f.pubDate}T${f.pubH || "00"}:${f.pubM}`
     : "";
   const isScheduled = !!publishAt && new Date(publishAt) > new Date();
 
@@ -237,30 +225,11 @@ export function AdminCreateEvent() {
           )}
         </div>
 
-        {/* Date — three selects: day / month / year */}
+        {/* Date */}
         <Row label="Date">
-          <div className="grid grid-cols-3 gap-2">
-            <div className="relative">
-              <select value={f.day} onChange={e => s("day", e.target.value)} className={SEL}>
-                <option value="">Day</option>
-                {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-            </div>
-            <div className="relative">
-              <select value={f.month} onChange={e => s("month", e.target.value)} className={SEL}>
-                <option value="">Month</option>
-                {MONTHS.map(m => <option key={m.v} value={m.v}>{m.l}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-            </div>
-            <div className="relative">
-              <select value={f.year} onChange={e => s("year", e.target.value)} className={SEL}>
-                <option value="">Year</option>
-                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-            </div>
+          <div className="overflow-hidden rounded-xl">
+            <input type="date" value={f.date} onChange={e => s("date", e.target.value)}
+              className="block w-full h-12 bg-[#222f3e] border border-white/10 rounded-xl px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]" />
           </div>
         </Row>
 
@@ -340,10 +309,9 @@ export function AdminCreateEvent() {
           <Row label="Entry Fee">
             <div className="relative">
               <input type="number" min="0" value={f.price} onChange={e => s("price", e.target.value)}
-                placeholder="0" className={INP + " pr-14"} />
+                placeholder="FREE" className={INP + " pr-14"} />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#79828b]/40 text-sm font-black pointer-events-none select-none">CZK</span>
             </div>
-            {isFree && <p className="text-[#4dcd5e] text-[11px] font-black mt-1.5 uppercase tracking-wider">Free event</p>}
           </Row>
           <Row label="Max Players">
             <input type="number" min="2" max="100" value={f.capacity}
@@ -363,29 +331,10 @@ export function AdminCreateEvent() {
             </button>
           }
         >
-          {/* Publish date: day / month / year */}
-          <div className="grid grid-cols-3 gap-2 mb-2">
-            <div className="relative">
-              <select value={f.pubDay} onChange={e => s("pubDay", e.target.value)} className={SEL}>
-                <option value="">Day</option>
-                {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-            </div>
-            <div className="relative">
-              <select value={f.pubMonth} onChange={e => s("pubMonth", e.target.value)} className={SEL}>
-                <option value="">Month</option>
-                {MONTHS.map(m => <option key={m.v} value={m.v}>{m.l}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-            </div>
-            <div className="relative">
-              <select value={f.pubYear} onChange={e => s("pubYear", e.target.value)} className={SEL}>
-                <option value="">Year</option>
-                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-            </div>
+          {/* Publish date */}
+          <div className="overflow-hidden rounded-xl mb-2">
+            <input type="date" value={f.pubDate} onChange={e => s("pubDate", e.target.value)}
+              className="block w-full h-12 bg-[#222f3e] border border-white/10 rounded-xl px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]" />
           </div>
           {/* Publish time: hour : minute */}
           <div className="flex items-center gap-1">

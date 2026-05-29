@@ -30,6 +30,7 @@ export interface AdminEvent {
   status: EventStatus;
   description: string;
   image: string;
+  moderator: Player;
   roster: RosterPlayer[];
   waitlist: Player[];
   requests: Player[];
@@ -98,6 +99,7 @@ export const ADMIN_EVENTS: AdminEvent[] = [
     category: "GAMES",
     status: "upcoming",
     description: "High stakes competitive scrimmage for top-tier players. Bring your A-game. Voice comms mandatory.",
+    moderator: ALL_PLAYERS[0],
     image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=400&fit=crop",
     roster: [
       { ...ALL_PLAYERS[0], paymentStatus: "cash" },
@@ -125,6 +127,7 @@ export const ADMIN_EVENTS: AdminEvent[] = [
     category: "TOURNAMENT",
     status: "upcoming",
     description: "Late night tournament scrim. Invite-only with request approval.",
+    moderator: ALL_PLAYERS[1],
     image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=400&fit=crop",
     roster: [
       { ...ALL_PLAYERS[0], paymentStatus: "online" },
@@ -149,6 +152,7 @@ export const ADMIN_EVENTS: AdminEvent[] = [
     category: "TRAININGS",
     status: "upcoming",
     description: "Morning training session for skill development and conditioning.",
+    moderator: ALL_PLAYERS[5],
     image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=400&fit=crop",
     roster: [
       { ...ALL_PLAYERS[2], paymentStatus: "unpaid" },
@@ -170,6 +174,7 @@ export const ADMIN_EVENTS: AdminEvent[] = [
     category: "TOURNAMENT",
     status: "upcoming",
     description: "Weekend tournament clash. Request-only entry for serious players.",
+    moderator: ALL_PLAYERS[4],
     image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=400&fit=crop",
     roster: [
       { ...ALL_PLAYERS[0], paymentStatus: "cash" },
@@ -194,6 +199,7 @@ export const ADMIN_EVENTS: AdminEvent[] = [
     category: "BEACH",
     status: "upcoming",
     description: "Casual beach volleyball. All skill levels welcome.",
+    moderator: ALL_PLAYERS[6],
     image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=400&fit=crop",
     roster: [{ ...ALL_PLAYERS[11], paymentStatus: "unpaid" }],
     waitlist: [],
@@ -212,6 +218,7 @@ export const ADMIN_EVENTS: AdminEvent[] = [
     category: "GAMES",
     status: "past",
     description: "Past competitive game — all players paid, game completed.",
+    moderator: ALL_PLAYERS[0],
     image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=400&fit=crop",
     roster: [
       { ...ALL_PLAYERS[0], paymentStatus: "cash" },
@@ -243,6 +250,7 @@ export const ADMIN_EVENTS: AdminEvent[] = [
     category: "BEACH",
     status: "past",
     description: "Summer beach league finals.",
+    moderator: ALL_PLAYERS[3],
     image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=400&fit=crop",
     roster: [
       { ...ALL_PLAYERS[3], paymentStatus: "cash" },
@@ -268,6 +276,7 @@ export const ADMIN_EVENTS: AdminEvent[] = [
     category: "GAMES",
     status: "draft",
     description: "Night game session — not published yet.",
+    moderator: ALL_PLAYERS[7],
     image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=400&fit=crop",
     roster: [],
     waitlist: [],
