@@ -31,7 +31,7 @@ export function AdminEventDetail() {
   const [showPublishConfirm,   setShowPublishConfirm]   = useState(false);
   const [showActionDropdown,   setShowActionDropdown]   = useState(false);
   const [anonymousName,        setAnonymousName]        = useState("Anonymous");
-  const [anonymousAddCount,    setAnonymousAddCount]    = useState(1);
+  const [anonymousAddCount,    setAnonymousAddCount]    = useState<string>("1");
   const [editingAnonName,      setEditingAnonName]      = useState(false);
   const [toast, setToast] = useState<{ message: string; variant: "success" | "copied" | "publish"; visible: boolean }>({ message: "", variant: "success", visible: false });
   const [isCanceled, setIsCanceled] = useState(() => {
@@ -508,15 +508,18 @@ export function AdminEventDetail() {
                 <div className="text-[#79828b] text-[11px] uppercase tracking-wider mt-0.5">Reserved</div>
               </div>
               <input
-                type="number"
-                min={1}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={anonymousAddCount}
-                onChange={e => setAnonymousAddCount(Math.max(1, Number(e.target.value) || 1))}
-                className="w-10 h-8 bg-white/5 border border-white/10 rounded-lg text-white font-black text-sm text-center outline-none focus:border-white/25 shrink-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                onChange={e => setAnonymousAddCount(e.target.value.replace(/[^0-9]/g, ""))}
+                onBlur={() => setAnonymousAddCount(v => (!v || Number(v) < 1) ? "1" : v)}
+                className="w-10 h-8 bg-white/5 border border-white/10 rounded-lg text-white font-black text-sm text-center outline-none focus:border-white/25 shrink-0"
               />
               <button
                 onClick={() => {
-                  const newPlayers: RosterPlayer[] = Array.from({ length: anonymousAddCount }, (_, i) => ({
+                  const count = Math.max(1, Number(anonymousAddCount) || 1);
+                  const newPlayers: RosterPlayer[] = Array.from({ length: count }, (_, i) => ({
                     id: `anon-${Date.now()}-${i}`,
                     name: anonymousName,
                     avatar: "",
