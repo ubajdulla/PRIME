@@ -177,36 +177,36 @@ export function AdminPlayerProfile() {
 
       {/* Suspend modal */}
       {showSuspendModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-[#eab308]/10 border border-[#eab308]/20 flex items-center justify-center shrink-0">
-                <Clock size={18} className="text-[#eab308]" />
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-4 shadow-2xl">
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className="w-8 h-8 rounded-xl bg-[#eab308]/10 border border-[#eab308]/20 flex items-center justify-center shrink-0">
+                <Clock size={15} className="text-[#eab308]" />
               </div>
               <div>
-                <h3 className="font-black italic uppercase tracking-widest text-white text-base">Suspend Player</h3>
-                <p className="text-[#79828b] text-xs">Can't join events until the date.</p>
+                <h3 className="font-black italic uppercase tracking-widest text-white text-sm">Suspend Player</h3>
+                <p className="text-[#79828b] text-[11px]">Can't join events until the date.</p>
               </div>
             </div>
-            <div className="flex flex-col gap-3 mb-5">
+            <div className="flex flex-col gap-2.5 mb-4">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-[#79828b] block mb-1.5">Suspended until</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-[#79828b] block mb-1">Suspended until</label>
                 <input type="date" min={today} value={suspendDate} onChange={e => setSuspendDate(e.target.value)}
-                  className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm font-bold focus:outline-none focus:border-[#eab308]/50 transition-colors [color-scheme:dark]" />
+                  className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-3 py-2 text-white text-sm font-bold focus:outline-none focus:border-[#eab308]/50 transition-colors [color-scheme:dark]" />
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-[#79828b] block mb-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-[#79828b] block mb-1">
                   Reason <span className="normal-case font-normal tracking-normal">(optional)</span>
                 </label>
                 <input type="text" value={suspendReason} onChange={e => setSuspendReason(e.target.value)} placeholder="e.g. repeated no-show"
-                  className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#eab308]/50 transition-colors" />
+                  className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#eab308]/50 transition-colors" />
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <button onClick={() => { setShowSuspendModal(false); setSuspendDate(""); setSuspendReason(""); }}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">Cancel</button>
+                className="flex-1 py-2 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">Cancel</button>
               <button onClick={confirmSuspend} disabled={!suspendDate}
-                className="flex-1 py-2.5 rounded-xl bg-[#eab308]/10 border border-[#eab308]/30 text-[#eab308] font-bold text-sm active:scale-[0.98] transition-transform disabled:opacity-40 disabled:cursor-not-allowed">
+                className="flex-1 py-2 rounded-xl bg-[#eab308]/10 border border-[#eab308]/30 text-[#eab308] font-bold text-sm active:scale-[0.98] transition-transform disabled:opacity-40 disabled:cursor-not-allowed">
                 Suspend
               </button>
             </div>
@@ -477,11 +477,11 @@ export function AdminPlayerProfile() {
                   placeholder="Add a note about this player…" rows={3}
                   className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none" />
                 <div className="flex gap-2">
-                  <button onClick={() => setCommentVisibility("admin")}
+                  <button onClick={() => { setCommentVisibility("admin"); setEditingComment(false); }}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black uppercase tracking-wider transition-colors ${commentVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
                     <Lock size={11} /> Admins only
                   </button>
-                  <button onClick={() => setCommentVisibility("all")}
+                  <button onClick={() => { setCommentVisibility("all"); setEditingComment(false); }}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black uppercase tracking-wider transition-colors ${commentVisibility === "all" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
                     <Globe size={11} /> Everyone
                   </button>
