@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { navDir } from "../lib/navDir";
 import {
   ChevronDown,
   MapPin,
@@ -22,27 +23,27 @@ const EVENT_CATS: Record<string, string> = {
 };
 
 const ROSTER = [
-  { name: "ZeroCool",    role: "Setter",        img: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&h=150&fit=crop" },
-  { name: "NeonSamurai", role: "Outside Hitter", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop" },
-  { name: "CyberNinja",  role: "Libero",         img: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150&h=150&fit=crop" },
-  { name: "GlitchKing",  role: "Middle Blocker", img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop" },
-  { name: "PrimeAlpha",  role: "Opposite",       img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop" },
-  { name: "ViperX",      role: "Outside Hitter", img: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop" },
-  { name: "Anonymous",   role: "Reserved",       img: null as string | null },
+  { id: "p1", name: "ZeroCool",    role: "Setter",        img: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&h=150&fit=crop" },
+  { id: "p2", name: "NeonSamurai", role: "Outside Hitter", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop" },
+  { id: "p3", name: "CyberNinja",  role: "Libero",         img: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150&h=150&fit=crop" },
+  { id: "p4", name: "GlitchKing",  role: "Middle Blocker", img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop" },
+  { id: "p5", name: "PrimeAlpha",  role: "Opposite",       img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop" },
+  { id: "p6", name: "ViperX",      role: "Outside Hitter", img: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop" },
+  { id: null, name: "Anonymous",   role: "Reserved",       img: null as string | null },
 ];
 
 const WAITLIST = [
-  { name: "PixelPunk",  img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop" },
-  { name: "StealthV",   img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop" },
-  { name: "ByteKing",   img: "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=150&h=150&fit=crop" },
-  { name: "XBlaze",     img: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&h=150&fit=crop" },
-  { name: "NovaPulse",  img: "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=150&h=150&fit=crop" },
-  { name: "GridLock",   img: "https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?w=150&h=150&fit=crop" },
+  { id: "p7",  name: "PixelPunk",  img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop" },
+  { id: "p8",  name: "StealthV",   img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop" },
+  { id: "p9",  name: "ByteKing",   img: "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=150&h=150&fit=crop" },
+  { id: "p10", name: "XBlaze",     img: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&h=150&fit=crop" },
+  { id: "p11", name: "NovaPulse",  img: "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=150&h=150&fit=crop" },
+  { id: "p12", name: "GridLock",   img: "https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?w=150&h=150&fit=crop" },
 ];
 
 const FLAKED = [
-  { name: "GhostRider", img: "https://images.unsplash.com/photo-1463453091185-61582044d556?w=150&h=150&fit=crop" },
-  { name: "ShadowByte", img: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop" },
+  { id: "p8", name: "GhostRider", img: "https://images.unsplash.com/photo-1463453091185-61582044d556?w=150&h=150&fit=crop" },
+  { id: "p7", name: "ShadowByte", img: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop" },
 ];
 
 const PLAYER_AVATAR = "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=150&h=150&fit=crop&crop=face";
@@ -260,7 +261,7 @@ return (
                   onClick={() => setOpenMenu(null)}
                 >
                   <button
-                    onClick={() => navigate("/profile")}
+                    onClick={() => { navDir.forward(); navigate("/players/p2"); setOpenMenu(null); }}
                     className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
                   >
                     <User size={14} />
@@ -380,7 +381,7 @@ return (
                       onClick={() => setOpenMenu(null)}
                     >
                       <button
-                        onClick={() => navigate("/profile")}
+                        onClick={() => { if (player.id) { navDir.forward(); navigate(`/players/${player.id}`); } setOpenMenu(null); }}
                         className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
                       >
                         <User size={14} />
@@ -453,7 +454,7 @@ return (
                                 onClick={() => setOpenMenu(null)}
                               >
                                 <button
-                                  onClick={() => navigate("/profile")}
+                                  onClick={() => { if (player.isMe) navigate("/profile"); else { navDir.forward(); navigate(`/players/${player.id}`); } setOpenMenu(null); }}
                                   className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
                                 >
                                   <User size={14} />
@@ -495,7 +496,7 @@ return (
                             onClick={() => setOpenMenu(null)}
                           >
                             <button
-                              onClick={() => navigate("/profile")}
+                              onClick={() => { navDir.forward(); navigate(`/players/${player.id}`); setOpenMenu(null); }}
                               className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
                             >
                               <User size={14} />

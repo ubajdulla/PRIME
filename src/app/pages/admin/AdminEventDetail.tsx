@@ -11,6 +11,7 @@ import {
   ADMIN_EVENTS, getCategoryStyle,
   type PaymentStatus, type Player, type RosterPlayer,
 } from "../../data/adminData";
+import { navDir } from "../../lib/navDir";
 import { Toast } from "../../components/ui/Toast";
 
 export function AdminEventDetail() {
@@ -93,6 +94,7 @@ export function AdminEventDetail() {
     setRoster(prev => prev.filter(p => p.id !== playerId));
     setConfirmRemoveId(null);
     setOpenMenu(null);
+    fireToast("Player Removed!", "success");
   }
 
   function addToRoster(playerId: string) {
@@ -108,6 +110,7 @@ export function AdminEventDetail() {
     setWaitlist(prev => prev.filter(p => p.id !== playerId));
     setConfirmWaitlistRemId(null);
     setOpenMenu(null);
+    fireToast("Player Removed!", "success");
   }
 
   function moveWaitlistUp(idx: number) {
@@ -119,8 +122,9 @@ export function AdminEventDetail() {
     setWaitlist(prev => { const a = [...prev]; [a[idx], a[idx + 1]] = [a[idx + 1], a[idx]]; return a; });
   }
 
-  function openProfile(_player: Player) {
-    navigate("/profile");
+  function openProfile(player: Player) {
+    navDir.forward();
+    navigate(`/admin/player/${player.id}`);
     setOpenMenu(null);
   }
 
@@ -218,7 +222,7 @@ export function AdminEventDetail() {
                 Cancel
               </button>
               <button
-                onClick={() => navigate("/admin/events")}
+                onClick={() => { setShowDeleteConfirm(false); fireToast("Event Deleted!", "success"); setTimeout(() => navigate("/admin/events"), 1500); }}
                 className="flex-1 py-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-bold text-sm active:scale-[0.98] transition-transform"
               >
                 Delete
@@ -258,6 +262,7 @@ export function AdminEventDetail() {
                   localStorage.setItem("prime:canceled_events", JSON.stringify(stored));
                   setIsCanceled(true);
                   setShowCancelConfirm(false);
+                  fireToast("Event Canceled!", "success");
                 }}
                 className="flex-1 py-2.5 rounded-xl bg-[#eab308]/10 border border-[#eab308]/30 text-[#eab308] font-bold text-sm active:scale-[0.98] transition-transform"
               >
@@ -338,7 +343,7 @@ export function AdminEventDetail() {
               {openMenu === "moderator" && (
                 <div className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[160px]">
                   <button
-                    onClick={() => { navigate("/profile"); setOpenMenu(null); }}
+                    onClick={() => { navDir.forward(); navigate(`/admin/player/${event.moderator.id}`); setOpenMenu(null); }}
                     className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
                   >
                     <User size={14} />

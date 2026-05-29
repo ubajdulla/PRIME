@@ -8,6 +8,8 @@ export interface Player {
   avatar: string;
   position: string;
   skillLevel: string;
+  phone?: string;
+  email?: string;
   telegram?: string;
   instagram?: string;
 }
@@ -71,18 +73,18 @@ const AVATARS = [
 ];
 
 export const ALL_PLAYERS: Player[] = [
-  { id: "p1",  name: "ZeroCool",     avatar: AVATARS[0],  position: "Outside Hitter",  skillLevel: "Pro",          telegram: "@zerocool",     instagram: "@zerocool_vb" },
-  { id: "p2",  name: "NeonSamurai",  avatar: AVATARS[1],  position: "Setter",           skillLevel: "PRIME",        telegram: "@neonsamurai",  instagram: "@neonsamurai" },
-  { id: "p3",  name: "CyberNinja99", avatar: AVATARS[2],  position: "Libero",           skillLevel: "Beginner",     telegram: "@cyberninja99" },
-  { id: "p4",  name: "GlitchKing",   avatar: AVATARS[3],  position: "Middle Blocker",   skillLevel: "Advanced",     instagram: "@glitchking" },
-  { id: "p5",  name: "PrimeAlpha",   avatar: AVATARS[4],  position: "Opposite Hitter",  skillLevel: "PRIME",        telegram: "@primealpha",   instagram: "@primealpha_vb" },
-  { id: "p6",  name: "ViperX",       avatar: AVATARS[5],  position: "Right Side",       skillLevel: "Pro",          telegram: "@viperx" },
-  { id: "p7",  name: "ShadowStrike", avatar: AVATARS[6],  position: "Outside Hitter",   skillLevel: "Intermediate", instagram: "@shadowstrike" },
-  { id: "p8",  name: "GhostRider",   avatar: AVATARS[7],  position: "Setter",           skillLevel: "Pro",          telegram: "@ghostrider_vb" },
-  { id: "p9",  name: "FluxCore",     avatar: AVATARS[8],  position: "Libero",           skillLevel: "Rookie" },
-  { id: "p10", name: "NovaBurst",    avatar: AVATARS[9],  position: "Middle Blocker",   skillLevel: "Advanced",     telegram: "@novaburst" },
-  { id: "p11", name: "QuantumX",     avatar: AVATARS[10], position: "Outside Hitter",   skillLevel: "Pro",          instagram: "@quantumx_vb" },
-  { id: "p12", name: "SteelNova",    avatar: AVATARS[11], position: "Right Side",       skillLevel: "Rookie" },
+  { id: "p1",  name: "ZeroCool",     avatar: AVATARS[0],  position: "Outside Hitter",  skillLevel: "Pro",          phone: "+420 731 100 001", email: "zerocool@prime.gg",      telegram: "@zerocool",     instagram: "@zerocool_vb" },
+  { id: "p2",  name: "NeonSamurai",  avatar: AVATARS[1],  position: "Setter",           skillLevel: "PRIME",        phone: "+420 731 100 002", email: "neonsamurai@prime.gg",   telegram: "@neonsamurai",  instagram: "@neonsamurai" },
+  { id: "p3",  name: "CyberNinja99", avatar: AVATARS[2],  position: "Libero",           skillLevel: "Beginner",     phone: "+420 731 100 003",                                  telegram: "@cyberninja99" },
+  { id: "p4",  name: "GlitchKing",   avatar: AVATARS[3],  position: "Middle Blocker",   skillLevel: "Advanced",     phone: "+420 731 100 004", email: "glitchking@prime.gg",    instagram: "@glitchking" },
+  { id: "p5",  name: "PrimeAlpha",   avatar: AVATARS[4],  position: "Opposite Hitter",  skillLevel: "PRIME",        phone: "+420 731 100 005", email: "primealpha@prime.gg",    telegram: "@primealpha",   instagram: "@primealpha_vb" },
+  { id: "p6",  name: "ViperX",       avatar: AVATARS[5],  position: "Right Side",       skillLevel: "Pro",                                     email: "viperx@prime.gg",        telegram: "@viperx" },
+  { id: "p7",  name: "ShadowStrike", avatar: AVATARS[6],  position: "Outside Hitter",   skillLevel: "Intermediate", phone: "+420 731 100 007",                                  instagram: "@shadowstrike" },
+  { id: "p8",  name: "GhostRider",   avatar: AVATARS[7],  position: "Setter",           skillLevel: "Pro",          phone: "+420 731 100 008", email: "ghostrider@prime.gg",    telegram: "@ghostrider_vb" },
+  { id: "p9",  name: "FluxCore",     avatar: AVATARS[8],  position: "Libero",           skillLevel: "Rookie",       phone: "+420 731 100 009" },
+  { id: "p10", name: "NovaBurst",    avatar: AVATARS[9],  position: "Middle Blocker",   skillLevel: "Advanced",                                email: "novaburst@prime.gg",     telegram: "@novaburst" },
+  { id: "p11", name: "QuantumX",     avatar: AVATARS[10], position: "Outside Hitter",   skillLevel: "Pro",          phone: "+420 731 100 011", email: "quantumx@prime.gg",      instagram: "@quantumx_vb" },
+  { id: "p12", name: "SteelNova",    avatar: AVATARS[11], position: "Right Side",       skillLevel: "Rookie",       phone: "+420 731 100 012" },
 ];
 
 export const ADMIN_EVENTS: AdminEvent[] = [

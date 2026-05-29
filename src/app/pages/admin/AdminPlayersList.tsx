@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { ChevronDown, Search, MoreVertical } from "lucide-react";
-import { ALL_PLAYERS, ADMIN_EVENTS, SKILL_STYLE, type Player } from "../../data/adminData";
-import { PlayerProfileModal } from "../../components/PlayerProfileModal";
+import { ALL_PLAYERS, ADMIN_EVENTS, SKILL_STYLE } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
+import { navDir } from "../../lib/navDir";
 
 const POSITIONS = ["All", "Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
 
@@ -11,11 +11,10 @@ export function AdminPlayersList() {
   const { level } = useParams<{ level: string }>();
   const navigate = useNavigate();
 
-  const [search, setSearch]                     = useState("");
-  const [position, setPosition]                 = useState("All");
-  const [openMenu, setOpenMenu]                 = useState<string | null>(null);
-  const [profilePlayer, setProfilePlayer]       = useState<Player | null>(null);
-  const [playerPositions, setPlayerPositions]   = useState<Record<string, string>>({});
+  const [search, setSearch]                   = useState("");
+  const [position, setPosition]               = useState("All");
+  const [openMenu, setOpenMenu]               = useState<string | null>(null);
+  const [playerPositions, setPlayerPositions] = useState<Record<string, string>>({});
 
   const style = SKILL_STYLE[level ?? ""] ?? SKILL_STYLE["Rookie"];
 
@@ -35,10 +34,6 @@ export function AdminPlayersList() {
 
   return (
     <div>
-      {profilePlayer && (
-        <PlayerProfileModal player={profilePlayer} onClose={() => setProfilePlayer(null)} />
-      )}
-
       <BackBar label="Players" to="/admin/players" />
 
       <div className="max-w-[900px] mx-auto px-4 py-6">
@@ -113,7 +108,7 @@ export function AdminPlayersList() {
                 {openMenu === player.id && (
                   <div className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.4)] z-20 overflow-hidden min-w-[200px]">
                     <button
-                      onClick={() => { setProfilePlayer(player); setOpenMenu(null); }}
+                      onClick={() => { navDir.forward(); navigate(`/admin/player/${player.id}`); setOpenMenu(null); }}
                       className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left border-b border-white/5"
                     >
                       View Profile
