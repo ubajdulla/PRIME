@@ -17,10 +17,13 @@ import {
 import { Toast } from "../components/ui/Toast";
 import { BackBar } from "../components/ui/BackBar";
 
-const SKILL_ORDER = ["Rookie", "Beginner", "Intermediate", "Advanced", "Pro", "PRIME"];
-
-const EVENT_CATS: Record<string, string> = {
-  e1: "GAMES", e2: "TOURNAMENT", e3: "TRAININGS", e4: "TOURNAMENT", e5: "BEACH",
+const EVENT_CONFIG: Record<string, { requestOnly: boolean; canceled: boolean; title: string; showPositions: boolean }> = {
+  e1: { requestOnly: false, canceled: false, title: "PRO-AM INVITATIONAL #12",  showPositions: true  },
+  e2: { requestOnly: true,  canceled: false, title: "ELITE SCRIMMAGE #48",      showPositions: true  },
+  e3: { requestOnly: false, canceled: false, title: "MORNING GRIND SESSION",    showPositions: false },
+  e4: { requestOnly: true,  canceled: false, title: "WEEKEND WARRIORS CLASH",   showPositions: true  },
+  e5: { requestOnly: false, canceled: false, title: "BEACH OPEN PICKUP",        showPositions: false },
+  e6: { requestOnly: false, canceled: true,  title: "PRIME LEAGUE FINALS",      showPositions: true  },
 };
 
 const ROSTER = [
@@ -57,16 +60,11 @@ export function EventDetail() {
   const { id } = useParams();
   const { t } = useLang();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const [toast, setToast] = useState({ message: "", visible: false });
   function fireToast(message: string) {
     setToast({ message, visible: true });
   }
-  const isCanceled = (() => {
-    try {
-      const stored: string[] = JSON.parse(localStorage.getItem("prime:canceled_events") || "[]");
-      return stored.includes(id ?? "");
-    } catch { return false; }
-  })();
   const isLoggedIn = localStorage.getItem("prime_logged_in") !== "false";
   const [joinStatus, setJoinStatus] = useState<JoinStatus>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -74,12 +72,11 @@ export function EventDetail() {
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
   const [waitlistOpen, setWaitlistOpen] = useState(false);
 
-  const playerSkillLevel = "Intermediate";
-  const isGame = (EVENT_CATS[id ?? ""] ?? "") === "GAMES";
-  const eventSkillLevel = "Advanced";
-  const isGameAdvancedPlus = isGame && SKILL_ORDER.indexOf(eventSkillLevel) >= SKILL_ORDER.indexOf("Advanced");
-  const isRequestOnly = isGameAdvancedPlus && SKILL_ORDER.indexOf(playerSkillLevel) < SKILL_ORDER.indexOf(eventSkillLevel);
-  const showPositions = isGameAdvancedPlus;
+  const cfg = EVENT_CONFIG[id ?? ""] ?? EVENT_CONFIG["e1"];
+  const isCanceled = cfg.canceled;
+  const isRequestOnly = cfg.requestOnly;
+  const showPositions = cfg.showPositions;
+  const title = cfg.title;
 
   const theme = {
     primary: isRequestOnly ? "text-[#eab308]" : "text-[#3390ec]",
@@ -87,7 +84,6 @@ export function EventDetail() {
     button: isRequestOnly ? "bg-[#eab308] text-black" : "bg-[#3390ec] text-white",
   };
 
-  const title = isRequestOnly ? "ELITE SCRIMMAGE #42" : "PRO-AM INVITATIONAL";
   const maxCapacity = 10;
   const currentCapacity = ROSTER.length;
 
@@ -111,6 +107,15 @@ export function EventDetail() {
     setShowLeaveConfirm(false);
   }
 
+  function openMenuAt(key: string, e: React.MouseEvent<HTMLButtonElement>) {
+    if (openMenu === key) { setOpenMenu(null); setMenuPos(null); return; }
+    const r = e.currentTarget.getBoundingClientRect();
+    setMenuPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+    setOpenMenu(key);
+  }
+
+  function closeMenu() { setOpenMenu(null); setMenuPos(null); }
+
   const joinButtonLabel = () => {
     if (joinStatus === "joined") return t.event.joined;
     if (joinStatus === "pending") return t.profile.pending;
@@ -123,7 +128,7 @@ return (
 
       {/* Invisible backdrop to close any open dropdown menu */}
       {openMenu && (
-        <div className="fixed inset-0 z-10" onClick={() => setOpenMenu(null)} />
+        <div className="fixed inset-0 z-[39]" onClick={closeMenu} />
       )}
 
       {/* Join confirmation modal */}
@@ -248,20 +253,21 @@ return (
                 <div className="text-white font-bold text-sm">N3ON_KING</div>
               </div>
             </div>
-            <div className={`relative ${openMenu === "organizer" ? "z-30" : ""}`}>
+            <div className="relative">
               <button
-                onClick={() => setOpenMenu(openMenu === "organizer" ? null : "organizer")}
+                onClick={e => openMenuAt("organizer", e)}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
               >
                 <MoreVertical size={18} />
               </button>
-              {openMenu === "organizer" && (
+              {openMenu === "organizer" && menuPos && (
                 <div
-                  className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
-                  onClick={() => setOpenMenu(null)}
+                  style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
+                  className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
+                  onClick={closeMenu}
                 >
                   <button
-                    onClick={() => { navDir.forward(); navigate("/players/p2"); setOpenMenu(null); }}
+                    onClick={() => { navDir.forward(); navigate("/players/p2"); closeMenu(); }}
                     className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
                   >
                     <User size={14} />
@@ -369,20 +375,21 @@ return (
                   )}
                 </div>
                 {player.id && (
-                  <div className={`relative shrink-0 ${openMenu === `player-${i}` ? "z-30" : ""}`}>
+                  <div className="relative shrink-0">
                     <button
-                      onClick={() => setOpenMenu(openMenu === `player-${i}` ? null : `player-${i}`)}
+                      onClick={e => openMenuAt(`player-${i}`, e)}
                       className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
                     >
                       <MoreVertical size={16} />
                     </button>
-                    {openMenu === `player-${i}` && (
+                    {openMenu === `player-${i}` && menuPos && (
                       <div
-                        className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
-                        onClick={() => setOpenMenu(null)}
+                        style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
+                        className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
+                        onClick={closeMenu}
                       >
                         <button
-                          onClick={() => { navDir.forward(); navigate(`/players/${player.id}`); setOpenMenu(null); }}
+                          onClick={() => { navDir.forward(); navigate(`/players/${player.id}`); closeMenu(); }}
                           className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
                         >
                           <User size={14} />
@@ -443,20 +450,21 @@ return (
                             {player.name}
                             {player.isMe && <span className="text-[10px] text-[#79828b] font-bold ml-2 normal-case tracking-normal">{t.event.you}</span>}
                           </span>
-                          <div className={`relative shrink-0 ${openMenu === menuKey ? "z-30" : ""}`}>
+                          <div className="relative shrink-0">
                             <button
-                              onClick={() => setOpenMenu(openMenu === menuKey ? null : menuKey)}
+                              onClick={e => openMenuAt(menuKey, e)}
                               className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
                             >
                               <MoreVertical size={16} />
                             </button>
-                            {openMenu === menuKey && (
+                            {openMenu === menuKey && menuPos && (
                               <div
-                                className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
-                                onClick={() => setOpenMenu(null)}
+                                style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
+                                className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
+                                onClick={closeMenu}
                               >
                                 <button
-                                  onClick={() => { if (player.isMe) navigate("/profile"); else { navDir.forward(); navigate(`/players/${player.id}`); } setOpenMenu(null); }}
+                                  onClick={() => { if (player.isMe) navigate("/profile"); else { navDir.forward(); navigate(`/players/${player.id}`); } closeMenu(); }}
                                   className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
                                 >
                                   <User size={14} />
@@ -485,20 +493,21 @@ return (
                     <div key={i} className={`flex items-center gap-3 px-3 py-2.5 ${i > 0 ? "border-t border-white/[0.05]" : ""}`}>
                       <img src={player.img} alt={player.name} className="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0 grayscale opacity-40" />
                       <span className="font-bold text-sm text-white/25 line-through flex-1">{player.name}</span>
-                      <div className={`relative shrink-0 ${openMenu === menuKey ? "z-30" : ""}`}>
+                      <div className="relative shrink-0">
                         <button
-                          onClick={() => setOpenMenu(openMenu === menuKey ? null : menuKey)}
+                          onClick={e => openMenuAt(menuKey, e)}
                           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]/40"
                         >
                           <MoreVertical size={16} />
                         </button>
-                        {openMenu === menuKey && (
+                        {openMenu === menuKey && menuPos && (
                           <div
-                            className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
-                            onClick={() => setOpenMenu(null)}
+                            style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
+                            className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
+                            onClick={closeMenu}
                           >
                             <button
-                              onClick={() => { navDir.forward(); navigate(`/players/${player.id}`); setOpenMenu(null); }}
+                              onClick={() => { navDir.forward(); navigate(`/players/${player.id}`); closeMenu(); }}
                               className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
                             >
                               <User size={14} />
