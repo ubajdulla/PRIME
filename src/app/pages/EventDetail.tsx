@@ -67,6 +67,7 @@ export function EventDetail() {
       return stored.includes(id ?? "");
     } catch { return false; }
   })();
+  const isLoggedIn = localStorage.getItem("prime_logged_in") !== "false";
   const [joinStatus, setJoinStatus] = useState<JoinStatus>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -91,6 +92,7 @@ export function EventDetail() {
   const currentCapacity = ROSTER.length;
 
   function handleJoinClick() {
+    if (!isLoggedIn) { navigate("/signin"); return; }
     if (joinStatus) {
       setShowLeaveConfirm(true);
     } else {
@@ -255,7 +257,7 @@ return (
               </button>
               {openMenu === "organizer" && (
                 <div
-                  className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
+                  className="absolute right-0 bottom-full mb-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
                   onClick={() => setOpenMenu(null)}
                 >
                   <button
@@ -366,28 +368,30 @@ return (
                     </span>
                   )}
                 </div>
-                <div className="relative shrink-0">
-                  <button
-                    onClick={() => setOpenMenu(openMenu === `player-${i}` ? null : `player-${i}`)}
-                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
-                  >
-                    <MoreVertical size={16} />
-                  </button>
-                  {openMenu === `player-${i}` && (
-                    <div
-                      className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
-                      onClick={() => setOpenMenu(null)}
+                {player.id && (
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={() => setOpenMenu(openMenu === `player-${i}` ? null : `player-${i}`)}
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
                     >
-                      <button
-                        onClick={() => { if (player.id) { navDir.forward(); navigate(`/players/${player.id}`); } setOpenMenu(null); }}
-                        className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
+                      <MoreVertical size={16} />
+                    </button>
+                    {openMenu === `player-${i}` && (
+                      <div
+                        className="absolute right-0 bottom-full mb-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
+                        onClick={() => setOpenMenu(null)}
                       >
-                        <User size={14} />
-                        View Profile
-                      </button>
-                    </div>
-                  )}
-                </div>
+                        <button
+                          onClick={() => { navDir.forward(); navigate(`/players/${player.id}`); setOpenMenu(null); }}
+                          className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
+                        >
+                          <User size={14} />
+                          {t.event.viewProfile}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -405,7 +409,7 @@ return (
             return (
               <div className="mt-4">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">{t.event.waitlist}</p>
-                <div className="bg-[#17212b] border border-white/5 rounded-xl overflow-hidden">
+                <div className="bg-[#17212b] border border-white/5 rounded-xl">
                   <button
                     onClick={() => setWaitlistOpen(v => !v)}
                     className="w-full flex items-center gap-3 px-3 py-2.5"
@@ -448,7 +452,7 @@ return (
                             </button>
                             {openMenu === menuKey && (
                               <div
-                                className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
+                                className="absolute right-0 bottom-full mb-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
                                 onClick={() => setOpenMenu(null)}
                               >
                                 <button
@@ -474,7 +478,7 @@ return (
           {FLAKED.length > 0 && (
             <div className="mt-4">
               <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">{t.event.flaked}</p>
-              <div className="bg-[#17212b] border border-white/5 rounded-xl overflow-hidden">
+              <div className="bg-[#17212b] border border-white/5 rounded-xl">
                 {FLAKED.map((player, i) => {
                   const menuKey = `flaked-${i}`;
                   return (
@@ -490,7 +494,7 @@ return (
                         </button>
                         {openMenu === menuKey && (
                           <div
-                            className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
+                            className="absolute right-0 bottom-full mb-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
                             onClick={() => setOpenMenu(null)}
                           >
                             <button
