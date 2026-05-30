@@ -1,5 +1,5 @@
 
-  # PRIME2
+  # PRIME
 
   This is a code bundle for PRIME2. The original project is available at https://www.figma.com/design/OsnGP92yD5G4wvvyG6QAGK/PRIME2.
 
