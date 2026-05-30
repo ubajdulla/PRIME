@@ -22,7 +22,7 @@ export function SignIn() {
   }
 
   function handleBack() {
-    if (screen === "signin") navigate(-1);
+    if (screen === "signin") navigate("/");
     else setScreen("signin");
   }
 

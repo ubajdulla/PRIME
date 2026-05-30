@@ -47,6 +47,7 @@ export function MainLayout() {
   const { lang, t, setLang } = useLang();
   const mainRef = useRef<HTMLElement>(null);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
+  const isLoggedIn = localStorage.getItem("prime_logged_in") !== "false";
 
   useLayoutEffect(() => {
     mainRef.current?.scrollTo(0, 0);
@@ -87,7 +88,7 @@ export function MainLayout() {
           <NavItem to="/" end icon={<Calendar size={22} />} label={t.nav.events} />
           <NavItem to="/alerts"  icon={<Bell size={22} />}        label={t.nav.alerts}  />
           <NavItem to="/profile" icon={<User size={22} />}        label={t.nav.profile} />
-          <NavItem to="/admin"   icon={<ShieldCheck size={22} />} label={t.nav.admin}   />
+          {isLoggedIn && <NavItem to="/admin" icon={<ShieldCheck size={22} />} label={t.nav.admin} />}
         </nav>
 
         {/* Desktop lang button — dropdown opens to the right */}
@@ -181,7 +182,7 @@ export function MainLayout() {
         <MobileNavItem to="/" end icon={<Calendar size={24} />} label={t.nav.events} />
         <MobileNavItem to="/alerts"  icon={<Bell size={24} />}  label={t.nav.alerts}  />
         <MobileNavItem to="/profile" icon={<User size={24} />}  label={t.nav.profile} />
-        <MobileNavItem to="/admin"   icon={<ShieldCheck size={24} />} label={t.nav.admin} />
+        {isLoggedIn && <MobileNavItem to="/admin" icon={<ShieldCheck size={24} />} label={t.nav.admin} />}
       </nav>
     </div>
   );
