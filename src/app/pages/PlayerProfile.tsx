@@ -1,4 +1,5 @@
 import { useParams } from "react-router";
+import { Navigate } from "react-router";
 import { Send, Instagram, Calendar, MapPin } from "lucide-react";
 import { ALL_PLAYERS, ADMIN_EVENTS, SKILL_STYLE } from "../data/adminData";
 import { BackBar } from "../components/ui/BackBar";
@@ -14,6 +15,11 @@ const SKILL_COLOR: Record<string, string> = {
 
 export function PlayerProfile() {
   const { playerId } = useParams<{ playerId: string }>();
+
+  if (localStorage.getItem("prime_logged_in") === "false") {
+    return <Navigate to="/signin" replace />;
+  }
+
   const player = ALL_PLAYERS.find(p => p.id === playerId);
 
   if (!player) {
