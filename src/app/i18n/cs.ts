@@ -12,6 +12,20 @@ export const cs: Dict = {
     noEvents: "Žádné události nenalezeny",
     tagline: "Soutěžní sportovní události & komunita",
     copyright: "© 2025 PRIME. Všechna práva vyhrazena.",
+    greeting: {
+      hello: "Ahoj",
+      guestName: "Volejbalisto",
+      guestSubtitle: "Nevíš jak to probíhá?",
+    },
+    howItWorks: {
+      title: "Jak to funguje?",
+      step1Title: "Prohlédni eventy",
+      step1Desc: "Vyber event podle úrovně a termínu. Vše je viditelné bez účtu.",
+      step2Title: "Přihlas se",
+      step2Desc: "Vytvoř účet, rezervuj si místo a počkej na potvrzení.",
+      step3Title: "Přijď hrát",
+      step3Desc: "Doraz včas, užij si hru a buduj svůj profil.",
+    },
     footer: {
       privacy: "Ochrana dat",
       terms: "Podmínky",

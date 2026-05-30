@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { ChevronDown, Search, MoreVertical } from "lucide-react";
+import { Search, MoreVertical } from "lucide-react";
 import { ALL_PLAYERS, ADMIN_EVENTS, SKILL_STYLE } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
 import { navDir } from "../../lib/navDir";
@@ -13,8 +13,7 @@ export function AdminPlayersList() {
 
   const [search, setSearch]                   = useState("");
   const [position, setPosition]               = useState("All");
-  const [openMenu, setOpenMenu]               = useState<string | null>(null);
-  const [playerPositions, setPlayerPositions] = useState<Record<string, string>>({});
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const style = SKILL_STYLE[level ?? ""] ?? SKILL_STYLE["Rookie"];
 
@@ -26,8 +25,7 @@ export function AdminPlayersList() {
     });
 
   const filtered = playerStats.filter(p => {
-    const currentPosition = playerPositions[p.id] ?? p.position;
-    if (position !== "All" && currentPosition !== position) return false;
+    if (position !== "All" && p.position !== position) return false;
     if (search.trim() && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -79,7 +77,6 @@ export function AdminPlayersList() {
           <p className="text-[#79828b] text-sm text-center py-10">No players found</p>
         )}
         {filtered.map((player, i) => {
-          const currentPosition = playerPositions[player.id] ?? player.position;
           return (
             <div
               key={player.id}
@@ -92,7 +89,7 @@ export function AdminPlayersList() {
               />
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-white text-sm truncate">{player.name}</div>
-                <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{currentPosition}</div>
+                <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position}</div>
               </div>
               <div className="text-right shrink-0 mr-1">
                 <div className="text-white text-sm font-black">{player.eventsJoined}</div>
@@ -109,25 +106,10 @@ export function AdminPlayersList() {
                   <div className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.4)] z-20 overflow-hidden min-w-[200px]">
                     <button
                       onClick={() => { navDir.forward(); navigate(`/admin/player/${player.id}`); setOpenMenu(null); }}
-                      className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left border-b border-white/5"
+                      className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
                     >
                       View Profile
                     </button>
-                    <div className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                      <div className="text-[#79828b] text-[10px] font-black uppercase tracking-widest mb-2">Position</div>
-                      <div className="relative">
-                        <select
-                          value={currentPosition}
-                          onChange={e => setPlayerPositions(prev => ({ ...prev, [player.id]: e.target.value }))}
-                          className="w-full bg-[#17212b] border border-white/10 rounded-lg px-3 py-2 pr-8 text-white text-xs font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark] appearance-none cursor-pointer"
-                        >
-                          {POSITIONS.filter(p => p !== "All").map(pos => (
-                            <option key={pos} value={pos}>{pos}</option>
-                          ))}
-                        </select>
-                        <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>

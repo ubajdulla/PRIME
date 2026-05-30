@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, Link, Navigate } from "react-router";
 import {
   Phone, Mail, Instagram, Send, MapPin, Calendar, Clock,
-  ChevronRight, Pencil, Camera, LogOut, User,
+  Pencil, Camera, LogOut, User, Eye, EyeOff,
 } from "lucide-react";
 
 type SkillLevel = "Beginner" | "Intermediate" | "Advanced" | "Pro" | "Elite";
@@ -18,15 +18,17 @@ const SKILL_COLOR: Record<SkillLevel, string> = {
 const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
 
 const DEFAULT_USER = {
-  firstName:  "Alex",
-  lastName:   "Novak",
-  avatar:     "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=300&h=300&fit=crop&crop=face",
-  skillLevel: "Intermediate" as SkillLevel,
-  position:   "Outside Hitter",
-  phone:      "+420 777 888 999",
-  email:      "alex.novak@email.com",
-  telegram:   "alex_vb",
-  instagram:  "alex.volleyball",
+  firstName:     "Alex",
+  lastName:      "Novak",
+  avatar:        "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=300&h=300&fit=crop&crop=face",
+  skillLevel:    "Intermediate" as SkillLevel,
+  position:      "Outside Hitter",
+  phone:         "+420 777 888 999",
+  email:         "alex.novak@email.com",
+  telegram:      "alex_vb",
+  instagram:     "alex.volleyball",
+  showTelegram:  true,
+  showInstagram: true,
 };
 
 const UPCOMING_EVENTS = [
@@ -52,6 +54,10 @@ type ContactDraft = {
 
 export function Profile() {
   const navigate = useNavigate();
+
+  if (localStorage.getItem("prime_logged_in") === "false") {
+    return <Navigate to="/signin" replace />;
+  }
   const [user, setUser] = useState(DEFAULT_USER);
   const [editingContact, setEditingContact] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -117,7 +123,7 @@ export function Profile() {
                 Cancel
               </button>
               <button
-                onClick={() => navigate("/signin")}
+                onClick={() => { localStorage.setItem("prime_logged_in", "false"); navigate("/signin"); }}
                 className="flex-1 py-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-bold text-sm active:scale-[0.98] transition-transform"
               >
                 Log Out
@@ -243,6 +249,8 @@ export function Profile() {
               editValue={draft.telegram}
               prefix="@"
               onChange={v => setDraftField("telegram", v.replace(/^@/, ""))}
+              showToOthers={user.showTelegram}
+              onToggleShowToOthers={() => setUser(p => ({ ...p, showTelegram: !p.showTelegram }))}
             />
             <ContactRow
               editing={editingContact}
@@ -255,6 +263,8 @@ export function Profile() {
               editValue={draft.instagram}
               prefix="@"
               onChange={v => setDraftField("instagram", v.replace(/^@/, ""))}
+              showToOthers={user.showInstagram}
+              onToggleShowToOthers={() => setUser(p => ({ ...p, showInstagram: !p.showInstagram }))}
             />
           </div>
         </section>
@@ -325,6 +335,7 @@ export function Profile() {
 
 function ContactRow({
   editing, href, external, icon, iconBg, label, displayValue, editValue, prefix, onChange,
+  showToOthers, onToggleShowToOthers,
 }: {
   editing: boolean;
   href?: string;
@@ -336,9 +347,11 @@ function ContactRow({
   editValue: string;
   prefix?: string;
   onChange: (v: string) => void;
+  showToOthers?: boolean;
+  onToggleShowToOthers?: () => void;
 }) {
-  const inner = (
-    <>
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 border-t border-white/[0.06] first:border-t-0">
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}>
         {icon}
       </div>
@@ -354,30 +367,21 @@ function ContactRow({
               className="flex-1 bg-transparent text-white text-sm focus:outline-none border-b border-white/15 focus:border-[#3390ec] transition-colors pb-px min-w-0"
             />
           </div>
+        ) : href ? (
+          <a href={href} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            className="text-sm text-white truncate block">
+            {displayValue}
+          </a>
         ) : (
           <div className="text-sm text-white truncate">{displayValue}</div>
         )}
       </div>
-      {!editing && href && <ChevronRight size={15} className="text-white/20 shrink-0" />}
-    </>
-  );
-
-  if (editing || !href) {
-    return (
-      <div className="flex items-center gap-3 px-4 py-3 border-t border-white/[0.06] first:border-t-0">
-        {inner}
-      </div>
-    );
-  }
-
-  return (
-    <a
-      href={href}
-      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-      className="flex items-center gap-3 px-4 py-3 border-t border-white/[0.06] first:border-t-0 hover:bg-white/[0.03] active:bg-white/5 transition-colors"
-    >
-      {inner}
-    </a>
+      {!editing && showToOthers !== undefined && onToggleShowToOthers && (
+        <button onClick={onToggleShowToOthers} className="text-[#79828b] hover:text-white transition-colors shrink-0">
+          {showToOthers ? <Eye size={14} /> : <EyeOff size={14} />}
+        </button>
+      )}
+    </div>
   );
 }
 

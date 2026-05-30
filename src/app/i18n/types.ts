@@ -10,6 +10,20 @@ export interface Dict {
     noEvents: string;
     tagline: string;
     copyright: string;
+    greeting: {
+      hello: string;
+      guestName: string;
+      guestSubtitle: string;
+    };
+    howItWorks: {
+      title: string;
+      step1Title: string;
+      step1Desc: string;
+      step2Title: string;
+      step2Desc: string;
+      step3Title: string;
+      step3Desc: string;
+    };
     footer: {
       privacy: string;
       terms: string;

@@ -1,5 +1,5 @@
 import { useParams } from "react-router";
-import { Send, Instagram, Calendar, MapPin, ChevronRight } from "lucide-react";
+import { Send, Instagram, Calendar, MapPin } from "lucide-react";
 import { ALL_PLAYERS, ADMIN_EVENTS, SKILL_STYLE } from "../data/adminData";
 import { BackBar } from "../components/ui/BackBar";
 
@@ -68,19 +68,15 @@ export function PlayerProfile() {
         </div>
 
         {/* Contact */}
-        {(player.telegram || player.instagram) && (
+        {((player.showTelegram !== false && player.telegram) || (player.showInstagram !== false && player.instagram)) && (
           <section>
             <div className="flex items-center justify-between mb-2 px-1">
               <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Contact</h2>
             </div>
             <div className="bg-[#17212b] rounded-xl overflow-hidden">
-              {player.telegram && (
-                <a
-                  href={`https://t.me/${player.telegram.replace("@", "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] active:bg-white/5 transition-colors"
-                >
+              {player.telegram && player.showTelegram !== false && (
+                <a href={`https://t.me/${player.telegram.replace("@", "")}`} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] active:bg-white/5 transition-colors">
                   <div className="w-8 h-8 rounded-lg bg-[#3390ec] flex items-center justify-center shrink-0">
                     <Send size={14} className="text-white -ml-0.5" />
                   </div>
@@ -88,16 +84,11 @@ export function PlayerProfile() {
                     <div className="text-[11px] text-[#aaa] mb-0.5">Telegram</div>
                     <div className="text-sm text-white">{player.telegram}</div>
                   </div>
-                  <ChevronRight size={15} className="text-white/20 shrink-0" />
                 </a>
               )}
-              {player.instagram && (
-                <a
-                  href={`https://instagram.com/${player.instagram.replace("@", "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] active:bg-white/5 transition-colors ${player.telegram ? "border-t border-white/[0.06]" : ""}`}
-                >
+              {player.instagram && player.showInstagram !== false && (
+                <a href={`https://instagram.com/${player.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer"
+                  className={`flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] active:bg-white/5 transition-colors ${player.telegram && player.showTelegram !== false ? "border-t border-white/[0.06]" : ""}`}>
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888] flex items-center justify-center shrink-0">
                     <Instagram size={14} className="text-white" />
                   </div>
@@ -105,7 +96,6 @@ export function PlayerProfile() {
                     <div className="text-[11px] text-[#aaa] mb-0.5">Instagram</div>
                     <div className="text-sm text-white">@{player.instagram.replace("@", "")}</div>
                   </div>
-                  <ChevronRight size={15} className="text-white/20 shrink-0" />
                 </a>
               )}
             </div>

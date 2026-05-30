@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Link } from "react-router";
+import { ChevronLeft, ChevronRight, UserCircle } from "lucide-react";
 import { Instagram, Send } from "lucide-react";
 import { EventCard, EventCardProps } from "../components/EventCard";
 import { useLang, type Dict } from "../i18n";
@@ -97,6 +98,24 @@ const ALL_EVENTS: EventCardProps[] = [
   },
 ];
 
+type SkillLevel = "Beginner" | "Intermediate" | "Advanced" | "Pro" | "Elite";
+
+const SKILL_COLOR: Record<SkillLevel, string> = {
+  Beginner:     "#3390ec",
+  Intermediate: "#4dcd5e",
+  Advanced:     "#f5c542",
+  Pro:          "#f97316",
+  Elite:        "#e04040",
+};
+
+const MOCK_USER = {
+  firstName: "Alex",
+  skillLevel: "Intermediate" as SkillLevel,
+  position: "Outside Hitter",
+  avatar: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=100&h=100&fit=crop&crop=face",
+  isLoggedIn: true,
+};
+
 const ALL_FILTERS = ["ALL", "TOURNAMENT", "GAMES", "TRAININGS", "EVENTS", "BEACH", "JOIN DIRECTLY", "REQUEST ONLY"] as const;
 
 // Maps each filter key to its key in t.home.filters
@@ -132,6 +151,7 @@ export function Home() {
   const { t } = useLang();
   const [activeFilter, setActiveFilter] = useState("ALL");
   const filterScrollRef = useRef<HTMLDivElement>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem("prime_logged_in") !== "false");
 
   const filtered = ALL_EVENTS.filter(e => {
     if (activeFilter === "ALL") return true;
@@ -149,6 +169,80 @@ export function Home() {
   return (
     <div className="flex flex-col min-h-full bg-[#0e1621] w-full">
       <div className="w-full max-w-[760px] mx-auto flex flex-col pt-8 pb-4 px-4">
+
+        {/* ── Guest greeting + how it works ────────────────────────── */}
+        {!isLoggedIn && (
+          <>
+            <div className={`flex items-center ${COL_GAP} mb-8`}>
+              <div className={`${DATE_W} shrink-0`} />
+              <div className={`${DOT_W} shrink-0`} />
+              <div className="flex-1 min-w-0 flex items-center justify-between gap-6 pb-8 border-b border-white/8">
+                <div>
+                  <h1 className="font-black italic text-white tracking-widest uppercase text-2xl">
+                    {t.home.greeting.hello}, {t.home.greeting.guestName} 👋
+                  </h1>
+                  <div className="text-sm text-[#79828b] mt-1.5">{t.home.greeting.guestSubtitle}</div>
+                </div>
+                <Link
+                  to="/signin"
+                  className="w-16 h-16 rounded-full bg-[#17212b] ring-2 ring-white/15 flex items-center justify-center shrink-0 hover:bg-[#1c2a36] transition-colors"
+                >
+                  <UserCircle size={32} className="text-[#79828b]" />
+                </Link>
+              </div>
+            </div>
+
+            <div className={`flex items-start ${COL_GAP} mb-8`}>
+              <div className={`${DATE_W} shrink-0`} />
+              <div className={`${DOT_W} shrink-0`} />
+              <div className="flex-1 min-w-0 pb-8 border-b border-white/8">
+                <div className="flex flex-col gap-4">
+                  {[
+                    { step: "01", title: t.home.howItWorks.step1Title, desc: t.home.howItWorks.step1Desc },
+                    { step: "02", title: t.home.howItWorks.step2Title, desc: t.home.howItWorks.step2Desc },
+                    { step: "03", title: t.home.howItWorks.step3Title, desc: t.home.howItWorks.step3Desc },
+                  ].map(({ step, title, desc }) => (
+                    <div key={step} className="flex items-start gap-4">
+                      <span className="font-black italic text-[#3390ec] text-2xl leading-none w-8 shrink-0">{step}</span>
+                      <div>
+                        <div className="font-bold text-white text-sm uppercase tracking-wide mb-0.5">{title}</div>
+                        <div className="text-[#79828b] text-sm leading-relaxed">{desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── Greeting ─────────────────────────────────────────────── */}
+        {isLoggedIn && (
+          <div className={`flex items-center ${COL_GAP} mb-8`}>
+            <div className={`${DATE_W} shrink-0`} />
+            <div className={`${DOT_W} shrink-0`} />
+            <div className="flex-1 min-w-0 flex items-center justify-between gap-6 pb-8 border-b border-white/8">
+              <div>
+                <h1 className="font-black italic text-white tracking-widest uppercase text-2xl">
+                  {t.home.greeting.hello}, {MOCK_USER.firstName} 👋
+                </h1>
+                <div className="flex items-center gap-2 mt-1.5 text-sm text-[#79828b]">
+                  <span>{MOCK_USER.position}</span>
+                  <span className="text-white/20">•</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: SKILL_COLOR[MOCK_USER.skillLevel] }} />
+                    <span className="font-semibold" style={{ color: SKILL_COLOR[MOCK_USER.skillLevel] }}>{MOCK_USER.skillLevel}</span>
+                  </span>
+                </div>
+              </div>
+              <img
+                src={MOCK_USER.avatar}
+                alt=""
+                className="w-16 h-16 rounded-full object-cover bg-[#17212b] shrink-0 ring-2 ring-white/15"
+              />
+            </div>
+          </div>
+        )}
 
         {/* ── Section header ───────────────────────────────────────── */}
         <div className={`flex items-center ${COL_GAP} mb-5`}>

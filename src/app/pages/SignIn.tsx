@@ -25,6 +25,7 @@ export function SignIn() {
   }
 
   function handleSubmit() {
+    localStorage.setItem("prime_logged_in", "true");
     if (screen === "signup") {
       navigate("/profile/edit");
     } else {

@@ -1,16 +1,14 @@
 import { useState } from "react";
 import { useParams } from "react-router";
 import {
-  Send, Instagram, Calendar, MapPin, ChevronRight,
+  Send, Instagram, Calendar, MapPin,
   CheckCircle2, BadgeCheck, Ban, Clock, ShieldOff,
   OctagonX, Lock, Globe, MessageSquare, ChevronDown,
-  Phone, Mail,
+  Phone, Mail, User, Pencil,
 } from "lucide-react";
 import { ALL_PLAYERS, ADMIN_EVENTS, SKILL_ORDER, type SkillLevel } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
 import { Toast } from "../../components/ui/Toast";
-
-const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero", "Right Side"];
 
 const SKILL_COLOR: Record<string, string> = {
   PRIME:        "text-[#ccff00]",
@@ -46,9 +44,14 @@ export function AdminPlayerProfile() {
   const [showSkillConfirm,  setShowSkillConfirm]  = useState(false);
   const [pendingSkill,      setPendingSkill]      = useState<SkillLevel | "">("");
 
-  const [position,          setPosition]          = useState(player?.position ?? "");
-  const [showPosConfirm,    setShowPosConfirm]    = useState(false);
-  const [pendingPos,        setPendingPos]        = useState("");
+  const [displayName,       setDisplayName]       = useState(player?.name ?? "");
+  const [displayBirthDate,  setDisplayBirthDate]  = useState(player?.birthDate ?? "");
+  const [editingInfo,       setEditingInfo]       = useState(false);
+  const [infoDraft,         setInfoDraft]         = useState<{ name: string; birthDate: string }>({ name: player?.name ?? "", birthDate: player?.birthDate ?? "" });
+
+  const [contactInfo,      setContactInfo]      = useState({ phone: player?.phone ?? "", email: player?.email ?? "", telegram: player?.telegram ?? "", instagram: player?.instagram ?? "" });
+  const [editingContact,   setEditingContact]   = useState(false);
+  const [contactDraft,     setContactDraft]     = useState({ phone: player?.phone ?? "", email: player?.email ?? "", telegram: player?.telegram ?? "", instagram: player?.instagram ?? "" });
 
   const [comment,           setComment]           = useState("");
   const [commentDraft,      setCommentDraft]      = useState("");
@@ -74,7 +77,6 @@ export function AdminPlayerProfile() {
   }
 
   const displaySkill = skillLevel || player.skillLevel;
-  const displayPos   = position   || player.position;
   const ringColor    = dotColor(displaySkill);
   const today        = new Date().toISOString().split("T")[0];
 
@@ -84,6 +86,16 @@ export function AdminPlayerProfile() {
   function formatDate(d: string) {
     if (!d) return "";
     return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  function calcAge(birthDate: string): number | null {
+    if (!birthDate) return null;
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
   }
 
   function confirmSuspend() {
@@ -105,23 +117,10 @@ export function AdminPlayerProfile() {
     fireToast(`Skill level changed to ${pendingSkill}`);
   }
 
-  function confirmPosChange() {
-    if (!pendingPos) return;
-    setPosition(pendingPos); setShowPosConfirm(false); setPendingPos("");
-    fireToast(`Position changed to ${pendingPos}`);
-  }
-
   function openSkillPicker(val: string) {
     if (!val || val === displaySkill) return;
     setPendingSkill(val as SkillLevel); setShowSkillConfirm(true);
   }
-
-  function openPosPicker(val: string) {
-    if (!val || val === displayPos) return;
-    setPendingPos(val); setShowPosConfirm(true);
-  }
-
-  const hasContact = player.phone || player.email || player.telegram || player.instagram;
 
   return (
     <div className="min-h-full bg-[#0e1621] pb-8 font-sans">
@@ -166,15 +165,6 @@ export function AdminPlayerProfile() {
           confirmLabel="Confirm" confirmCls="bg-[#a855f7]/10 border border-[#a855f7]/30 text-[#a855f7]"
           onConfirm={confirmSkillChange} />
       )}
-      {showPosConfirm && (
-        <Modal icon={<ChevronDown size={18} className="text-[#3390ec]" />} iconBg="bg-[#3390ec]/10 border-[#3390ec]/20"
-          title="Change Position?" sub={`${displayPos} → ${pendingPos}`}
-          body={<><span className="text-white font-bold">{player.name}</span>'s position will be updated to <span className="text-white font-bold">{pendingPos}</span>.</>}
-          cancelLabel="Cancel" onCancel={() => { setShowPosConfirm(false); setPendingPos(""); }}
-          confirmLabel="Confirm" confirmCls="bg-[#3390ec] text-white"
-          onConfirm={confirmPosChange} />
-      )}
-
       {/* Suspend modal */}
       {showSuspendModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -262,7 +252,7 @@ export function AdminPlayerProfile() {
           )}
         </div>
         <div className="flex items-center gap-2 mb-1">
-          <h1 className="text-xl font-semibold text-white">{player.name}</h1>
+          <h1 className="text-xl font-semibold text-white">{displayName}</h1>
           {isVerified && <BadgeCheck size={18} className="text-[#3390ec] shrink-0" />}
         </div>
         <span className={`text-sm font-medium mb-2 ${SKILL_COLOR[displaySkill] ?? "text-white"}`}>{displaySkill}</span>
@@ -282,71 +272,203 @@ export function AdminPlayerProfile() {
 
       <div className="max-w-[600px] mx-auto px-4 flex flex-col gap-6">
 
-        {/* ── Contact ───────────────────────────────────────── */}
-        {hasContact && (
-          <section>
-            <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2 px-1">Contact</h2>
-            <div className="bg-[#17212b] rounded-xl overflow-hidden divide-y divide-white/[0.06]">
-
-              {player.phone && (
-                <a href={`tel:${player.phone.replace(/\s/g, "")}`}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] active:bg-white/5 transition-colors">
-                  <div className="w-8 h-8 rounded-lg bg-[#3390ec]/15 flex items-center justify-center shrink-0">
-                    <Phone size={15} className="text-[#3390ec]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[11px] text-[#aaa] mb-0.5">Phone</div>
-                    <div className="text-sm text-white">{player.phone}</div>
-                  </div>
-                  <ChevronRight size={15} className="text-white/20 shrink-0" />
-                </a>
-              )}
-
-              {player.email && (
-                <a href={`mailto:${player.email}`}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] active:bg-white/5 transition-colors">
-                  <div className="w-8 h-8 rounded-lg bg-[#3390ec]/15 flex items-center justify-center shrink-0">
-                    <Mail size={15} className="text-[#3390ec]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[11px] text-[#aaa] mb-0.5">Email</div>
-                    <div className="text-sm text-white">{player.email}</div>
-                  </div>
-                  <ChevronRight size={15} className="text-white/20 shrink-0" />
-                </a>
-              )}
-
-              {player.telegram && (
-                <a href={`https://t.me/${player.telegram.replace("@", "")}`} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] active:bg-white/5 transition-colors">
-                  <div className="w-8 h-8 rounded-lg bg-[#3390ec] flex items-center justify-center shrink-0">
-                    <Send size={14} className="text-white -ml-0.5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[11px] text-[#aaa] mb-0.5">Telegram</div>
-                    <div className="text-sm text-white">{player.telegram}</div>
-                  </div>
-                  <ChevronRight size={15} className="text-white/20 shrink-0" />
-                </a>
-              )}
-
-              {player.instagram && (
-                <a href={`https://instagram.com/${player.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] active:bg-white/5 transition-colors">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888] flex items-center justify-center shrink-0">
-                    <Instagram size={14} className="text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[11px] text-[#aaa] mb-0.5">Instagram</div>
-                    <div className="text-sm text-white">@{player.instagram.replace("@", "")}</div>
-                  </div>
-                  <ChevronRight size={15} className="text-white/20 shrink-0" />
-                </a>
-              )}
-
+        {/* ── Info ─────────────────────────────────────────── */}
+        <section>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Info</h2>
+            {editingInfo ? (
+              <div className="flex items-center gap-3">
+                <button onClick={() => setEditingInfo(false)} className="text-[11px] font-bold text-[#79828b] hover:text-white transition-colors">Cancel</button>
+                <button onClick={() => { if (infoDraft.name.trim()) setDisplayName(infoDraft.name.trim()); setDisplayBirthDate(infoDraft.birthDate); setEditingInfo(false); fireToast("Info updated"); }}
+                  className="text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">Save</button>
+              </div>
+            ) : (
+              <button onClick={() => { setInfoDraft({ name: displayName, birthDate: displayBirthDate }); setEditingInfo(true); }}
+                className="flex items-center gap-1 text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">
+                <Pencil size={11} /> Edit
+              </button>
+            )}
+          </div>
+          <div className="bg-[#17212b] rounded-xl overflow-hidden divide-y divide-white/[0.06]">
+            {/* First Name row */}
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="w-8 h-8 rounded-lg bg-[#3390ec]/15 flex items-center justify-center shrink-0">
+                <User size={15} className="text-[#3390ec]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] text-[#aaa] mb-0.5">First Name</div>
+                {editingInfo ? (
+                  <input type="text" value={infoDraft.name} onChange={e => setInfoDraft(d => ({ ...d, name: e.target.value }))}
+                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#3390ec]/60 transition-colors" />
+                ) : (
+                  <div className="text-sm text-white">{displayName}</div>
+                )}
+              </div>
             </div>
-          </section>
-        )}
+            {/* Date of Birth row */}
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="w-8 h-8 rounded-lg bg-[#3390ec]/15 flex items-center justify-center shrink-0">
+                <Calendar size={15} className="text-[#3390ec]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] text-[#aaa] mb-0.5">Date of Birth</div>
+                {editingInfo ? (
+                  <input type="date" value={infoDraft.birthDate} onChange={e => setInfoDraft(d => ({ ...d, birthDate: e.target.value }))}
+                    style={{ colorScheme: "dark" }}
+                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#3390ec]/60 transition-colors appearance-none" />
+                ) : displayBirthDate ? (
+                  <div className="text-sm text-white">
+                    {formatDate(displayBirthDate)}
+                    <span className="text-[#79828b] ml-1.5">· {calcAge(displayBirthDate)}</span>
+                  </div>
+                ) : (
+                  <div className="text-sm text-[#79828b]">—</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Contact ───────────────────────────────────────── */}
+        <section>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Contact</h2>
+            {editingContact ? (
+              <div className="flex items-center gap-3">
+                <button onClick={() => setEditingContact(false)} className="text-[11px] font-bold text-[#79828b] hover:text-white transition-colors">Cancel</button>
+                <button onClick={() => { setContactInfo(contactDraft); setEditingContact(false); fireToast("Contact updated"); }}
+                  className="text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">Save</button>
+              </div>
+            ) : (
+              <button onClick={() => { setContactDraft(contactInfo); setEditingContact(true); }}
+                className="flex items-center gap-1 text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">
+                <Pencil size={11} /> Edit
+              </button>
+            )}
+          </div>
+          <div className="bg-[#17212b] rounded-xl overflow-hidden divide-y divide-white/[0.06]">
+
+            {/* Phone */}
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="w-8 h-8 rounded-lg bg-[#3390ec]/15 flex items-center justify-center shrink-0">
+                <Phone size={15} className="text-[#3390ec]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] text-[#aaa] mb-0.5">Phone</div>
+                {editingContact ? (
+                  <input type="tel" value={contactDraft.phone} onChange={e => setContactDraft(d => ({ ...d, phone: e.target.value }))}
+                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#3390ec]/60 transition-colors" />
+                ) : contactInfo.phone ? (
+                  <a href={`tel:${contactInfo.phone.replace(/\s/g, "")}`} className="text-sm text-white">{contactInfo.phone}</a>
+                ) : <div className="text-sm text-[#79828b]">—</div>}
+              </div>
+            </div>
+
+            {/* Email */}
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="w-8 h-8 rounded-lg bg-[#3390ec]/15 flex items-center justify-center shrink-0">
+                <Mail size={15} className="text-[#3390ec]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] text-[#aaa] mb-0.5">Email</div>
+                {editingContact ? (
+                  <input type="email" value={contactDraft.email} onChange={e => setContactDraft(d => ({ ...d, email: e.target.value }))}
+                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#3390ec]/60 transition-colors" />
+                ) : contactInfo.email ? (
+                  <a href={`mailto:${contactInfo.email}`} className="text-sm text-white">{contactInfo.email}</a>
+                ) : <div className="text-sm text-[#79828b]">—</div>}
+              </div>
+            </div>
+
+            {/* Telegram */}
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="w-8 h-8 rounded-lg bg-[#3390ec] flex items-center justify-center shrink-0">
+                <Send size={14} className="text-white -ml-0.5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] text-[#aaa] mb-0.5">Telegram</div>
+                {editingContact ? (
+                  <input type="text" value={contactDraft.telegram} onChange={e => setContactDraft(d => ({ ...d, telegram: e.target.value }))}
+                    placeholder="@username"
+                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#3390ec]/60 transition-colors" />
+                ) : contactInfo.telegram ? (
+                  <a href={`https://t.me/${contactInfo.telegram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-sm text-white">{contactInfo.telegram}</a>
+                ) : <span className="text-sm text-[#79828b]">—</span>}
+              </div>
+            </div>
+
+            {/* Instagram */}
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888] flex items-center justify-center shrink-0">
+                <Instagram size={14} className="text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] text-[#aaa] mb-0.5">Instagram</div>
+                {editingContact ? (
+                  <input type="text" value={contactDraft.instagram} onChange={e => setContactDraft(d => ({ ...d, instagram: e.target.value }))}
+                    placeholder="@username"
+                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#3390ec]/60 transition-colors" />
+                ) : contactInfo.instagram ? (
+                  <a href={`https://instagram.com/${contactInfo.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-sm text-white">@{contactInfo.instagram.replace("@", "")}</a>
+                ) : <span className="text-sm text-[#79828b]">—</span>}
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        {/* ── Admin Note ────────────────────────────────────── */}
+        <section>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Admin Note</h2>
+            {!editingComment && (
+              <button onClick={() => { setCommentDraft(comment); setEditingComment(true); }}
+                className="flex items-center gap-1 text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">
+                <Pencil size={11} /> {comment ? "Edit" : "Add"}
+              </button>
+            )}
+          </div>
+          <div className="bg-[#17212b] rounded-xl overflow-hidden">
+            {editingComment ? (
+              <div className="p-4 flex flex-col gap-3">
+                <textarea value={commentDraft} onChange={e => setCommentDraft(e.target.value)}
+                  placeholder="Add a note about this player…" rows={3}
+                  className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none" />
+                <div className="flex gap-2">
+                  <button onClick={() => { setCommentVisibility("admin"); setEditingComment(false); }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black uppercase tracking-wider transition-colors ${commentVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
+                    <Lock size={11} /> Admins only
+                  </button>
+                  <button onClick={() => { setCommentVisibility("all"); setEditingComment(false); }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black uppercase tracking-wider transition-colors ${commentVisibility === "all" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
+                    <Globe size={11} /> Everyone
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setEditingComment(false)}
+                    className="flex-1 py-2 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">Cancel</button>
+                  <button onClick={() => { setComment(commentDraft); setEditingComment(false); fireToast("Comment saved"); }}
+                    className="flex-1 py-2 rounded-xl bg-[#3390ec] text-white font-bold text-sm active:scale-[0.98] transition-transform">Save</button>
+                </div>
+              </div>
+            ) : comment ? (
+              <div className="px-4 py-3.5">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <MessageSquare size={12} className="text-[#79828b]" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#79828b]">
+                    {commentVisibility === "admin" ? "Admin only" : "Visible to everyone"}
+                  </span>
+                  {commentVisibility === "admin" ? <Lock size={10} className="text-[#79828b]" /> : <Globe size={10} className="text-[#79828b]" />}
+                </div>
+                <p className="text-sm text-white/80 leading-relaxed">{comment}</p>
+              </div>
+            ) : (
+              <div className="py-6 flex items-center justify-center">
+                <span className="text-sm text-[#aaa]">No note yet</span>
+              </div>
+            )}
+          </div>
+        </section>
 
         {/* ── Admin Actions ─────────────────────────────────── */}
         <section>
@@ -368,24 +490,6 @@ export function AdminPlayerProfile() {
                 <select value={displaySkill} onChange={e => openSkillPicker(e.target.value)}
                   className="appearance-none bg-[#222f3e] border border-white/10 rounded-lg pl-3 pr-7 py-1.5 text-white text-[11px] font-black uppercase tracking-wider focus:outline-none focus:border-[#a855f7]/50 transition-colors [color-scheme:dark] cursor-pointer">
                   {[...SKILL_ORDER].reverse().map(lvl => <option key={lvl} value={lvl}>{lvl}</option>)}
-                </select>
-                <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-              </div>
-            </div>
-
-            {/* Position */}
-            <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
-                <span className="text-[10px] font-black text-[#79828b]">POS</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-white">Position</div>
-                <div className="text-[11px] text-[#79828b] truncate">{displayPos}</div>
-              </div>
-              <div className="relative shrink-0">
-                <select value={displayPos} onChange={e => openPosPicker(e.target.value)}
-                  className="appearance-none bg-[#222f3e] border border-white/10 rounded-lg pl-3 pr-7 py-1.5 text-white text-[11px] font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark] cursor-pointer">
-                  {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
                 <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
               </div>
@@ -457,59 +561,6 @@ export function AdminPlayerProfile() {
               )}
             </div>
 
-          </div>
-        </section>
-
-        {/* ── Admin Note ────────────────────────────────────── */}
-        <section>
-          <div className="flex items-center justify-between mb-2 px-1">
-            <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Admin Note</h2>
-            {!editingComment && (
-              <button onClick={() => { setCommentDraft(comment); setEditingComment(true); }}
-                className="text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">
-                {comment ? "Edit" : "Add"}
-              </button>
-            )}
-          </div>
-          <div className="bg-[#17212b] rounded-xl overflow-hidden">
-            {editingComment ? (
-              <div className="p-4 flex flex-col gap-3">
-                <textarea value={commentDraft} onChange={e => setCommentDraft(e.target.value)}
-                  placeholder="Add a note about this player…" rows={3}
-                  className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none" />
-                <div className="flex gap-2">
-                  <button onClick={() => { setCommentVisibility("admin"); setEditingComment(false); }}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black uppercase tracking-wider transition-colors ${commentVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
-                    <Lock size={11} /> Admins only
-                  </button>
-                  <button onClick={() => { setCommentVisibility("all"); setEditingComment(false); }}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black uppercase tracking-wider transition-colors ${commentVisibility === "all" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
-                    <Globe size={11} /> Everyone
-                  </button>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setEditingComment(false)}
-                    className="flex-1 py-2 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">Cancel</button>
-                  <button onClick={() => { setComment(commentDraft); setEditingComment(false); fireToast("Comment saved"); }}
-                    className="flex-1 py-2 rounded-xl bg-[#3390ec] text-white font-bold text-sm active:scale-[0.98] transition-transform">Save</button>
-                </div>
-              </div>
-            ) : comment ? (
-              <div className="px-4 py-3.5">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <MessageSquare size={12} className="text-[#79828b]" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#79828b]">
-                    {commentVisibility === "admin" ? "Admin only" : "Visible to everyone"}
-                  </span>
-                  {commentVisibility === "admin" ? <Lock size={10} className="text-[#79828b]" /> : <Globe size={10} className="text-[#79828b]" />}
-                </div>
-                <p className="text-sm text-white/80 leading-relaxed">{comment}</p>
-              </div>
-            ) : (
-              <div className="py-6 flex items-center justify-center">
-                <span className="text-sm text-[#aaa]">No note yet</span>
-              </div>
-            )}
           </div>
         </section>
 

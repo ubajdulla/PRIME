@@ -12,6 +12,20 @@ export const en: Dict = {
     noEvents: "No events found",
     tagline: "Competitive sports events & community",
     copyright: "© 2025 PRIME. All rights reserved.",
+    greeting: {
+      hello: "Hey",
+      guestName: "Volleyballer",
+      guestSubtitle: "Not sure how it works?",
+    },
+    howItWorks: {
+      title: "How it works?",
+      step1Title: "Browse events",
+      step1Desc: "Find an event by level and date. Everything is visible without an account.",
+      step2Title: "Sign up",
+      step2Desc: "Create an account, reserve your spot and wait for confirmation.",
+      step3Title: "Come and play",
+      step3Desc: "Show up on time, enjoy the game and build your profile.",
+    },
     footer: {
       privacy: "Privacy",
       terms: "Terms",
