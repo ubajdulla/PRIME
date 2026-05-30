@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link, Navigate } from "react-router";
+import { useLang } from "../i18n";
 import {
   Phone, Mail, Instagram, Send, MapPin, Calendar, Clock,
   Pencil, Camera, LogOut, User, Eye, EyeOff,
@@ -54,6 +55,7 @@ type ContactDraft = {
 
 export function Profile() {
   const navigate = useNavigate();
+  const { t } = useLang();
 
   if (localStorage.getItem("prime_logged_in") === "false") {
     return <Navigate to="/signin" replace />;
@@ -113,20 +115,20 @@ export function Profile() {
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)}>
           <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">Log Out?</h3>
-            <p className="text-[#79828b] text-sm mb-6">You'll need to sign in again to access your account.</p>
+            <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">{t.profile.logOutTitle}</h3>
+            <p className="text-[#79828b] text-sm mb-6">{t.profile.logOutDesc}</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
                 className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
               >
-                Cancel
+                {t.common.cancel}
               </button>
               <button
                 onClick={() => { localStorage.setItem("prime_logged_in", "false"); navigate("/signin"); }}
                 className="flex-1 py-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-bold text-sm active:scale-[0.98] transition-transform"
               >
-                Log Out
+                {t.profile.logOut}
               </button>
             </div>
           </div>
@@ -161,7 +163,7 @@ export function Profile() {
         {/* Position — always-editable dropdown, no edit button needed */}
         <div className="bg-[#17212b] rounded-xl">
           <div className="flex items-center justify-between px-4 py-3.5">
-            <span className="text-sm text-[#aaa]">Position</span>
+            <span className="text-sm text-[#aaa]">{t.profile.position}</span>
             <select
               value={user.position}
               onChange={e => setUser(p => ({ ...p, position: e.target.value }))}
@@ -178,20 +180,20 @@ export function Profile() {
         {/* Contact — edit button lives here */}
         <section>
           <div className="flex items-center justify-between mb-2 px-1">
-            <SectionLabel>Contact</SectionLabel>
+            <SectionLabel>{t.profile.contact}</SectionLabel>
             {editingContact ? (
               <div className="flex items-center gap-3">
                 <button
                   onClick={cancelContactEdit}
                   className="text-sm text-[#aaa] font-medium active:opacity-60 transition-opacity"
                 >
-                  Cancel
+                  {t.common.cancel}
                 </button>
                 <button
                   onClick={saveContact}
                   className="text-sm text-[#3390ec] font-medium active:opacity-70 transition-opacity"
                 >
-                  Save
+                  {t.common.save}
                 </button>
               </div>
             ) : (
@@ -200,7 +202,7 @@ export function Profile() {
                 className="flex items-center gap-1 text-sm text-[#3390ec] font-medium active:opacity-70 transition-opacity"
               >
                 <Pencil size={13} />
-                Edit
+                {t.common.edit}
               </button>
             )}
           </div>
@@ -212,7 +214,7 @@ export function Profile() {
               editing={editingContact}
               icon={<User size={15} className="text-[#3390ec]" />}
               iconBg="bg-[#3390ec]/15"
-              label="Name"
+              label={t.profile.name}
               displayValue={displayName}
               editValue={draft.fullName}
               onChange={v => setDraftField("fullName", v)}
@@ -223,7 +225,7 @@ export function Profile() {
               href={`tel:${user.phone.replace(/\s/g, "")}`}
               icon={<Phone size={15} className="text-[#3390ec]" />}
               iconBg="bg-[#3390ec]/15"
-              label="Phone"
+              label={t.profile.phone}
               displayValue={user.phone}
               editValue={draft.phone}
               onChange={v => setDraftField("phone", v)}
@@ -233,7 +235,7 @@ export function Profile() {
               href={`mailto:${user.email}`}
               icon={<Mail size={15} className="text-[#3390ec]" />}
               iconBg="bg-[#3390ec]/15"
-              label="Email"
+              label={t.profile.email}
               displayValue={user.email}
               editValue={draft.email}
               onChange={v => setDraftField("email", v)}
@@ -244,7 +246,7 @@ export function Profile() {
               external
               icon={<Send size={14} className="text-white -ml-0.5" />}
               iconBg="bg-[#3390ec]"
-              label="Telegram"
+              label={t.profile.telegram}
               displayValue={`@${user.telegram}`}
               editValue={draft.telegram}
               prefix="@"
@@ -258,7 +260,7 @@ export function Profile() {
               external
               icon={<Instagram size={15} className="text-white" />}
               iconBg="bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888]"
-              label="Instagram"
+              label={t.profile.instagram}
               displayValue={`@${user.instagram}`}
               editValue={draft.instagram}
               prefix="@"
@@ -271,7 +273,7 @@ export function Profile() {
 
         {/* Upcoming Events */}
         <section>
-          <SectionLabel>Upcoming Events</SectionLabel>
+          <SectionLabel>{t.profile.upcomingEvents}</SectionLabel>
           {UPCOMING_EVENTS.length === 0 ? (
             <Empty />
           ) : (
@@ -282,7 +284,7 @@ export function Profile() {
                     <span className="text-sm font-bold text-white uppercase tracking-wide">{e.title}</span>
                     {e.pending && (
                       <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#f5c542]/10 text-[#f5c542] shrink-0">
-                        Pending
+                        {t.profile.pending}
                       </span>
                     )}
                   </div>
@@ -299,7 +301,7 @@ export function Profile() {
 
         {/* Past Events */}
         <section>
-          <SectionLabel>Past Events</SectionLabel>
+          <SectionLabel>{t.profile.pastEvents}</SectionLabel>
           {PAST_EVENTS.length === 0 ? (
             <Empty />
           ) : (
@@ -323,7 +325,7 @@ export function Profile() {
           className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-[#ef4444]/20 bg-[#ef4444]/5 text-[#ef4444] text-sm font-bold hover:bg-[#ef4444]/10 active:scale-[0.98] transition-all mt-2"
         >
           <LogOut size={15} />
-          Log Out
+          {t.profile.logOut}
         </button>
 
       </div>
@@ -396,9 +398,10 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 function Empty() {
+  const { t } = useLang();
   return (
     <div className="bg-[#17212b] rounded-xl py-6 flex items-center justify-center">
-      <span className="text-sm text-[#aaa]">Nothing here yet</span>
+      <span className="text-sm text-[#aaa]">{t.common.nothingHere}</span>
     </div>
   );
 }

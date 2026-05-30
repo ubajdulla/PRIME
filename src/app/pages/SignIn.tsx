@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { ChevronLeft, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { useLang } from "../i18n";
 
 type Screen = "signin" | "signup" | "forgot";
 
 export function SignIn() {
   const navigate = useNavigate();
+  const { t } = useLang();
   const [screen, setScreen] = useState<Screen>("signin");
   const [showPass, setShowPass]       = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -26,11 +28,7 @@ export function SignIn() {
 
   function handleSubmit() {
     localStorage.setItem("prime_logged_in", "true");
-    if (screen === "signup") {
-      navigate("/profile/edit");
-    } else {
-      navigate("/");
-    }
+    navigate("/");
   }
 
   return (
@@ -48,14 +46,14 @@ export function SignIn() {
       {/* Heading */}
       <div className="mb-8">
         <h1 className="text-3xl font-black text-white mb-2">
-          {screen === "signin"  && "Log in"}
-          {screen === "signup"  && "Create Account"}
-          {screen === "forgot"  && "Forgot Password"}
+          {screen === "signin"  && t.signin.logIn}
+          {screen === "signup"  && t.signin.createAccount}
+          {screen === "forgot"  && t.signin.forgotPassword}
         </h1>
         <p className="text-[#79828b] text-sm leading-relaxed">
-          {screen === "signin"  && "Enter your email and password to securely access your account."}
-          {screen === "signup"  && "Create a new account to get started and enjoy seamless access."}
-          {screen === "forgot"  && "Enter your email address to receive a reset link and regain access."}
+          {screen === "signin"  && t.signin.logInDesc}
+          {screen === "signup"  && t.signin.createAccountDesc}
+          {screen === "forgot"  && t.signin.forgotPasswordDesc}
         </p>
       </div>
 
@@ -66,12 +64,12 @@ export function SignIn() {
             <InputField
               icon={<Mail size={16} />}
               type="email"
-              placeholder="Email address"
+              placeholder={t.signin.emailPlaceholder}
               value={form.email}
               onChange={v => set("email", v)}
             />
             <PasswordField
-              placeholder="Password"
+              placeholder={t.signin.passwordPlaceholder}
               value={form.password}
               show={showPass}
               onToggle={() => setShowPass(v => !v)}
@@ -94,13 +92,13 @@ export function SignIn() {
                   </svg>
                 )}
               </div>
-              <span className="text-sm text-[#79828b]">Remember me</span>
+              <span className="text-sm text-[#79828b]">{t.signin.rememberMe}</span>
             </label>
             <button
               onClick={() => setScreen("forgot")}
               className="text-sm text-[#3390ec] font-bold hover:text-white transition-colors"
             >
-              Forgot Password
+              {t.signin.forgotLink}
             </button>
           </div>
 
@@ -108,13 +106,13 @@ export function SignIn() {
             onClick={handleSubmit}
             className="w-full py-3.5 rounded-xl bg-[#3390ec] text-white font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)] mb-5"
           >
-            Login
+            {t.signin.loginBtn}
           </button>
 
           <p className="text-center text-sm text-[#79828b] mb-8">
-            Don't have an account?{" "}
+            {t.signin.noAccount}{" "}
             <button onClick={() => setScreen("signup")} className="text-[#3390ec] font-bold hover:text-white transition-colors">
-              Sign Up here
+              {t.signin.signUpLink}
             </button>
           </p>
 
@@ -129,26 +127,26 @@ export function SignIn() {
             <InputField
               icon={<User size={16} />}
               type="text"
-              placeholder="Name"
+              placeholder={t.signin.namePlaceholder}
               value={form.name}
               onChange={v => set("name", v)}
             />
             <InputField
               icon={<Mail size={16} />}
               type="email"
-              placeholder="Email address"
+              placeholder={t.signin.emailPlaceholder}
               value={form.email}
               onChange={v => set("email", v)}
             />
             <PasswordField
-              placeholder="Password"
+              placeholder={t.signin.passwordPlaceholder}
               value={form.password}
               show={showPass}
               onToggle={() => setShowPass(v => !v)}
               onChange={v => set("password", v)}
             />
             <PasswordField
-              placeholder="Confirm Password"
+              placeholder={t.signin.confirmPlaceholder}
               value={form.confirm}
               show={showConfirm}
               onToggle={() => setShowConfirm(v => !v)}
@@ -160,13 +158,13 @@ export function SignIn() {
             onClick={handleSubmit}
             className="w-full py-3.5 rounded-xl bg-[#3390ec] text-white font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)] mb-5"
           >
-            Create Account
+            {t.signin.createBtn}
           </button>
 
           <p className="text-center text-sm text-[#79828b] mb-8">
-            Already have an account?{" "}
+            {t.signin.haveAccount}{" "}
             <button onClick={() => setScreen("signin")} className="text-[#3390ec] font-bold hover:text-white transition-colors">
-              Sign In here
+              {t.signin.signInLink}
             </button>
           </p>
 
@@ -181,7 +179,7 @@ export function SignIn() {
             <InputField
               icon={<Mail size={16} />}
               type="email"
-              placeholder="Email address"
+              placeholder={t.signin.emailPlaceholder}
               value={form.email}
               onChange={v => set("email", v)}
             />
@@ -191,7 +189,7 @@ export function SignIn() {
             onClick={() => setScreen("signin")}
             className="w-full py-3.5 rounded-xl bg-[#3390ec] text-white font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)]"
           >
-            Continue
+            {t.signin.continueBtn}
           </button>
         </>
       )}
@@ -253,11 +251,12 @@ function PasswordField({
 }
 
 function SocialSection({ onSelect }: { onSelect: () => void }) {
+  const { t } = useLang();
   return (
     <>
       <div className="flex items-center gap-3 mb-6">
         <div className="flex-1 h-px bg-white/10" />
-        <span className="text-[#79828b] text-xs font-bold uppercase tracking-widest shrink-0">Or Continue With</span>
+        <span className="text-[#79828b] text-xs font-bold uppercase tracking-widest shrink-0">{t.signin.orContinueWith}</span>
         <div className="flex-1 h-px bg-white/10" />
       </div>
 

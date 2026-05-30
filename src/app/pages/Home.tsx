@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router";
-import { ChevronLeft, ChevronRight, UserCircle } from "lucide-react";
+import { UserCircle } from "lucide-react";
 import { Instagram, Send } from "lucide-react";
 import { EventCard, EventCardProps } from "../components/EventCard";
 import { useLang, type Dict } from "../i18n";
@@ -151,6 +151,18 @@ export function Home() {
   const { t } = useLang();
   const [activeFilter, setActiveFilter] = useState("ALL");
   const filterScrollRef = useRef<HTMLDivElement>(null);
+  const dragState = useRef<{ active: boolean; startX: number; scrollLeft: number }>({ active: false, startX: 0, scrollLeft: 0 });
+
+  useEffect(() => {
+    const el = filterScrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      el.scrollBy({ left: e.deltaY + e.deltaX, behavior: "auto" });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem("prime_logged_in") !== "false");
 
   const filtered = ALL_EVENTS.filter(e => {
@@ -260,35 +272,41 @@ export function Home() {
 
           {/* Pills wrapper — same flex-1 column as event cards */}
           <div className="flex-1 min-w-0 relative">
-            {/* Left arrow — right edge flush with left edge of event cards, desktop only */}
-            <button
-              className="hidden md:flex absolute -left-11 top-1/2 -translate-y-1/2 items-center justify-center w-8 h-8 rounded-full border border-white/15 bg-[#17212b] text-[#8899a6] hover:text-white hover:border-white/30 transition-all duration-200 z-10"
-              onClick={() => filterScrollRef.current?.scrollBy({ left: -160, behavior: "smooth" })}
-              tabIndex={-1}
-            >
-              <ChevronLeft size={16} />
-            </button>
-
-            {/* Mobile: right fade hint to indicate scroll */}
-            <div className="md:hidden absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0e1621] to-transparent pointer-events-none z-10" />
+            {/* Left fade hint */}
+            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0e1621] to-transparent pointer-events-none z-10" />
 
             <div
               ref={filterScrollRef}
-              className="flex gap-2 overflow-x-auto overscroll-x-contain touch-pan-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+              className="flex gap-2 overflow-x-auto overscroll-x-contain touch-pan-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] select-none"
+              onMouseDown={e => {
+                const el = filterScrollRef.current;
+                if (!el) return;
+                dragState.current = { active: true, startX: e.pageX - el.offsetLeft, scrollLeft: el.scrollLeft };
+                el.style.cursor = "grabbing";
+              }}
+              onMouseMove={e => {
+                const el = filterScrollRef.current;
+                if (!el || !dragState.current.active) return;
+                const x = e.pageX - el.offsetLeft;
+                el.scrollLeft = dragState.current.scrollLeft - (x - dragState.current.startX);
+              }}
+              onMouseUp={() => {
+                dragState.current.active = false;
+                if (filterScrollRef.current) filterScrollRef.current.style.cursor = "grab";
+              }}
+              onMouseLeave={() => {
+                dragState.current.active = false;
+                if (filterScrollRef.current) filterScrollRef.current.style.cursor = "";
+              }}
+              style={{ cursor: "grab" }}
             >
               {ALL_FILTERS.map(f => (
                 <PillFilter key={f} label={t.home.filters[FILTER_KEY[f]]} active={activeFilter === f} onClick={() => setActiveFilter(f)} />
               ))}
             </div>
 
-            {/* Right arrow — left edge flush with right edge of event cards, desktop only */}
-            <button
-              className="hidden md:flex absolute -right-11 top-1/2 -translate-y-1/2 items-center justify-center w-8 h-8 rounded-full border border-white/15 bg-[#17212b] text-[#8899a6] hover:text-white hover:border-white/30 transition-all duration-200 z-10"
-              onClick={() => filterScrollRef.current?.scrollBy({ left: 160, behavior: "smooth" })}
-              tabIndex={-1}
-            >
-              <ChevronRight size={16} />
-            </button>
+            {/* Right fade hint */}
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0e1621] to-transparent pointer-events-none z-10" />
           </div>
         </div>
 

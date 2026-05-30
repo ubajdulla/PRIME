@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   ChevronRight,
 } from "lucide-react";
+import { useLang } from "../i18n";
 
 type AlertType = "reminder" | "confirmed" | "approved" | "denied" | "spots" | "cancelled" | "change";
 
@@ -118,6 +119,7 @@ const TYPE_CONFIG: Record<
 type Filter = "all" | "unread";
 
 export function Alerts() {
+  const { t } = useLang();
   const [filter, setFilter] = useState<Filter>("all");
   const [alerts, setAlerts] = useState(MOCK_ALERTS);
 
@@ -157,7 +159,7 @@ export function Alerts() {
         {/* Header */}
         <div className="flex items-center mb-6">
           <h2 className="font-black italic text-white tracking-widest uppercase text-2xl">
-            Alerts
+            {t.alerts.title}
             {totalUnread > 0 && (
               <span className="ml-2 inline-flex items-center justify-center text-[11px] font-bold bg-[#3390ec] text-white rounded-full w-5 h-5 not-italic tracking-normal align-middle">
                 {totalUnread}
@@ -178,7 +180,7 @@ export function Alerts() {
                   : "bg-[#222f3e] text-[#79828b] border-white/5 hover:border-[#3390ec]/30"
               }`}
             >
-              {f === "unread" && totalUnread > 0 ? `Unread (${totalUnread})` : f}
+              {f === "unread" && totalUnread > 0 ? t.alerts.unreadCount(totalUnread) : f === "unread" ? t.alerts.filterUnread : t.alerts.filterAll}
             </button>
           ))}
         </div>
@@ -190,12 +192,10 @@ export function Alerts() {
               <Bell size={32} className="text-[#3390ec]" />
             </div>
             <h3 className="text-xl font-bold text-white">
-              {filter === "unread" ? "All caught up" : "No Alerts"}
+              {filter === "unread" ? t.alerts.allCaughtUp : t.alerts.noAlerts}
             </h3>
             <p className="text-[#79828b] text-center text-sm max-w-xs leading-relaxed">
-              {filter === "unread"
-                ? "You have no unread notifications right now."
-                : "We'll let you know when there's an update on your scrimmages."}
+              {filter === "unread" ? t.alerts.emptyUnreadDesc : t.alerts.emptyAllDesc}
             </p>
           </div>
         )}
@@ -213,13 +213,13 @@ export function Alerts() {
                     onClick={markAllRead}
                     className="text-[#3390ec] text-[11px] font-bold hover:text-white transition-colors"
                   >
-                    Mark all as read
+                    {t.alerts.markAllRead}
                   </button>
                 )}
               </div>
               <div className="flex flex-col rounded-2xl bg-[#17212b] overflow-hidden divide-y divide-white/5">
                 {items.map(alert => (
-                  <AlertRow key={alert.id} alert={alert} onRead={markRead} />
+                  <AlertRow key={alert.id} alert={alert} onRead={markRead} markReadLabel={t.alerts.markRead} />
                 ))}
               </div>
             </div>
@@ -231,7 +231,7 @@ export function Alerts() {
   );
 }
 
-function AlertRow({ alert, onRead }: { alert: AlertItem; onRead: (id: string) => void }) {
+function AlertRow({ alert, onRead, markReadLabel }: { alert: AlertItem; onRead: (id: string) => void; markReadLabel: string }) {
   const cfg = TYPE_CONFIG[alert.type];
   const Icon = cfg.icon;
 
@@ -257,7 +257,7 @@ function AlertRow({ alert, onRead }: { alert: AlertItem; onRead: (id: string) =>
             onClick={e => { e.preventDefault(); e.stopPropagation(); onRead(alert.id); }}
             className="mt-2 text-[#3390ec] text-[11px] font-bold hover:text-white transition-colors"
           >
-            Mark as read
+            {markReadLabel}
           </button>
         )}
       </div>

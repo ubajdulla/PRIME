@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { useLang } from "../i18n";
 import { navDir } from "../lib/navDir";
 import {
   ChevronDown,
@@ -54,6 +55,7 @@ type JoinStatus = null | "joined" | "pending";
 export function EventDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { t } = useLang();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [toast, setToast] = useState({ message: "", visible: false });
   function fireToast(message: string) {
@@ -108,9 +110,9 @@ export function EventDetail() {
   }
 
   const joinButtonLabel = () => {
-    if (joinStatus === "joined") return "Joined";
-    if (joinStatus === "pending") return "Pending";
-    return isRequestOnly ? "Send a Request" : "Join Directly";
+    if (joinStatus === "joined") return t.event.joined;
+    if (joinStatus === "pending") return t.profile.pending;
+    return isRequestOnly ? t.event.sendRequest : t.event.joinDirectly;
   };
 
 return (
@@ -127,17 +129,15 @@ return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowJoinModal(false)}>
           <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">
-              {isRequestOnly ? "Send Request?" : "Join Event?"}
+              {isRequestOnly ? t.event.sendRequest : t.event.joinTitle}
             </h3>
             <p className="text-[#79828b] text-sm mb-4">
-              {isRequestOnly
-                ? "Your request will be sent to the organizer for approval."
-                : "You'll be added to the roster immediately."}
+              {isRequestOnly ? t.event.requestDesc : t.event.joinDesc}
             </p>
 
             {isGameAdvancedPlus && (
               <div className="mb-5">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2">Select your position</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2">{t.event.selectPosition}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"].map(pos => (
                     <button
@@ -161,14 +161,14 @@ return (
                 onClick={() => setShowJoinModal(false)}
                 className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
               >
-                Cancel
+                {t.common.cancel}
               </button>
               <button
                 onClick={confirmJoin}
                 disabled={isGameAdvancedPlus && !selectedPosition}
                 className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed ${theme.button}`}
               >
-                {isRequestOnly ? "Send Request" : "Join"}
+                {isRequestOnly ? t.event.sendRequest : t.event.join}
               </button>
             </div>
           </div>
@@ -180,25 +180,23 @@ return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLeaveConfirm(false)}>
           <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">
-              {joinStatus === "pending" ? "Cancel Request?" : "Leave Event?"}
+              {joinStatus === "pending" ? t.event.cancelRequestTitle : t.event.leaveTitle}
             </h3>
             <p className="text-[#79828b] text-sm mb-6">
-              {joinStatus === "pending"
-                ? "Your request will be withdrawn."
-                : "You will be removed from the roster."}
+              {joinStatus === "pending" ? t.event.cancelRequestDesc : t.event.leaveDesc}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowLeaveConfirm(false)}
                 className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
               >
-                Keep
+                {t.event.keep}
               </button>
               <button
                 onClick={confirmLeave}
                 className="flex-1 py-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-bold text-sm active:scale-[0.98] transition-transform"
               >
-                {joinStatus === "pending" ? "Cancel Request" : "Leave"}
+                {joinStatus === "pending" ? t.event.cancelRequestBtn : t.event.leaveBtn}
               </button>
             </div>
           </div>
@@ -212,13 +210,13 @@ return (
             if (navigator.share) {
               navigator.share({ title, url });
             } else {
-              navigator.clipboard.writeText(url).then(() => fireToast("Link Copied!"));
+              navigator.clipboard.writeText(url).then(() => fireToast(t.common.linkCopied));
             }
           }}
           className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
         >
           <Share2 size={16} />
-          <span>Share</span>
+          <span>{t.event.share}</span>
         </button>
       </BackBar>
 
@@ -244,7 +242,7 @@ return (
                 </div>
               </div>
               <div>
-                <div className="text-[10px] font-bold text-[#79828b] uppercase tracking-widest leading-tight">Organizer</div>
+                <div className="text-[10px] font-bold text-[#79828b] uppercase tracking-widest leading-tight">{t.event.organizer}</div>
                 <div className="text-white font-bold text-sm">N3ON_KING</div>
               </div>
             </div>
@@ -265,7 +263,7 @@ return (
                     className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
                   >
                     <User size={14} />
-                    View Profile
+                    {t.event.viewProfile}
                   </button>
                 </div>
               )}
@@ -318,7 +316,7 @@ return (
 
             {isCanceled ? (
               <span className="w-36 py-2 flex items-center justify-center rounded-lg font-bold text-sm bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] cursor-default">
-                CANCELED
+                {t.event.canceled.toUpperCase()}
               </span>
             ) : (
               <button
@@ -329,7 +327,7 @@ return (
                     : `shadow-sm ${theme.button}`
                 }`}
               >
-                {joinStatus === "joined" ? "LEAVE" : joinStatus === "pending" ? "CANCEL" : joinButtonLabel()}
+                {joinStatus === "joined" ? t.event.leaveBtn.toUpperCase() : joinStatus === "pending" ? t.event.cancelRequestBtn.toUpperCase() : joinButtonLabel()}
               </button>
             )}
           </div>
@@ -406,7 +404,7 @@ return (
             const stackExtra = stackList.length - 3;
             return (
               <div className="mt-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">Waitlist</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">{t.event.waitlist}</p>
                 <div className="bg-[#17212b] border border-white/5 rounded-xl overflow-hidden">
                   <button
                     onClick={() => setWaitlistOpen(v => !v)}
@@ -428,7 +426,7 @@ return (
                         </div>
                       )}
                     </div>
-                    <span className="flex-1 text-left text-white font-bold text-sm">{stackList.length} Players</span>
+                    <span className="flex-1 text-left text-white font-bold text-sm">{t.event.players(stackList.length)}</span>
                     <ChevronDown size={15} className={`text-[#79828b] transition-transform duration-300 shrink-0 ${waitlistOpen ? "rotate-180" : ""}`} />
                   </button>
                   <div className={`overflow-hidden transition-all duration-300 ease-in-out ${waitlistOpen ? "max-h-[600px]" : "max-h-0"}`}>
@@ -439,7 +437,7 @@ return (
                           <img src={player.img} alt={player.name} className="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0" />
                           <span className={`font-bold text-sm flex-1 ${player.isMe ? theme.primary : "text-white"}`}>
                             {player.name}
-                            {player.isMe && <span className="text-[10px] text-[#79828b] font-bold ml-2 normal-case tracking-normal">You</span>}
+                            {player.isMe && <span className="text-[10px] text-[#79828b] font-bold ml-2 normal-case tracking-normal">{t.event.you}</span>}
                           </span>
                           <div className="relative shrink-0">
                             <button
@@ -458,7 +456,7 @@ return (
                                   className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
                                 >
                                   <User size={14} />
-                                  View Profile
+                                  {t.event.viewProfile}
                                 </button>
                               </div>
                             )}
@@ -475,7 +473,7 @@ return (
           {/* Flaked */}
           {FLAKED.length > 0 && (
             <div className="mt-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">Flaked</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">{t.event.flaked}</p>
               <div className="bg-[#17212b] border border-white/5 rounded-xl overflow-hidden">
                 {FLAKED.map((player, i) => {
                   const menuKey = `flaked-${i}`;
@@ -500,7 +498,7 @@ return (
                               className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
                             >
                               <User size={14} />
-                              View Profile
+                              {t.event.viewProfile}
                             </button>
                           </div>
                         )}

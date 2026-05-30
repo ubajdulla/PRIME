@@ -5,6 +5,13 @@ export interface Dict {
     profile: string;
     admin: string;
   };
+  common: {
+    cancel: string;
+    save: string;
+    edit: string;
+    nothingHere: string;
+    linkCopied: string;
+  };
   home: {
     eventsFeed: string;
     noEvents: string;
@@ -41,6 +48,33 @@ export interface Dict {
       requestOnly: string;
     };
   };
+  alerts: {
+    title: string;
+    filterAll: string;
+    filterUnread: string;
+    unreadCount: (n: number) => string;
+    allCaughtUp: string;
+    noAlerts: string;
+    emptyUnreadDesc: string;
+    emptyAllDesc: string;
+    markAllRead: string;
+    markRead: string;
+  };
+  profile: {
+    position: string;
+    contact: string;
+    name: string;
+    phone: string;
+    email: string;
+    telegram: string;
+    instagram: string;
+    upcomingEvents: string;
+    pastEvents: string;
+    pending: string;
+    logOut: string;
+    logOutTitle: string;
+    logOutDesc: string;
+  };
   event: {
     eventDetails: string;
     date: string;
@@ -58,6 +92,47 @@ export interface Dict {
     sendRequest: string;
     directJoin: string;
     moderator: string;
+    organizer: string;
+    share: string;
+    players: (n: number) => string;
+    waitlist: string;
+    flaked: string;
+    you: string;
+    canceled: string;
+    leaveTitle: string;
+    leaveDesc: string;
+    leaveBtn: string;
+    cancelRequestTitle: string;
+    cancelRequestDesc: string;
+    cancelRequestBtn: string;
+    join: string;
+    joinTitle: string;
+    joinDesc: string;
+    requestDesc: string;
+    selectPosition: string;
+    keep: string;
+  };
+  signin: {
+    logIn: string;
+    createAccount: string;
+    forgotPassword: string;
+    logInDesc: string;
+    createAccountDesc: string;
+    forgotPasswordDesc: string;
+    emailPlaceholder: string;
+    passwordPlaceholder: string;
+    confirmPlaceholder: string;
+    namePlaceholder: string;
+    rememberMe: string;
+    forgotLink: string;
+    loginBtn: string;
+    createBtn: string;
+    continueBtn: string;
+    noAccount: string;
+    haveAccount: string;
+    signUpLink: string;
+    signInLink: string;
+    orContinueWith: string;
   };
   admin: {
     overview: string;
