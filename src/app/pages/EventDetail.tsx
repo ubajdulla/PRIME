@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router";
 import { useLang } from "../i18n";
 import { navDir } from "../lib/navDir";
@@ -127,8 +128,9 @@ return (
       <Toast message={toast.message} visible={toast.visible} variant="copied" onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
 
       {/* Invisible backdrop to close any open dropdown menu */}
-      {openMenu && (
-        <div className="fixed inset-0 z-[39]" onClick={closeMenu} />
+      {openMenu && createPortal(
+        <div className="fixed inset-0 z-[39]" onClick={closeMenu} />,
+        document.body
       )}
 
       {/* Join confirmation modal */}
@@ -142,7 +144,7 @@ return (
               {isRequestOnly ? t.event.requestDesc : t.event.joinDesc}
             </p>
 
-            {isGameAdvancedPlus && (
+            {showPositions && (
               <div className="mb-5">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2">{t.event.selectPosition}</p>
                 <div className="flex flex-wrap gap-1.5">
@@ -172,7 +174,7 @@ return (
               </button>
               <button
                 onClick={confirmJoin}
-                disabled={isGameAdvancedPlus && !selectedPosition}
+                disabled={showPositions && !selectedPosition}
                 className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed ${theme.button}`}
               >
                 {isRequestOnly ? t.event.sendRequest : t.event.join}
@@ -260,7 +262,7 @@ return (
               >
                 <MoreVertical size={18} />
               </button>
-              {openMenu === "organizer" && menuPos && (
+              {openMenu === "organizer" && menuPos && createPortal(
                 <div
                   style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
                   className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
@@ -273,7 +275,8 @@ return (
                     <User size={14} />
                     {t.event.viewProfile}
                   </button>
-                </div>
+                </div>,
+                document.body
               )}
             </div>
           </div>
@@ -382,7 +385,7 @@ return (
                     >
                       <MoreVertical size={16} />
                     </button>
-                    {openMenu === `player-${i}` && menuPos && (
+                    {openMenu === `player-${i}` && menuPos && createPortal(
                       <div
                         style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
                         className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
@@ -395,7 +398,8 @@ return (
                           <User size={14} />
                           {t.event.viewProfile}
                         </button>
-                      </div>
+                      </div>,
+                      document.body
                     )}
                   </div>
                 )}
@@ -457,7 +461,7 @@ return (
                             >
                               <MoreVertical size={16} />
                             </button>
-                            {openMenu === menuKey && menuPos && (
+                            {openMenu === menuKey && menuPos && createPortal(
                               <div
                                 style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
                                 className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
@@ -470,7 +474,8 @@ return (
                                   <User size={14} />
                                   {t.event.viewProfile}
                                 </button>
-                              </div>
+                              </div>,
+                              document.body
                             )}
                           </div>
                         </div>
@@ -500,7 +505,7 @@ return (
                         >
                           <MoreVertical size={16} />
                         </button>
-                        {openMenu === menuKey && menuPos && (
+                        {openMenu === menuKey && menuPos && createPortal(
                           <div
                             style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
                             className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
@@ -513,7 +518,8 @@ return (
                               <User size={14} />
                               {t.event.viewProfile}
                             </button>
-                          </div>
+                          </div>,
+                          document.body
                         )}
                       </div>
                     </div>
