@@ -248,7 +248,7 @@ return (
                 <div className="text-white font-bold text-sm">N3ON_KING</div>
               </div>
             </div>
-            <div className="relative">
+            <div className={`relative ${openMenu === "organizer" ? "z-30" : ""}`}>
               <button
                 onClick={() => setOpenMenu(openMenu === "organizer" ? null : "organizer")}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
@@ -257,7 +257,7 @@ return (
               </button>
               {openMenu === "organizer" && (
                 <div
-                  className="absolute right-0 bottom-full mb-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
+                  className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
                   onClick={() => setOpenMenu(null)}
                 >
                   <button
@@ -369,7 +369,7 @@ return (
                   )}
                 </div>
                 {player.id && (
-                  <div className="relative shrink-0">
+                  <div className={`relative shrink-0 ${openMenu === `player-${i}` ? "z-30" : ""}`}>
                     <button
                       onClick={() => setOpenMenu(openMenu === `player-${i}` ? null : `player-${i}`)}
                       className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
@@ -378,7 +378,7 @@ return (
                     </button>
                     {openMenu === `player-${i}` && (
                       <div
-                        className="absolute right-0 bottom-full mb-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
+                        className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
                         onClick={() => setOpenMenu(null)}
                       >
                         <button
@@ -409,7 +409,7 @@ return (
             return (
               <div className="mt-4">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">{t.event.waitlist}</p>
-                <div className="bg-[#17212b] border border-white/5 rounded-xl">
+                <div className="bg-[#17212b] border border-white/5 rounded-xl overflow-hidden">
                   <button
                     onClick={() => setWaitlistOpen(v => !v)}
                     className="w-full flex items-center gap-3 px-3 py-2.5"
@@ -443,7 +443,7 @@ return (
                             {player.name}
                             {player.isMe && <span className="text-[10px] text-[#79828b] font-bold ml-2 normal-case tracking-normal">{t.event.you}</span>}
                           </span>
-                          <div className="relative shrink-0">
+                          <div className={`relative shrink-0 ${openMenu === menuKey ? "z-30" : ""}`}>
                             <button
                               onClick={() => setOpenMenu(openMenu === menuKey ? null : menuKey)}
                               className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
@@ -452,7 +452,7 @@ return (
                             </button>
                             {openMenu === menuKey && (
                               <div
-                                className="absolute right-0 bottom-full mb-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
+                                className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
                                 onClick={() => setOpenMenu(null)}
                               >
                                 <button
@@ -478,14 +478,14 @@ return (
           {FLAKED.length > 0 && (
             <div className="mt-4">
               <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">{t.event.flaked}</p>
-              <div className="bg-[#17212b] border border-white/5 rounded-xl">
+              <div className="bg-[#17212b] border border-white/5 rounded-xl overflow-hidden">
                 {FLAKED.map((player, i) => {
                   const menuKey = `flaked-${i}`;
                   return (
                     <div key={i} className={`flex items-center gap-3 px-3 py-2.5 ${i > 0 ? "border-t border-white/[0.05]" : ""}`}>
                       <img src={player.img} alt={player.name} className="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0 grayscale opacity-40" />
                       <span className="font-bold text-sm text-white/25 line-through flex-1">{player.name}</span>
-                      <div className="relative shrink-0">
+                      <div className={`relative shrink-0 ${openMenu === menuKey ? "z-30" : ""}`}>
                         <button
                           onClick={() => setOpenMenu(openMenu === menuKey ? null : menuKey)}
                           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]/40"
@@ -494,7 +494,7 @@ return (
                         </button>
                         {openMenu === menuKey && (
                           <div
-                            className="absolute right-0 bottom-full mb-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
+                            className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-20 overflow-hidden min-w-[140px]"
                             onClick={() => setOpenMenu(null)}
                           >
                             <button
