@@ -46,6 +46,8 @@ export function MainLayout() {
   const location = useLocation();
   const { lang, t, setLang } = useLang();
   const mainRef = useRef<HTMLElement>(null);
+  const desktopLangRef = useRef<HTMLDivElement>(null);
+  const mobileLangRef = useRef<HTMLDivElement>(null);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const isLoggedIn = localStorage.getItem("prime_logged_in") !== "false";
 
@@ -58,9 +60,13 @@ export function MainLayout() {
   // Close lang dropdown on outside click
   useEffect(() => {
     if (!showLangDropdown) return;
-    function close() { setShowLangDropdown(false); }
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    function close(e: PointerEvent) {
+      if (desktopLangRef.current?.contains(e.target as Node)) return;
+      if (mobileLangRef.current?.contains(e.target as Node)) return;
+      setShowLangDropdown(false);
+    }
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
   }, [showLangDropdown]);
 
   function handleLogoClick(e: React.MouseEvent) {
@@ -93,10 +99,7 @@ export function MainLayout() {
 
         {/* Desktop lang button — dropdown opens to the right */}
         <div className="shrink-0 px-3 pb-6">
-          <div
-            className="relative"
-            onMouseDown={e => e.stopPropagation()}
-          >
+          <div ref={desktopLangRef} className="relative">
             <button
               onClick={() => setShowLangDropdown(v => !v)}
               className="flex items-center justify-center w-12 h-12 rounded-xl text-[#8899a6] hover:text-white hover:bg-white/5 transition-colors"
@@ -136,40 +139,39 @@ export function MainLayout() {
         </div>
 
         {/* Lang trigger — absolutely right, doesn't affect logo centering */}
-        <button
-          onMouseDown={e => e.stopPropagation()}
-          onClick={() => setShowLangDropdown(v => !v)}
-          className="absolute right-4 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 text-[#79828b] hover:text-white transition-colors"
-        >
-          <span className="font-black text-[13px] tracking-widest">{lang.toUpperCase()}</span>
-          <ChevronDown
-            size={12}
-            className={`transition-transform duration-200 ${showLangDropdown ? "rotate-180" : ""}`}
-          />
-        </button>
-
-        {/* Dropdown anchored to header bottom — never clipped by the button wrapper */}
-        {showLangDropdown && (
-          <div
-            onMouseDown={e => e.stopPropagation()}
-            className="absolute right-4 top-full mt-1.5 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.6)] overflow-hidden z-50 w-[148px]"
+        <div ref={mobileLangRef} className="absolute right-4">
+          <button
+            onClick={() => setShowLangDropdown(v => !v)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 text-[#79828b] hover:text-white transition-colors"
           >
-            {LANG_OPTIONS.map(opt => (
-              <button
-                key={opt.code}
-                onClick={() => { setLang(opt.code); setShowLangDropdown(false); }}
-                className={`flex items-center justify-between w-full px-4 py-3 text-sm font-bold text-left transition-colors border-b border-white/5 last:border-0 ${
-                  lang === opt.code
-                    ? "text-white bg-white/5"
-                    : "text-[#79828b] hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <span>{opt.label}</span>
-                {lang === opt.code && <Check size={13} className="text-[#3390ec] shrink-0" />}
-              </button>
-            ))}
-          </div>
-        )}
+            <span className="font-black text-[13px] tracking-widest">{lang.toUpperCase()}</span>
+            <ChevronDown
+              size={12}
+              className={`transition-transform duration-200 ${showLangDropdown ? "rotate-180" : ""}`}
+            />
+          </button>
+
+          {/* Dropdown anchored to header bottom — never clipped by the button wrapper */}
+          {showLangDropdown && (
+            <div className="absolute right-0 top-full mt-1.5 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.6)] overflow-hidden z-50 w-[148px]">
+
+              {LANG_OPTIONS.map(opt => (
+                <button
+                  key={opt.code}
+                  onClick={() => { setLang(opt.code); setShowLangDropdown(false); }}
+                  className={`flex items-center justify-between w-full px-4 py-3 text-sm font-bold text-left transition-colors border-b border-white/5 last:border-0 ${
+                    lang === opt.code
+                      ? "text-white bg-white/5"
+                      : "text-[#79828b] hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <span>{opt.label}</span>
+                  {lang === opt.code && <Check size={13} className="text-[#3390ec] shrink-0" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main scroll container */}
