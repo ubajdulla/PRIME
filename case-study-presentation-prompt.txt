@@ -1,0 +1,58 @@
+Create a clean, modern, professional UX/Product Design case study presentation (9-10 slides) for a portfolio. Audience: recruiters and hiring managers for Product Design / Frontend Developer roles. Visual style: minimal, light background, blue and yellow accent colors, plenty of whitespace, one key idea per slide. Leave clearly marked image placeholders where I'll insert my own screenshots.
+
+Project: PRIME - a volleyball game management PWA.
+My role: Product Design (UX/UI in Figma) + frontend implementation in collaboration with an AI coding tool (Claude Code), built with React/TypeScript.
+Duration: ~2 weeks.
+Live demo: https://prime-ashy-xi.vercel.app/
+
+Build the presentation with this content:
+
+SLIDE 1 - Title
+"PRIME - Volleyball Game Management PWA"
+Subtitle: Product Design case study. Role, duration, and live link.
+
+SLIDE 2 - Overview
+PRIME is a PWA for creating, organizing, and managing volleyball games - built to replace a chaotic Telegram-based sign-up process for a real volleyball community.
+
+SLIDE 3 - Problem (current process)
+Our community organizes games via Telegram polls: a day before, we announce that a sign-up poll will go live in the evening; the poll is then posted. Key issues:
+- The poll gets buried in the group chat and is hard to find again.
+- A separate "polls only" chat exists, but polls must be manually copied there after posting in the main chat - this relies on human memory and frequently fails.
+- With ~7 games per week, this creates chaos - every week someone forgets they signed up and doesn't show.
+- Cash payments are easy to lose track of - who paid and who didn't. Tracking this in a mobile spreadsheet is impractical.
+- Skill-level mismatches cause social friction: telling a player directly that their level isn't high enough for an advanced game often offends them, so organizers quietly adjust their level instead of confronting them.
+
+SLIDE 4 - Who it's for / Why I care
+For volleyball players of all levels - beginners and experienced/competitive players alike, plus the moderators who organize games.
+Personal motivation: I'm a competitive volleyball player. When I have free time, I have to check ~10 different chat groups to find a game matching my skill level - playing below my level isn't a good fit for me. I also run a group of advanced players; instead of re-explaining details every time, I can just create a game in PRIME and share a link.
+
+SLIDE 5 - Process: Starting point (sitemap & MVP)
+Started with a sitemap and MVP scope. Original homepage plan followed a classic structure: Hero section, Live Events, About Us, How It Works, Level System, Rules, FAQ, Contact.
+[Image placeholder: original sitemap wireframe]
+[Image placeholder: first homepage design with hero section "Dominate the Court"]
+
+SLIDE 6 - Process: The pivot
+While researching similar volleyball platforms (including a direct competitor, "ACE", which has a solid underlying system but a flawed website - event details aren't visible unless logged in, and it's unclear how to join a game or who's eligible), I realized users never come to "read about the app" - they come daily to find and join games. So I redesigned the homepage to lead directly with an Event Feed. "About us", rules, and FAQ moved to social media/footer/moderator contact. Logged-out users now see a 3-step "how to join a game" tutorial instead of a generic welcome message.
+[Image placeholder: first AI-generated reference designs - Event Feed, Event Detail, Checkout, Admin Dashboard]
+
+SLIDE 7 - Process: Key design decisions
+- Event Detail: every key piece of info is immediately visible so users can quickly decide and move on; photos help with visual orientation.
+- Player Profile: players are interconnected and often invite each other; contact info (Instagram/Telegram) stays public by default for missing players, with an option to hide it.
+- Admin Panel: prioritized UX over UI since access is limited to moderators - the goal is the fastest possible access to any event's details, with full visibility into player counts and cash flow.
+- Payment status interaction: iterated from a simple dropdown (rejected - too easy to misclick for something this important) to a tap-to-cycle (online/cash/unpaid) plus a 3-second press-and-hold to confirm, reducing accidental wrong selections - developed in collaboration with Claude Code.
+
+SLIDE 8 - Solution
+Main user flow: open app -> browse event feed -> view event details -> join/sign up. A reminder is sent the day before each event.
+[Image placeholder: final Home/Event Feed screenshot]
+[Image placeholder: final Event Detail screenshot]
+[Image placeholder: final Player Profile screenshot]
+[Image placeholder: final Admin Panel / payments screenshot]
+Live demo: https://prime-ashy-xi.vercel.app/
+
+SLIDE 9 - Reflection
+What worked best: the Admin Panel, which simplifies a moderator's workload roughly 3x (event management, payments, skill-level decisions, banning, rosters, finding players, messaging) - directly solving the problem of moderators losing track of payments and ending up covering costs themselves.
+What I'd do differently: spend more time upfront on MVP scoping, sitemaps, and wireframes before jumping into visual design.
+Key learning: trust my own judgment and design original solutions rather than relying mainly on references.
+
+SLIDE 10 - Closing / Contact
+"Thanks for reading" + contact info placeholder + links to live demo and GitHub repo.
