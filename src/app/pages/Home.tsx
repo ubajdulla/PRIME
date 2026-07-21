@@ -9,6 +9,7 @@ import { supabase } from "../lib/supabaseClient";
 import { SKILL_STYLE } from "../data/adminData";
 import { computeJoinStatus } from "../lib/joinType";
 import { relativeDay, shortDate } from "../lib/eventDate";
+import { categoryImage } from "../lib/eventImages";
 
 function formatEventDate(dateStr: string): string {
   return relativeDay(dateStr) ?? shortDate(dateStr);
@@ -24,7 +25,6 @@ type EventRow = {
   capacity: number;
   category: string | null;
   level: string | null;
-  image: string | null;
   status: string;
   event_participants: { profiles: { avatar: string | null } | null }[] | null;
 };
@@ -87,7 +87,7 @@ export function Home() {
       const [{ data: rows }, { data: counts }] = await Promise.all([
         supabase
           .from("events")
-          .select("id, title, event_date, event_time, location, price_label, capacity, category, level, image, status, event_participants(profiles(avatar))")
+          .select("id, title, event_date, event_time, location, price_label, capacity, category, level, status, event_participants(profiles(avatar))")
           .in("status", ["upcoming", "canceled"])
           .order("event_date", { ascending: true }),
         supabase.rpc("event_join_counts"),
@@ -113,7 +113,7 @@ export function Home() {
           status: computeJoinStatus(row.level, profile?.skill_level),
           category: row.category ?? undefined,
           level: row.level ?? undefined,
-          image: row.image ?? undefined,
+          image: categoryImage(row.category),
           canceled: row.status === "canceled",
         };
       });

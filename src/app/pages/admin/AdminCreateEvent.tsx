@@ -5,22 +5,9 @@ import { SKILL_ORDER } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
 import { useAuth } from "../../lib/AuthContext";
 import { supabase } from "../../lib/supabaseClient";
-
-import gamesImage from "../../../imports/events/games.jpg";
-import tournamentImage from "../../../imports/events/tournaments.jpg";
-import trainingsImage from "../../../imports/events/trainings.jpg";
-import beachImage from "../../../imports/events/beach.jpg";
-import eventsImage from "../../../imports/events/events.jpg";
+import { categoryImage } from "../../lib/eventImages";
 
 const CATEGORIES = ["GAMES", "TOURNAMENT", "TRAININGS", "BEACH", "EVENTS"];
-
-const DEFAULT_IMAGE: Record<string, string> = {
-  GAMES: gamesImage,
-  TOURNAMENT: tournamentImage,
-  TRAININGS: trainingsImage,
-  BEACH: beachImage,
-  EVENTS: eventsImage,
-};
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = ["00", "15", "30", "45"];
@@ -99,14 +86,13 @@ export function AdminCreateEvent() {
   const s = (k: string, v: string) => setF(p => ({ ...p, [k]: v }));
 
   const showLevel = f.category === "GAMES" || f.category === "TRAININGS" || f.category === "BEACH";
-  const image = DEFAULT_IMAGE[f.category] ?? DEFAULT_IMAGE.GAMES;
+  const image = categoryImage(f.category);
 
   async function handleSave() {
     const priceNum = f.price ? parseInt(f.price, 10) : 0;
     const payload = {
       title: f.title,
       description: f.description,
-      image,
       category: f.category,
       level: showLevel ? f.level : null,
       event_date: f.date,
