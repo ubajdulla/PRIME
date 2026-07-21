@@ -1,11 +1,16 @@
-import { Outlet, NavLink, useLocation } from "react-router";
+import { Outlet, Navigate, NavLink, useLocation } from "react-router";
 import { CalendarDays, Users } from "lucide-react";
 import { navDir } from "../lib/navDir";
+import { useAuth } from "../lib/AuthContext";
 
 export function AdminLayout() {
   const { pathname } = useLocation();
+  const { isAdmin, loading } = useAuth();
   const segments = pathname.replace(/^\/admin\/?/, "").split("/").filter(Boolean);
   const isSubPage = segments.length >= 2;
+
+  if (loading) return null;
+  if (!isAdmin) return <Navigate to="/" replace />;
 
   return (
     <div className="bg-[#0e1621]">

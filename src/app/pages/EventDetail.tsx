@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router";
 import { useLang } from "../i18n";
@@ -12,72 +12,128 @@ import {
   MoreVertical,
   User,
   Ticket,
-  X,
   Share2,
 } from "lucide-react";
 import { Toast } from "../components/ui/Toast";
 import { BackBar } from "../components/ui/BackBar";
+import { useAuth } from "../lib/AuthContext";
+import { supabase } from "../lib/supabaseClient";
+import { computeJoinStatus } from "../lib/joinType";
+import { shortDate } from "../lib/eventDate";
 
-const EVENT_CONFIG: Record<string, { requestOnly: boolean; canceled: boolean; title: string; showPositions: boolean }> = {
-  e1: { requestOnly: false, canceled: false, title: "PRO-AM INVITATIONAL #12",  showPositions: true  },
-  e2: { requestOnly: true,  canceled: false, title: "ELITE SCRIMMAGE #48",      showPositions: true  },
-  e3: { requestOnly: false, canceled: false, title: "MORNING GRIND SESSION",    showPositions: false },
-  e4: { requestOnly: true,  canceled: false, title: "WEEKEND WARRIORS CLASH",   showPositions: true  },
-  e5: { requestOnly: false, canceled: false, title: "BEACH OPEN PICKUP",        showPositions: false },
-  e6: { requestOnly: false, canceled: true,  title: "PRIME LEAGUE FINALS",      showPositions: true  },
+type EventRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string | null;
+  level: string | null;
+  event_date: string;
+  event_time: string;
+  location: string;
+  price_label: string | null;
+  capacity: number;
+  status: string;
+  moderator_id: string;
+  moderator: { id: string; name: string; avatar: string | null } | null;
 };
 
-const ROSTER = [
-  { id: "p1", name: "ZeroCool",    role: "Setter",        img: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&h=150&fit=crop" },
-  { id: "p2", name: "NeonSamurai", role: "Outside Hitter", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop" },
-  { id: "p3", name: "CyberNinja",  role: "Libero",         img: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150&h=150&fit=crop" },
-  { id: "p4", name: "GlitchKing",  role: "Middle Blocker", img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop" },
-  { id: "p5", name: "PrimeAlpha",  role: "Opposite",       img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop" },
-  { id: "p6", name: "ViperX",      role: "Outside Hitter", img: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop" },
-  { id: null, name: "Anonymous",   role: "Reserved",       img: null as string | null },
-];
-
-const WAITLIST = [
-  { id: "p7",  name: "PixelPunk",  img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop" },
-  { id: "p8",  name: "StealthV",   img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop" },
-  { id: "p9",  name: "ByteKing",   img: "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=150&h=150&fit=crop" },
-  { id: "p10", name: "XBlaze",     img: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&h=150&fit=crop" },
-  { id: "p11", name: "NovaPulse",  img: "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=150&h=150&fit=crop" },
-  { id: "p12", name: "GridLock",   img: "https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?w=150&h=150&fit=crop" },
-];
-
-const FLAKED = [
-  { id: "p8", name: "GhostRider", img: "https://images.unsplash.com/photo-1463453091185-61582044d556?w=150&h=150&fit=crop" },
-  { id: "p7", name: "ShadowByte", img: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop" },
-];
-
-const PLAYER_AVATAR = "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=150&h=150&fit=crop&crop=face";
-const PLAYER_NAME = "Alex Novak";
+type RosterPlayer = { id: string; name: string; avatar: string | null; position: string | null };
+type WaitlistEntry = { id: string; name: string; avatar: string | null };
 
 type JoinStatus = null | "joined" | "pending";
+
+const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
+const POSITION_REQUIRED_LEVELS = ["Advanced", "Pro", "PRIME"];
 
 export function EventDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { t } = useLang();
+  const { user: authUser, profile, isLoggedIn, isAdmin } = useAuth();
+
+  function playerProfilePath(playerId: string) {
+    return isAdmin ? `/admin/player/${playerId}` : `/players/${playerId}`;
+  }
+
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const [toast, setToast] = useState({ message: "", visible: false });
   function fireToast(message: string) {
     setToast({ message, visible: true });
   }
-  const isLoggedIn = localStorage.getItem("prime_logged_in") !== "false";
-  const [joinStatus, setJoinStatus] = useState<JoinStatus>(null);
+
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
-  const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
   const [waitlistOpen, setWaitlistOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
 
-  const cfg = EVENT_CONFIG[id ?? ""] ?? EVENT_CONFIG["e1"];
-  const isCanceled = cfg.canceled;
-  const isRequestOnly = cfg.requestOnly;
-  const showPositions = cfg.showPositions;
-  const title = cfg.title;
+  const [event, setEvent] = useState<EventRow | null>(null);
+  const [roster, setRoster] = useState<RosterPlayer[]>([]);
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
+  const [guestCount, setGuestCount] = useState(0);
+  const [myStatus, setMyStatus] = useState<JoinStatus>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  async function load(eventId: string) {
+    const [{ data: eventRow, error: eventErr }, { data: participantRows }, { data: requestRows }, { data: counts }] = await Promise.all([
+      supabase.from("events").select("*, moderator:profiles!moderator_id(id, name, avatar)").eq("id", eventId).single(),
+      supabase.from("event_participants").select("player_id, joined_at, position, profiles(id, name, avatar, position)").eq("event_id", eventId).order("joined_at", { ascending: true }),
+      supabase.from("event_requests").select("player_id, kind, profiles(id, name, avatar)").eq("event_id", eventId),
+      supabase.rpc("event_join_counts"),
+    ]);
+
+    if (eventErr || !eventRow) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+
+    setEvent(eventRow as unknown as EventRow);
+
+    const rosterList: RosterPlayer[] = (participantRows ?? []).map(p => ({
+      id: p.profiles?.id ?? p.player_id,
+      name: p.profiles?.name ?? "Unknown",
+      avatar: p.profiles?.avatar ?? null,
+      position: p.position ?? p.profiles?.position ?? null,
+    }));
+    setRoster(rosterList);
+
+    const waitlistList: WaitlistEntry[] = (requestRows ?? [])
+      .filter(r => r.kind === "waitlist")
+      .map(r => ({ id: r.profiles?.id ?? r.player_id, name: r.profiles?.name ?? "Unknown", avatar: r.profiles?.avatar ?? null }));
+    setWaitlist(waitlistList);
+
+    const countRow = (counts as { event_id: string; joined_count: number }[] | null ?? []).find(c => c.event_id === eventId);
+    setGuestCount(countRow?.joined_count ?? 0);
+
+    if (authUser) {
+      const joined = rosterList.some(p => p.id === authUser.id);
+      const myRequest = (requestRows ?? []).some(r => r.player_id === authUser.id);
+      setMyStatus(joined ? "joined" : myRequest ? "pending" : null);
+    } else {
+      setMyStatus(null);
+    }
+
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    setNotFound(false);
+    load(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, authUser?.id]);
+
+  const isCanceled = event?.status === "canceled";
+  const isRequestOnly = event ? computeJoinStatus(event.level, profile?.skill_level) === "REQUEST ONLY" : false;
+  const requiresPosition = event?.category === "GAMES" && POSITION_REQUIRED_LEVELS.includes(event?.level ?? "");
+  const maxCapacity = event?.capacity ?? 0;
+  const currentCapacity = isLoggedIn ? roster.length : guestCount;
+  const isFull = maxCapacity > 0 && currentCapacity >= maxCapacity;
+  const title = event?.title ?? "";
 
   const theme = {
     primary: isRequestOnly ? "text-[#eab308]" : "text-[#3390ec]",
@@ -85,26 +141,38 @@ export function EventDetail() {
     button: isRequestOnly ? "bg-[#eab308] text-black" : "bg-[#3390ec] text-white",
   };
 
-  const maxCapacity = 10;
-  const currentCapacity = ROSTER.length;
-
   function handleJoinClick() {
     if (!isLoggedIn) { navigate("/signin"); return; }
-    if (joinStatus) {
-      setShowLeaveConfirm(true);
-    } else {
-      setSelectedPosition(null);
-      setShowJoinModal(true);
-    }
+    if (myStatus) { setShowLeaveConfirm(true); }
+    else { setSelectedPosition(null); setShowJoinModal(true); }
   }
 
-  function confirmJoin() {
-    setJoinStatus(isRequestOnly ? "pending" : "joined");
+  async function confirmJoin() {
+    if (!authUser || !event || busy) return;
+    setBusy(true);
+    const position = requiresPosition ? selectedPosition : null;
+    if (isRequestOnly) {
+      await supabase.from("event_requests").insert({ event_id: event.id, player_id: authUser.id, kind: "request", status: "pending", position });
+    } else if (isFull) {
+      await supabase.from("event_requests").insert({ event_id: event.id, player_id: authUser.id, kind: "waitlist", status: "pending", position });
+    } else {
+      await supabase.from("event_participants").insert({ event_id: event.id, player_id: authUser.id, position });
+    }
+    await load(event.id);
+    setBusy(false);
     setShowJoinModal(false);
   }
 
-  function confirmLeave() {
-    setJoinStatus(null);
+  async function confirmLeave() {
+    if (!authUser || !event || busy) return;
+    setBusy(true);
+    if (myStatus === "joined") {
+      await supabase.from("event_participants").delete().eq("event_id", event.id).eq("player_id", authUser.id);
+    } else {
+      await supabase.from("event_requests").delete().eq("event_id", event.id).eq("player_id", authUser.id);
+    }
+    await load(event.id);
+    setBusy(false);
     setShowLeaveConfirm(false);
   }
 
@@ -118,10 +186,22 @@ export function EventDetail() {
   function closeMenu() { setOpenMenu(null); setMenuPos(null); }
 
   const joinButtonLabel = () => {
-    if (joinStatus === "joined") return t.event.joined;
-    if (joinStatus === "pending") return t.profile.pending;
+    if (myStatus === "joined") return t.event.joined;
+    if (myStatus === "pending") return t.profile.pending;
+    if (isFull && !isRequestOnly) return "Join Waitlist";
     return isRequestOnly ? t.event.sendRequest : t.event.joinDirectly;
   };
+
+  if (loading) return <div className="min-h-screen bg-[#0e1621]" />;
+
+  if (notFound || !event) {
+    return (
+      <div className="min-h-screen bg-[#0e1621] text-white">
+        <BackBar label="Events" to="/" />
+        <div className="px-4 py-16 text-center text-[#79828b] text-sm">{t.common.nothingHere}</div>
+      </div>
+    );
+  }
 
 return (
     <div className="min-h-screen bg-[#0e1621] text-white font-sans">
@@ -138,23 +218,29 @@ return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowJoinModal(false)}>
           <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">
-              {isRequestOnly ? t.event.sendRequest : t.event.joinTitle}
+              {isRequestOnly ? t.event.sendRequest : isFull ? "Join Waitlist" : t.event.joinTitle}
             </h3>
-            <p className="text-[#79828b] text-sm mb-4">
-              {isRequestOnly ? t.event.requestDesc : t.event.joinDesc}
+            <p className="text-[#79828b] text-sm mb-5">
+              {isRequestOnly
+                ? t.event.requestDesc
+                : isFull
+                  ? "This event is full — you'll join the waitlist and get notified if a spot opens up."
+                  : t.event.joinDesc}
             </p>
 
-            {showPositions && (
+            {requiresPosition && (
               <div className="mb-5">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2">{t.event.selectPosition}</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"].map(pos => (
+                  {POSITIONS.map(pos => (
                     <button
                       key={pos}
                       onClick={() => setSelectedPosition(pos)}
-                      className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all active:scale-95 ${
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
                         selectedPosition === pos
-                          ? "bg-[#3390ec] border-[#3390ec] text-white"
+                          ? isRequestOnly
+                            ? "bg-[#eab308] border-[#eab308] text-black"
+                            : "bg-[#3390ec] border-[#3390ec] text-white"
                           : "bg-white/5 border-white/10 text-[#79828b] hover:text-white hover:border-white/25"
                       }`}
                     >
@@ -174,10 +260,10 @@ return (
               </button>
               <button
                 onClick={confirmJoin}
-                disabled={showPositions && !selectedPosition}
-                className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed ${theme.button}`}
+                disabled={busy || (requiresPosition && !selectedPosition)}
+                className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${theme.button}`}
               >
-                {isRequestOnly ? t.event.sendRequest : t.event.join}
+                {isRequestOnly || isFull ? t.event.sendRequest : t.event.join}
               </button>
             </div>
           </div>
@@ -189,10 +275,10 @@ return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLeaveConfirm(false)}>
           <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">
-              {joinStatus === "pending" ? t.event.cancelRequestTitle : t.event.leaveTitle}
+              {myStatus === "pending" ? t.event.cancelRequestTitle : t.event.leaveTitle}
             </h3>
             <p className="text-[#79828b] text-sm mb-6">
-              {joinStatus === "pending" ? t.event.cancelRequestDesc : t.event.leaveDesc}
+              {myStatus === "pending" ? t.event.cancelRequestDesc : t.event.leaveDesc}
             </p>
             <div className="flex gap-3">
               <button
@@ -203,9 +289,10 @@ return (
               </button>
               <button
                 onClick={confirmLeave}
-                className="flex-1 py-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-bold text-sm active:scale-[0.98] transition-transform"
+                disabled={busy}
+                className="flex-1 py-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-bold text-sm transition-transform disabled:opacity-40"
               >
-                {joinStatus === "pending" ? t.event.cancelRequestBtn : t.event.leaveBtn}
+                {myStatus === "pending" ? t.event.cancelRequestBtn : t.event.leaveBtn}
               </button>
             </div>
           </div>
@@ -241,18 +328,24 @@ return (
           <div className="flex items-center justify-between bg-[#17212b] border border-white/5 rounded-xl p-2.5 mb-4 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <img
-                  src="https://images.unsplash.com/photo-1587930693964-e16abf7299f5?w=150&h=150&fit=crop"
-                  alt="Organizer"
-                  className="w-11 h-11 rounded-full object-cover border border-white/10"
-                />
+                {event.moderator?.avatar ? (
+                  <img
+                    src={event.moderator.avatar}
+                    alt="Organizer"
+                    className="w-11 h-11 rounded-full object-cover border border-white/10"
+                  />
+                ) : (
+                  <div className="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                    <User size={18} className="text-white/30" />
+                  </div>
+                )}
                 <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#3390ec] rounded-full flex items-center justify-center border-2 border-[#17212b]">
                   <CheckCircle2 size={10} className="text-white" strokeWidth={3} />
                 </div>
               </div>
               <div>
                 <div className="text-[10px] font-bold text-[#79828b] uppercase tracking-widest leading-tight">{t.event.organizer}</div>
-                <div className="text-white font-bold text-sm">N3ON_KING</div>
+                <div className="text-white font-bold text-sm">{event.moderator?.name ?? (isLoggedIn ? "—" : "Sign in to view")}</div>
               </div>
             </div>
             <div className="relative">
@@ -269,7 +362,7 @@ return (
                   onClick={closeMenu}
                 >
                   <button
-                    onClick={() => { navDir.forward(); navigate("/players/p2"); closeMenu(); }}
+                    onClick={() => { navDir.forward(); navigate(playerProfilePath(event.moderator_id)); closeMenu(); }}
                     className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
                   >
                     <User size={14} />
@@ -286,35 +379,37 @@ return (
             <div className="flex justify-between items-center p-3 border-b border-white/5 flex-wrap gap-2">
               <div className="flex items-center gap-2.5">
                 <Calendar size={16} className={theme.primary} />
-                <span className="text-sm font-semibold text-white/90">Fri, Oct 25</span>
+                <span className="text-sm font-semibold text-white/90">{shortDate(event.event_date, true)}</span>
               </div>
               <div className="hidden sm:block w-[1px] h-4 bg-white/10" />
               <div className="flex items-center gap-2.5">
                 <Clock size={16} className={theme.primary} />
-                <span className="text-sm font-semibold text-white/90">20:00 - 22:00</span>
+                <span className="text-sm font-semibold text-white/90">{event.event_time}</span>
               </div>
               <div className="hidden sm:block w-[1px] h-4 bg-white/10" />
               <div className="flex items-center gap-2.5">
                 <Ticket size={16} className={theme.primary} />
-                <span className="text-sm font-semibold text-white/90">625 CZK</span>
+                <span className="text-sm font-semibold text-white/90">{event.price_label ?? "FREE"}</span>
               </div>
             </div>
             <a
-              href="https://maps.google.com/?q=Cyber+Arena+Court+4+Sector+7"
+              href={`https://www.google.com/maps/search/${encodeURIComponent(event.location)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2.5 p-3 hover:bg-white/5 transition-colors rounded-b-xl"
             >
               <MapPin size={16} className={theme.primary} />
               <span className="text-sm font-semibold text-white/90 truncate">
-                Cyber Arena • Court 4, Sector 7
+                {event.location}
               </span>
             </a>
           </div>
 
-          <p className="text-[#79828b] text-xs leading-relaxed mt-4 px-1">
-            Competitive scrimmage. Men's Standard net. Late arrivals blacklisted.
-          </p>
+          {event.description && (
+            <p className="text-[#79828b] text-xs leading-relaxed mt-4 px-1">
+              {event.description}
+            </p>
+          )}
         </div>
 
         {/* ROSTER SECTION */}
@@ -332,13 +427,13 @@ return (
             ) : (
               <button
                 onClick={handleJoinClick}
-                className={`w-36 py-2 justify-center rounded-lg font-bold text-sm transition-all active:scale-[0.98] ${
-                  joinStatus
+                className={`w-36 py-2 justify-center rounded-lg font-bold text-sm transition-all ${
+                  myStatus
                     ? `bg-transparent ${isRequestOnly ? "shadow-[inset_0_0_0_1.5px_#eab308] text-[#eab308]" : "shadow-[inset_0_0_0_1.5px_#3390ec] text-[#3390ec]"}`
                     : `shadow-sm ${theme.button}`
                 }`}
               >
-                {joinStatus === "joined" ? t.event.leaveBtn.toUpperCase() : joinStatus === "pending" ? t.event.cancelRequestBtn.toUpperCase() : joinButtonLabel()}
+                {myStatus === "joined" ? t.event.leaveBtn.toUpperCase() : myStatus === "pending" ? t.event.cancelRequestBtn.toUpperCase() : joinButtonLabel()}
               </button>
             )}
           </div>
@@ -347,37 +442,40 @@ return (
           <div className="w-full h-1.5 bg-white/5 rounded-full mb-4 overflow-hidden">
             <div
               className={`h-full ${theme.bg} rounded-full transition-all duration-500`}
-              style={{ width: `${(currentCapacity / maxCapacity) * 100}%` }}
+              style={{ width: `${maxCapacity > 0 ? Math.min(100, (currentCapacity / maxCapacity) * 100) : 0}%` }}
             />
           </div>
 
           {/* Player List */}
-          <div className="flex flex-col gap-2">
-            {ROSTER.map((player, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-3 bg-[#17212b] border border-white/5 rounded-xl p-2.5"
-              >
-                {player.img ? (
-                  <img
-                    src={player.img}
-                    alt={player.name}
-                    className="w-10 h-10 rounded-full object-cover border border-white/10 shrink-0"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 shrink-0 flex items-center justify-center">
-                    <User size={16} className="text-white/30" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <span className={`font-bold text-sm block ${player.img ? "text-white" : "text-white/30"}`}>{player.name}</span>
-                  {showPositions && (
-                    <span className={`text-[10px] font-bold uppercase tracking-widest ${player.img ? theme.primary : "text-white/20"}`}>
-                      {player.role}
-                    </span>
+          {isLoggedIn ? (
+            <div className="flex flex-col gap-2">
+              {roster.length === 0 && (
+                <p className="text-[#79828b] text-sm py-4 text-center">No one has joined yet — be the first!</p>
+              )}
+              {roster.map((player, i) => (
+                <div
+                  key={player.id}
+                  className="flex items-center gap-3 bg-[#17212b] border border-white/5 rounded-xl p-2.5"
+                >
+                  {player.avatar ? (
+                    <img
+                      src={player.avatar}
+                      alt={player.name}
+                      className="w-10 h-10 rounded-full object-cover border border-white/10 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 shrink-0 flex items-center justify-center">
+                      <User size={16} className="text-white/30" />
+                    </div>
                   )}
-                </div>
-                {player.id && (
+                  <div className="flex-1 min-w-0">
+                    <span className="font-bold text-sm block text-white">{player.name}</span>
+                    {player.position && (
+                      <span className={`text-[10px] font-bold uppercase tracking-widest ${theme.primary}`}>
+                        {player.position}
+                      </span>
+                    )}
+                  </div>
                   <div className="relative shrink-0">
                     <button
                       onClick={e => openMenuAt(`player-${i}`, e)}
@@ -392,7 +490,7 @@ return (
                         onClick={closeMenu}
                       >
                         <button
-                          onClick={() => { navDir.forward(); navigate(`/players/${player.id}`); closeMenu(); }}
+                          onClick={() => { navDir.forward(); navigate(playerProfilePath(player.id)); closeMenu(); }}
                           className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
                         >
                           <User size={14} />
@@ -402,21 +500,22 @@ return (
                       document.body
                     )}
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <button
+              onClick={() => navigate("/signin")}
+              className="w-full text-center bg-[#17212b] border border-white/5 rounded-xl py-4 text-sm text-[#79828b] hover:text-white transition-colors"
+            >
+              Sign in to see who's playing
+            </button>
+          )}
 
           {/* Waitlist */}
-          {(() => {
-            const stackList = joinStatus === "pending"
-              ? [{ name: PLAYER_NAME, img: PLAYER_AVATAR, isMe: true }, ...WAITLIST.map(p => ({ ...p, isMe: false }))]
-              : WAITLIST.map(p => ({ ...p, isMe: false }));
-            const sortedList = joinStatus === "pending"
-              ? [...WAITLIST.map(p => ({ ...p, isMe: false })), { name: PLAYER_NAME, img: PLAYER_AVATAR, isMe: true }]
-              : WAITLIST.map(p => ({ ...p, isMe: false }));
-            const stackAvatars = stackList.slice(0, 3);
-            const stackExtra = stackList.length - 3;
+          {isLoggedIn && waitlist.length > 0 && (() => {
+            const stackAvatars = waitlist.slice(0, 3);
+            const stackExtra = waitlist.length - 3;
             return (
               <div className="mt-4">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">{t.event.waitlist}</p>
@@ -427,13 +526,19 @@ return (
                   >
                     <div className="flex -space-x-2.5">
                       {stackAvatars.map((p, i) => (
-                        <img
-                          key={i}
-                          src={p.img}
-                          alt={p.name}
-                          className="w-8 h-8 rounded-full border-2 border-[#17212b] object-cover"
-                          style={{ zIndex: stackAvatars.length - i }}
-                        />
+                        p.avatar ? (
+                          <img
+                            key={p.id}
+                            src={p.avatar}
+                            alt={p.name}
+                            className="w-8 h-8 rounded-full border-2 border-[#17212b] object-cover"
+                            style={{ zIndex: stackAvatars.length - i }}
+                          />
+                        ) : (
+                          <div key={p.id} className="w-8 h-8 rounded-full border-2 border-[#17212b] bg-white/5 flex items-center justify-center" style={{ zIndex: stackAvatars.length - i }}>
+                            <User size={12} className="text-white/30" />
+                          </div>
+                        )
                       ))}
                       {stackExtra > 0 && (
                         <div className="w-8 h-8 rounded-full border-2 border-[#17212b] bg-white/10 flex items-center justify-center text-[9px] font-bold text-white/50" style={{ zIndex: 0 }}>
@@ -441,18 +546,25 @@ return (
                         </div>
                       )}
                     </div>
-                    <span className="flex-1 text-left text-white font-bold text-sm">{t.event.players(stackList.length)}</span>
+                    <span className="flex-1 text-left text-white font-bold text-sm">{t.event.players(waitlist.length)}</span>
                     <ChevronDown size={15} className={`text-[#79828b] transition-transform duration-300 shrink-0 ${waitlistOpen ? "rotate-180" : ""}`} />
                   </button>
                   <div className={`overflow-hidden transition-all duration-300 ease-in-out ${waitlistOpen ? "max-h-[600px]" : "max-h-0"}`}>
-                    {sortedList.map((player, i) => {
+                    {waitlist.map((player, i) => {
                       const menuKey = `waitlist-${i}`;
+                      const isMe = player.id === authUser?.id;
                       return (
-                        <div key={i} className="flex items-center gap-3 px-3 py-2.5 border-t border-white/[0.05]">
-                          <img src={player.img} alt={player.name} className="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0" />
-                          <span className={`font-bold text-sm flex-1 ${player.isMe ? theme.primary : "text-white"}`}>
+                        <div key={player.id} className="flex items-center gap-3 px-3 py-2.5 border-t border-white/[0.05]">
+                          {player.avatar ? (
+                            <img src={player.avatar} alt={player.name} className="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 shrink-0 flex items-center justify-center">
+                              <User size={12} className="text-white/30" />
+                            </div>
+                          )}
+                          <span className={`font-bold text-sm flex-1 ${isMe ? theme.primary : "text-white"}`}>
                             {player.name}
-                            {player.isMe && <span className="text-[10px] text-[#79828b] font-bold ml-2 normal-case tracking-normal">{t.event.you}</span>}
+                            {isMe && <span className="text-[10px] text-[#79828b] font-bold ml-2 normal-case tracking-normal">{t.event.you}</span>}
                           </span>
                           <div className="relative shrink-0">
                             <button
@@ -468,7 +580,7 @@ return (
                                 onClick={closeMenu}
                               >
                                 <button
-                                  onClick={() => { if (player.isMe) navigate("/profile"); else { navDir.forward(); navigate(`/players/${player.id}`); } closeMenu(); }}
+                                  onClick={() => { if (isMe) navigate("/profile"); else { navDir.forward(); navigate(playerProfilePath(player.id)); } closeMenu(); }}
                                   className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
                                 >
                                   <User size={14} />
@@ -486,48 +598,6 @@ return (
               </div>
             );
           })()}
-
-          {/* Flaked */}
-          {FLAKED.length > 0 && (
-            <div className="mt-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">{t.event.flaked}</p>
-              <div className="bg-[#17212b] border border-white/5 rounded-xl overflow-hidden">
-                {FLAKED.map((player, i) => {
-                  const menuKey = `flaked-${i}`;
-                  return (
-                    <div key={i} className={`flex items-center gap-3 px-3 py-2.5 ${i > 0 ? "border-t border-white/[0.05]" : ""}`}>
-                      <img src={player.img} alt={player.name} className="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0 grayscale opacity-40" />
-                      <span className="font-bold text-sm text-white/25 line-through flex-1">{player.name}</span>
-                      <div className="relative shrink-0">
-                        <button
-                          onClick={e => openMenuAt(menuKey, e)}
-                          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]/40"
-                        >
-                          <MoreVertical size={16} />
-                        </button>
-                        {openMenu === menuKey && menuPos && createPortal(
-                          <div
-                            style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
-                            className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
-                            onClick={closeMenu}
-                          >
-                            <button
-                              onClick={() => { navDir.forward(); navigate(`/players/${player.id}`); closeMenu(); }}
-                              className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
-                            >
-                              <User size={14} />
-                              {t.event.viewProfile}
-                            </button>
-                          </div>,
-                          document.body
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

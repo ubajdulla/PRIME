@@ -1,14 +1,18 @@
-import { useState } from "react";
-import { useParams } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router";
 import {
   Send, Instagram, Calendar, MapPin,
-  CheckCircle2, BadgeCheck, Ban, Clock, ShieldOff,
+  CheckCircle2, BadgeCheck, Clock, ShieldOff,
   OctagonX, Lock, Globe, MessageSquare, ChevronDown,
   Phone, Mail, User, Pencil,
 } from "lucide-react";
-import { ALL_PLAYERS, ADMIN_EVENTS, SKILL_ORDER, type SkillLevel } from "../../data/adminData";
+import { SKILL_ORDER, type SkillLevel } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
 import { Toast } from "../../components/ui/Toast";
+import { supabase } from "../../lib/supabaseClient";
+import { useAuth } from "../../lib/AuthContext";
+
+const SUPERADMIN_EMAIL = "ubajdulla@seznam.cz";
 
 const SKILL_COLOR: Record<string, string> = {
   PRIME:        "text-[#ccff00]",
@@ -19,41 +23,60 @@ const SKILL_COLOR: Record<string, string> = {
   Rookie:       "text-[#79828b]",
 };
 
+type ProfileRow = {
+  id: string;
+  name: string;
+  avatar: string | null;
+  position: string | null;
+  skill_level: string;
+  birth_date: string | null;
+  phone: string | null;
+  email: string | null;
+  telegram: string | null;
+  instagram: string | null;
+  is_verified: boolean;
+  is_suspended: boolean;
+  suspended_until: string | null;
+  suspend_reason: string | null;
+  is_banned: boolean;
+  ban_reason: string | null;
+  admin_note: string | null;
+  admin_note_visibility: "admin" | "all";
+  is_admin: boolean;
+};
+
+type EventRow = { id: string; title: string; event_date: string; location: string; status: string };
+
 export function AdminPlayerProfile() {
   const { playerId } = useParams<{ playerId: string }>();
-  const player = ALL_PLAYERS.find(p => p.id === playerId);
+  const { user: viewer, profile: viewerProfile } = useAuth();
 
-  // ── Admin state ───────────────────────────────────────────
-  const [isVerified,        setIsVerified]        = useState(false);
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [events,  setEvents]  = useState<EventRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // ── Modal / draft state (UI-only, not backend state) ────────
   const [showVerifyConfirm, setShowVerifyConfirm] = useState(false);
   const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
 
-  const [isSuspended,       setIsSuspended]       = useState(false);
-  const [suspendedUntil,    setSuspendedUntil]    = useState("");
   const [showSuspendModal,  setShowSuspendModal]  = useState(false);
   const [showLiftConfirm,   setShowLiftConfirm]   = useState(false);
   const [suspendDate,       setSuspendDate]       = useState("");
   const [suspendReason,     setSuspendReason]     = useState("");
 
-  const [isBanned,          setIsBanned]          = useState(false);
   const [showBanConfirm,    setShowBanConfirm]    = useState(false);
   const [showUnbanConfirm,  setShowUnbanConfirm]  = useState(false);
   const [banReason,         setBanReason]         = useState("");
 
-  const [skillLevel,        setSkillLevel]        = useState<SkillLevel | "">((player?.skillLevel as SkillLevel) ?? "");
   const [showSkillConfirm,  setShowSkillConfirm]  = useState(false);
   const [pendingSkill,      setPendingSkill]      = useState<SkillLevel | "">("");
 
-  const [displayName,       setDisplayName]       = useState(player?.name ?? "");
-  const [displayBirthDate,  setDisplayBirthDate]  = useState(player?.birthDate ?? "");
   const [editingInfo,       setEditingInfo]       = useState(false);
-  const [infoDraft,         setInfoDraft]         = useState<{ name: string; birthDate: string }>({ name: player?.name ?? "", birthDate: player?.birthDate ?? "" });
+  const [infoDraft,         setInfoDraft]         = useState({ name: "", birthDate: "" });
 
-  const [contactInfo,      setContactInfo]      = useState({ phone: player?.phone ?? "", email: player?.email ?? "", telegram: player?.telegram ?? "", instagram: player?.instagram ?? "" });
   const [editingContact,   setEditingContact]   = useState(false);
-  const [contactDraft,     setContactDraft]     = useState({ phone: player?.phone ?? "", email: player?.email ?? "", telegram: player?.telegram ?? "", instagram: player?.instagram ?? "" });
+  const [contactDraft,     setContactDraft]     = useState({ phone: "", email: "", telegram: "", instagram: "" });
 
-  const [comment,           setComment]           = useState("");
   const [commentDraft,      setCommentDraft]      = useState("");
   const [commentVisibility, setCommentVisibility] = useState<"admin" | "all">("admin");
   const [editingComment,    setEditingComment]    = useState(false);
@@ -65,7 +88,31 @@ export function AdminPlayerProfile() {
     setToast({ message: msg, variant, visible: true });
   }
 
-  if (!player) {
+  async function load(id: string) {
+    const [{ data: p }, { data: partRows }] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", id).single(),
+      supabase.from("event_participants").select("events(id, title, event_date, location, status)").eq("player_id", id),
+    ]);
+    setProfile((p as ProfileRow) ?? null);
+    setEvents(((partRows ?? []).map(r => r.events).filter(Boolean) as unknown as EventRow[]));
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    if (!playerId) return;
+    setLoading(true);
+    load(playerId);
+  }, [playerId]);
+
+  async function patchProfile(patch: Partial<ProfileRow>) {
+    if (!profile) return;
+    setProfile(prev => prev ? { ...prev, ...patch } : prev);
+    await supabase.from("profiles").update(patch).eq("id", profile.id);
+  }
+
+  if (loading) return <div className="min-h-screen bg-[#0e1621]" />;
+
+  if (!profile) {
     return (
       <div>
         <BackBar label="Back" />
@@ -76,12 +123,26 @@ export function AdminPlayerProfile() {
     );
   }
 
-  const displaySkill = skillLevel || player.skillLevel;
+  const player = profile;
+  const displaySkill = player.skill_level;
   const ringColor    = dotColor(displaySkill);
   const today        = new Date().toISOString().split("T")[0];
 
-  const upcomingEvents = ADMIN_EVENTS.filter(e => e.status === "upcoming" && e.roster.some(r => r.id === player.id));
-  const pastEvents     = ADMIN_EVENTS.filter(e => e.status === "past"     && e.roster.some(r => r.id === player.id));
+  const upcomingEvents = events.filter(e => e.status === "upcoming");
+  const pastEvents     = events.filter(e => e.status === "past");
+
+  // Mirrors the DB trigger (010_admin_hierarchy.sql): a regular admin can't
+  // ban/suspend/change the skill level of another admin or of themselves,
+  // and can never promote a player above their own skill level. This is
+  // UI-only guidance - the trigger is what actually enforces it - but
+  // without it the buttons would show a false "success" that silently
+  // reverts on reload.
+  const isSuperadmin = viewer?.email === SUPERADMIN_EMAIL;
+  const isSelf = viewerProfile?.id === player.id;
+  const hierarchyLocked = !isSuperadmin && (player.is_admin || isSelf);
+  const skillOptions = isSuperadmin
+    ? [...SKILL_ORDER].reverse()
+    : [...SKILL_ORDER].reverse().filter(lvl => SKILL_ORDER.indexOf(lvl) <= SKILL_ORDER.indexOf((viewerProfile?.skill_level as SkillLevel) ?? "Rookie"));
 
   function formatDate(d: string) {
     if (!d) return "";
@@ -98,22 +159,23 @@ export function AdminPlayerProfile() {
     return age;
   }
 
-  function confirmSuspend() {
+  async function confirmSuspend() {
     if (!suspendDate) return;
-    setIsSuspended(true); setSuspendedUntil(suspendDate);
+    await patchProfile({ is_suspended: true, suspended_until: suspendDate, suspend_reason: suspendReason || null });
     setShowSuspendModal(false); setSuspendDate(""); setSuspendReason("");
     fireToast(`Suspended until ${formatDate(suspendDate)}`);
   }
 
-  function confirmBan() {
-    setIsBanned(true); setIsSuspended(false); setSuspendedUntil("");
+  async function confirmBan() {
+    await patchProfile({ is_banned: true, ban_reason: banReason || null, is_suspended: false, suspended_until: null, suspend_reason: null });
     setShowBanConfirm(false); setBanReason("");
     fireToast("Player banned");
   }
 
-  function confirmSkillChange() {
+  async function confirmSkillChange() {
     if (!pendingSkill) return;
-    setSkillLevel(pendingSkill); setShowSkillConfirm(false); setPendingSkill("");
+    await patchProfile({ skill_level: pendingSkill });
+    setShowSkillConfirm(false); setPendingSkill("");
     fireToast(`Skill level changed to ${pendingSkill}`);
   }
 
@@ -133,7 +195,7 @@ export function AdminPlayerProfile() {
           body={<><span className="text-white font-bold">{player.name}</span> will receive a verified badge visible to all users.</>}
           cancelLabel="Cancel" onCancel={() => setShowVerifyConfirm(false)}
           confirmLabel="Verify" confirmCls="bg-[#3390ec] text-white"
-          onConfirm={() => { setIsVerified(true); setShowVerifyConfirm(false); fireToast("Player verified"); }} />
+          onConfirm={async () => { await patchProfile({ is_verified: true }); setShowVerifyConfirm(false); fireToast("Player verified"); }} />
       )}
       {showRevokeConfirm && (
         <Modal icon={<ShieldOff size={18} className="text-[#ef4444]" />} iconBg="bg-[#ef4444]/10 border-[#ef4444]/20"
@@ -141,21 +203,21 @@ export function AdminPlayerProfile() {
           body={<><span className="text-white font-bold">{player.name}</span> will lose their verified status.</>}
           cancelLabel="Cancel" onCancel={() => setShowRevokeConfirm(false)}
           confirmLabel="Revoke" confirmCls="bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444]"
-          onConfirm={() => { setIsVerified(false); setShowRevokeConfirm(false); fireToast("Verification revoked"); }} />
+          onConfirm={async () => { await patchProfile({ is_verified: false }); setShowRevokeConfirm(false); fireToast("Verification revoked"); }} />
       )}
       {showLiftConfirm && (
         <Modal icon={<CheckCircle2 size={18} className="text-[#4dcd5e]" />} iconBg="bg-[#4dcd5e]/10 border-[#4dcd5e]/20"
           title="Lift Suspension?" sub="Player can join events again." body={null}
           cancelLabel="Cancel" onCancel={() => setShowLiftConfirm(false)}
           confirmLabel="Lift" confirmCls="bg-[#4dcd5e]/10 border border-[#4dcd5e]/30 text-[#4dcd5e]"
-          onConfirm={() => { setIsSuspended(false); setSuspendedUntil(""); setShowLiftConfirm(false); fireToast("Suspension lifted"); }} />
+          onConfirm={async () => { await patchProfile({ is_suspended: false, suspended_until: null, suspend_reason: null }); setShowLiftConfirm(false); fireToast("Suspension lifted"); }} />
       )}
       {showUnbanConfirm && (
         <Modal icon={<CheckCircle2 size={18} className="text-[#4dcd5e]" />} iconBg="bg-[#4dcd5e]/10 border-[#4dcd5e]/20"
           title="Unban Player?" sub="Player will be able to join events again." body={null}
           cancelLabel="Cancel" onCancel={() => setShowUnbanConfirm(false)}
           confirmLabel="Unban" confirmCls="bg-[#4dcd5e]/10 border border-[#4dcd5e]/30 text-[#4dcd5e]"
-          onConfirm={() => { setIsBanned(false); setShowUnbanConfirm(false); fireToast("Player unbanned"); }} />
+          onConfirm={async () => { await patchProfile({ is_banned: false, ban_reason: null }); setShowUnbanConfirm(false); fireToast("Player unbanned"); }} />
       )}
       {showSkillConfirm && (
         <Modal icon={<ChevronDown size={18} className="text-[#a855f7]" />} iconBg="bg-[#a855f7]/10 border-[#a855f7]/20"
@@ -197,7 +259,7 @@ export function AdminPlayerProfile() {
               <button onClick={() => { setShowSuspendModal(false); setSuspendDate(""); setSuspendReason(""); }}
                 className="flex-1 py-2 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">Cancel</button>
               <button onClick={confirmSuspend} disabled={!suspendDate}
-                className="flex-1 py-2 rounded-xl bg-[#eab308]/10 border border-[#eab308]/30 text-[#eab308] font-bold text-sm active:scale-[0.98] transition-transform disabled:opacity-40 disabled:cursor-not-allowed">
+                className="flex-1 py-2 rounded-xl bg-[#eab308]/10 border border-[#eab308]/30 text-[#eab308] font-bold text-sm transition-transform disabled:opacity-40 disabled:cursor-not-allowed">
                 Suspend
               </button>
             </div>
@@ -229,7 +291,7 @@ export function AdminPlayerProfile() {
               <button onClick={() => { setShowBanConfirm(false); setBanReason(""); }}
                 className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">Cancel</button>
               <button onClick={confirmBan}
-                className="flex-1 py-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-bold text-sm active:scale-[0.98] transition-transform">
+                className="flex-1 py-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-bold text-sm transition-transform">
                 Ban
               </button>
             </div>
@@ -242,29 +304,36 @@ export function AdminPlayerProfile() {
       {/* ── Avatar + identity ─────────────────────────────── */}
       <div className="flex flex-col items-center pt-8 pb-6 px-4">
         <div className="relative mb-4">
-          <img src={player.avatar} alt={player.name}
-            className="w-28 h-28 rounded-full object-cover bg-[#17212b]"
-            style={{ boxShadow: `0 0 0 3px ${ringColor}` }} />
-          {isVerified && (
+          {player.avatar ? (
+            <img src={player.avatar} alt={player.name}
+              className="w-28 h-28 rounded-full object-cover bg-[#17212b]"
+              style={{ boxShadow: `0 0 0 3px ${ringColor}` }} />
+          ) : (
+            <div className="w-28 h-28 rounded-full bg-[#17212b] flex items-center justify-center"
+              style={{ boxShadow: `0 0 0 3px ${ringColor}` }}>
+              <User size={36} className="text-white/20" />
+            </div>
+          )}
+          {player.is_verified && (
             <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#3390ec] rounded-full flex items-center justify-center border-[3px] border-[#0e1621]">
               <CheckCircle2 size={14} className="text-white" strokeWidth={2.5} />
             </div>
           )}
         </div>
         <div className="flex items-center gap-2 mb-1">
-          <h1 className="text-xl font-semibold text-white">{displayName}</h1>
-          {isVerified && <BadgeCheck size={18} className="text-[#3390ec] shrink-0" />}
+          <h1 className="text-xl font-semibold text-white">{player.name}</h1>
+          {player.is_verified && <BadgeCheck size={18} className="text-[#3390ec] shrink-0" />}
         </div>
         <span className={`text-sm font-medium mb-2 ${SKILL_COLOR[displaySkill] ?? "text-white"}`}>{displaySkill}</span>
         <div className="flex items-center gap-2 flex-wrap justify-center">
-          {isBanned && (
+          {player.is_banned && (
             <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ef4444]/10 border border-[#ef4444]/25 text-[#ef4444] text-xs font-bold">
               <OctagonX size={11} /> Banned
             </span>
           )}
-          {isSuspended && !isBanned && (
+          {player.is_suspended && !player.is_banned && (
             <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#eab308]/10 border border-[#eab308]/25 text-[#eab308] text-xs font-bold">
-              <Clock size={11} /> Suspended until {formatDate(suspendedUntil)}
+              <Clock size={11} /> Suspended until {formatDate(player.suspended_until ?? "")}
             </span>
           )}
         </div>
@@ -279,11 +348,16 @@ export function AdminPlayerProfile() {
             {editingInfo ? (
               <div className="flex items-center gap-3">
                 <button onClick={() => setEditingInfo(false)} className="text-[11px] font-bold text-[#79828b] hover:text-white transition-colors">Cancel</button>
-                <button onClick={() => { if (infoDraft.name.trim()) setDisplayName(infoDraft.name.trim()); setDisplayBirthDate(infoDraft.birthDate); setEditingInfo(false); fireToast("Info updated"); }}
+                <button onClick={async () => {
+                  const patch: Partial<ProfileRow> = { birth_date: infoDraft.birthDate || null };
+                  if (infoDraft.name.trim()) patch.name = infoDraft.name.trim();
+                  await patchProfile(patch);
+                  setEditingInfo(false); fireToast("Info updated");
+                }}
                   className="text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">Save</button>
               </div>
             ) : (
-              <button onClick={() => { setInfoDraft({ name: displayName, birthDate: displayBirthDate }); setEditingInfo(true); }}
+              <button onClick={() => { setInfoDraft({ name: player.name, birthDate: player.birth_date ?? "" }); setEditingInfo(true); }}
                 className="flex items-center gap-1 text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">
                 <Pencil size={11} /> Edit
               </button>
@@ -301,7 +375,7 @@ export function AdminPlayerProfile() {
                   <input type="text" value={infoDraft.name} onChange={e => setInfoDraft(d => ({ ...d, name: e.target.value }))}
                     className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#3390ec]/60 transition-colors" />
                 ) : (
-                  <div className="text-sm text-white">{displayName}</div>
+                  <div className="text-sm text-white">{player.name}</div>
                 )}
               </div>
             </div>
@@ -316,10 +390,10 @@ export function AdminPlayerProfile() {
                   <input type="date" value={infoDraft.birthDate} onChange={e => setInfoDraft(d => ({ ...d, birthDate: e.target.value }))}
                     style={{ colorScheme: "dark" }}
                     className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#3390ec]/60 transition-colors appearance-none" />
-                ) : displayBirthDate ? (
+                ) : player.birth_date ? (
                   <div className="text-sm text-white">
-                    {formatDate(displayBirthDate)}
-                    <span className="text-[#79828b] ml-1.5">· {calcAge(displayBirthDate)}</span>
+                    {formatDate(player.birth_date)}
+                    <span className="text-[#79828b] ml-1.5">· {calcAge(player.birth_date)}</span>
                   </div>
                 ) : (
                   <div className="text-sm text-[#79828b]">—</div>
@@ -336,11 +410,19 @@ export function AdminPlayerProfile() {
             {editingContact ? (
               <div className="flex items-center gap-3">
                 <button onClick={() => setEditingContact(false)} className="text-[11px] font-bold text-[#79828b] hover:text-white transition-colors">Cancel</button>
-                <button onClick={() => { setContactInfo(contactDraft); setEditingContact(false); fireToast("Contact updated"); }}
+                <button onClick={async () => {
+                  await patchProfile({
+                    phone: contactDraft.phone || null,
+                    email: contactDraft.email || null,
+                    telegram: contactDraft.telegram || null,
+                    instagram: contactDraft.instagram || null,
+                  });
+                  setEditingContact(false); fireToast("Contact updated");
+                }}
                   className="text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">Save</button>
               </div>
             ) : (
-              <button onClick={() => { setContactDraft(contactInfo); setEditingContact(true); }}
+              <button onClick={() => { setContactDraft({ phone: player.phone ?? "", email: player.email ?? "", telegram: player.telegram ?? "", instagram: player.instagram ?? "" }); setEditingContact(true); }}
                 className="flex items-center gap-1 text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">
                 <Pencil size={11} /> Edit
               </button>
@@ -358,8 +440,8 @@ export function AdminPlayerProfile() {
                 {editingContact ? (
                   <input type="tel" value={contactDraft.phone} onChange={e => setContactDraft(d => ({ ...d, phone: e.target.value }))}
                     className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#3390ec]/60 transition-colors" />
-                ) : contactInfo.phone ? (
-                  <a href={`tel:${contactInfo.phone.replace(/\s/g, "")}`} className="text-sm text-white">{contactInfo.phone}</a>
+                ) : player.phone ? (
+                  <a href={`tel:${player.phone.replace(/\s/g, "")}`} className="text-sm text-white">{player.phone}</a>
                 ) : <div className="text-sm text-[#79828b]">—</div>}
               </div>
             </div>
@@ -374,8 +456,8 @@ export function AdminPlayerProfile() {
                 {editingContact ? (
                   <input type="email" value={contactDraft.email} onChange={e => setContactDraft(d => ({ ...d, email: e.target.value }))}
                     className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#3390ec]/60 transition-colors" />
-                ) : contactInfo.email ? (
-                  <a href={`mailto:${contactInfo.email}`} className="text-sm text-white">{contactInfo.email}</a>
+                ) : player.email ? (
+                  <a href={`mailto:${player.email}`} className="text-sm text-white">{player.email}</a>
                 ) : <div className="text-sm text-[#79828b]">—</div>}
               </div>
             </div>
@@ -391,8 +473,8 @@ export function AdminPlayerProfile() {
                   <input type="text" value={contactDraft.telegram} onChange={e => setContactDraft(d => ({ ...d, telegram: e.target.value }))}
                     placeholder="@username"
                     className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#3390ec]/60 transition-colors" />
-                ) : contactInfo.telegram ? (
-                  <a href={`https://t.me/${contactInfo.telegram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-sm text-white">{contactInfo.telegram}</a>
+                ) : player.telegram ? (
+                  <a href={`https://t.me/${player.telegram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-sm text-white">{player.telegram}</a>
                 ) : <span className="text-sm text-[#79828b]">—</span>}
               </div>
             </div>
@@ -408,8 +490,8 @@ export function AdminPlayerProfile() {
                   <input type="text" value={contactDraft.instagram} onChange={e => setContactDraft(d => ({ ...d, instagram: e.target.value }))}
                     placeholder="@username"
                     className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#3390ec]/60 transition-colors" />
-                ) : contactInfo.instagram ? (
-                  <a href={`https://instagram.com/${contactInfo.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-sm text-white">@{contactInfo.instagram.replace("@", "")}</a>
+                ) : player.instagram ? (
+                  <a href={`https://instagram.com/${player.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-sm text-white">@{player.instagram.replace("@", "")}</a>
                 ) : <span className="text-sm text-[#79828b]">—</span>}
               </div>
             </div>
@@ -422,9 +504,9 @@ export function AdminPlayerProfile() {
           <div className="flex items-center justify-between mb-2 px-1">
             <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Admin Note</h2>
             {!editingComment && (
-              <button onClick={() => { setCommentDraft(comment); setEditingComment(true); }}
+              <button onClick={() => { setCommentDraft(player.admin_note ?? ""); setCommentVisibility(player.admin_note_visibility); setEditingComment(true); }}
                 className="flex items-center gap-1 text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">
-                <Pencil size={11} /> {comment ? "Edit" : "Add"}
+                <Pencil size={11} /> {player.admin_note ? "Edit" : "Add"}
               </button>
             )}
           </div>
@@ -435,11 +517,11 @@ export function AdminPlayerProfile() {
                   placeholder="Add a note about this player…" rows={3}
                   className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none" />
                 <div className="flex gap-2">
-                  <button onClick={() => { setCommentVisibility("admin"); setEditingComment(false); }}
+                  <button onClick={() => setCommentVisibility("admin")}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black uppercase tracking-wider transition-colors ${commentVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
                     <Lock size={11} /> Admins only
                   </button>
-                  <button onClick={() => { setCommentVisibility("all"); setEditingComment(false); }}
+                  <button onClick={() => setCommentVisibility("all")}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black uppercase tracking-wider transition-colors ${commentVisibility === "all" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
                     <Globe size={11} /> Everyone
                   </button>
@@ -447,20 +529,23 @@ export function AdminPlayerProfile() {
                 <div className="flex gap-2">
                   <button onClick={() => setEditingComment(false)}
                     className="flex-1 py-2 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">Cancel</button>
-                  <button onClick={() => { setComment(commentDraft); setEditingComment(false); fireToast("Comment saved"); }}
-                    className="flex-1 py-2 rounded-xl bg-[#3390ec] text-white font-bold text-sm active:scale-[0.98] transition-transform">Save</button>
+                  <button onClick={async () => {
+                    await patchProfile({ admin_note: commentDraft || null, admin_note_visibility: commentVisibility });
+                    setEditingComment(false); fireToast("Comment saved");
+                  }}
+                    className="flex-1 py-2 rounded-xl bg-[#3390ec] text-white font-bold text-sm transition-transform">Save</button>
                 </div>
               </div>
-            ) : comment ? (
+            ) : player.admin_note ? (
               <div className="px-4 py-3.5">
                 <div className="flex items-center gap-1.5 mb-2">
                   <MessageSquare size={12} className="text-[#79828b]" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-[#79828b]">
-                    {commentVisibility === "admin" ? "Admin only" : "Visible to everyone"}
+                    {player.admin_note_visibility === "admin" ? "Admin only" : "Visible to everyone"}
                   </span>
-                  {commentVisibility === "admin" ? <Lock size={10} className="text-[#79828b]" /> : <Globe size={10} className="text-[#79828b]" />}
+                  {player.admin_note_visibility === "admin" ? <Lock size={10} className="text-[#79828b]" /> : <Globe size={10} className="text-[#79828b]" />}
                 </div>
-                <p className="text-sm text-white/80 leading-relaxed">{comment}</p>
+                <p className="text-sm text-white/80 leading-relaxed">{player.admin_note}</p>
               </div>
             ) : (
               <div className="py-6 flex items-center justify-center">
@@ -487,26 +572,31 @@ export function AdminPlayerProfile() {
                 <div className="text-[11px] text-[#79828b]">Current: {displaySkill}</div>
               </div>
               <div className="relative shrink-0">
-                <select value={displaySkill} onChange={e => openSkillPicker(e.target.value)}
-                  className="appearance-none bg-[#222f3e] border border-white/10 rounded-lg pl-3 pr-7 py-1.5 text-white text-[11px] font-black uppercase tracking-wider focus:outline-none focus:border-[#a855f7]/50 transition-colors [color-scheme:dark] cursor-pointer">
-                  {[...SKILL_ORDER].reverse().map(lvl => <option key={lvl} value={lvl}>{lvl}</option>)}
+                <select value={displaySkill} onChange={e => openSkillPicker(e.target.value)} disabled={hierarchyLocked}
+                  className="appearance-none bg-[#222f3e] border border-white/10 rounded-lg pl-3 pr-7 py-1.5 text-white text-[11px] font-black uppercase tracking-wider focus:outline-none focus:border-[#a855f7]/50 transition-colors [color-scheme:dark] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+                  {skillOptions.map(lvl => <option key={lvl} value={lvl}>{lvl}</option>)}
                 </select>
                 <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
               </div>
             </div>
+            {hierarchyLocked && (
+              <p className="px-4 pb-3 -mt-2 text-[10px] text-[#79828b]">
+                {isSelf ? "You can't change your own skill level, suspension or ban." : "Admins can't change another admin's skill level, suspension or ban."}
+              </p>
+            )}
 
             {/* Verification */}
             <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isVerified ? "bg-[#3390ec]" : "bg-white/5"}`}>
-                <BadgeCheck size={16} className={isVerified ? "text-white" : "text-[#79828b]"} />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${player.is_verified ? "bg-[#3390ec]" : "bg-white/5"}`}>
+                <BadgeCheck size={16} className={player.is_verified ? "text-white" : "text-[#79828b]"} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold text-white">Identity Verified</div>
-                <div className="text-[11px] text-[#79828b]">{isVerified ? "Badge visible to all users" : "Not verified"}</div>
+                <div className="text-[11px] text-[#79828b]">{player.is_verified ? "Badge visible to all users" : "Not verified"}</div>
               </div>
-              {isVerified ? (
-                <button onClick={() => setShowRevokeConfirm(true)}
-                  className="px-3 py-1.5 rounded-lg border border-[#ef4444]/30 text-[#ef4444] text-[11px] font-black uppercase tracking-wider hover:bg-[#ef4444]/5 transition-colors shrink-0">
+              {player.is_verified ? (
+                <button onClick={() => setShowRevokeConfirm(true)} disabled={player.is_admin}
+                  className="px-3 py-1.5 rounded-lg border border-[#ef4444]/30 text-[#ef4444] text-[11px] font-black uppercase tracking-wider hover:bg-[#ef4444]/5 transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
                   Revoke
                 </button>
               ) : (
@@ -519,20 +609,20 @@ export function AdminPlayerProfile() {
 
             {/* Suspension */}
             <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isSuspended ? "bg-[#eab308]/15" : "bg-white/5"}`}>
-                <Clock size={16} className={isSuspended ? "text-[#eab308]" : "text-[#79828b]"} />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${player.is_suspended ? "bg-[#eab308]/15" : "bg-white/5"}`}>
+                <Clock size={16} className={player.is_suspended ? "text-[#eab308]" : "text-[#79828b]"} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold text-white">Suspension</div>
-                <div className="text-[11px] text-[#79828b]">{isSuspended ? `Until ${formatDate(suspendedUntil)}` : "Not suspended"}</div>
+                <div className="text-[11px] text-[#79828b]">{player.is_suspended ? `Until ${formatDate(player.suspended_until ?? "")}` : "Not suspended"}</div>
               </div>
-              {isSuspended ? (
-                <button onClick={() => setShowLiftConfirm(true)}
-                  className="px-3 py-1.5 rounded-lg border border-[#4dcd5e]/30 text-[#4dcd5e] text-[11px] font-black uppercase tracking-wider hover:bg-[#4dcd5e]/5 transition-colors shrink-0">
+              {player.is_suspended ? (
+                <button onClick={() => setShowLiftConfirm(true)} disabled={hierarchyLocked}
+                  className="px-3 py-1.5 rounded-lg border border-[#4dcd5e]/30 text-[#4dcd5e] text-[11px] font-black uppercase tracking-wider hover:bg-[#4dcd5e]/5 transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
                   Lift
                 </button>
               ) : (
-                <button onClick={() => setShowSuspendModal(true)} disabled={isBanned}
+                <button onClick={() => setShowSuspendModal(true)} disabled={player.is_banned || hierarchyLocked}
                   className="px-3 py-1.5 rounded-lg border border-[#eab308]/30 text-[#eab308] text-[11px] font-black uppercase tracking-wider hover:bg-[#eab308]/5 transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
                   Suspend
                 </button>
@@ -541,21 +631,21 @@ export function AdminPlayerProfile() {
 
             {/* Ban */}
             <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isBanned ? "bg-[#ef4444]/15" : "bg-white/5"}`}>
-                <OctagonX size={16} className={isBanned ? "text-[#ef4444]" : "text-[#79828b]"} />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${player.is_banned ? "bg-[#ef4444]/15" : "bg-white/5"}`}>
+                <OctagonX size={16} className={player.is_banned ? "text-[#ef4444]" : "text-[#79828b]"} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold text-white">Ban</div>
-                <div className="text-[11px] text-[#79828b]">{isBanned ? "Permanently banned" : "Not banned"}</div>
+                <div className="text-[11px] text-[#79828b]">{player.is_banned ? "Permanently banned" : "Not banned"}</div>
               </div>
-              {isBanned ? (
-                <button onClick={() => setShowUnbanConfirm(true)}
-                  className="px-3 py-1.5 rounded-lg border border-[#4dcd5e]/30 text-[#4dcd5e] text-[11px] font-black uppercase tracking-wider hover:bg-[#4dcd5e]/5 transition-colors shrink-0">
+              {player.is_banned ? (
+                <button onClick={() => setShowUnbanConfirm(true)} disabled={hierarchyLocked}
+                  className="px-3 py-1.5 rounded-lg border border-[#4dcd5e]/30 text-[#4dcd5e] text-[11px] font-black uppercase tracking-wider hover:bg-[#4dcd5e]/5 transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
                   Unban
                 </button>
               ) : (
-                <button onClick={() => setShowBanConfirm(true)}
-                  className="px-3 py-1.5 rounded-lg border border-[#ef4444]/30 text-[#ef4444] text-[11px] font-black uppercase tracking-wider hover:bg-[#ef4444]/5 transition-colors shrink-0">
+                <button onClick={() => setShowBanConfirm(true)} disabled={hierarchyLocked}
+                  className="px-3 py-1.5 rounded-lg border border-[#ef4444]/30 text-[#ef4444] text-[11px] font-black uppercase tracking-wider hover:bg-[#ef4444]/5 transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
                   Ban
                 </button>
               )}
@@ -574,13 +664,13 @@ export function AdminPlayerProfile() {
           ) : (
             <div className="flex flex-col gap-2">
               {upcomingEvents.map(e => (
-                <div key={e.id} className="bg-[#17212b] rounded-xl px-4 py-3.5">
+                <Link key={e.id} to={`/admin/events/${e.id}`} className="block bg-[#17212b] rounded-xl px-4 py-3.5 hover:bg-[#1c2a36] transition-colors">
                   <span className="text-sm font-bold text-white uppercase tracking-wide block mb-1.5">{e.title}</span>
                   <div className="flex flex-wrap gap-3 text-xs text-[#aaa]">
-                    <span className="flex items-center gap-1"><Calendar size={11} className="text-[#3390ec]" />{e.date.replace("TODAY • ", "").replace("TOMORROW • ", "")}</span>
+                    <span className="flex items-center gap-1"><Calendar size={11} className="text-[#3390ec]" />{formatDate(e.event_date)}</span>
                     <span className="flex items-center gap-1"><MapPin size={11} className="text-[#3390ec]" />{e.location}</span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -596,10 +686,10 @@ export function AdminPlayerProfile() {
           ) : (
             <div className="bg-[#17212b] rounded-xl overflow-hidden">
               {pastEvents.map((e, i) => (
-                <div key={e.id} className={`flex items-center justify-between px-4 py-2.5 ${i > 0 ? "border-t border-white/[0.06]" : ""}`}>
+                <Link key={e.id} to={`/admin/events/${e.id}`} className={`flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors ${i > 0 ? "border-t border-white/[0.06]" : ""}`}>
                   <span className="text-sm text-white/75 truncate">{e.title}</span>
-                  <span className="text-xs text-[#aaa] shrink-0 ml-3">{e.date}</span>
-                </div>
+                  <span className="text-xs text-[#aaa] shrink-0 ml-3">{formatDate(e.event_date)}</span>
+                </Link>
               ))}
             </div>
           )}
@@ -627,7 +717,7 @@ function Modal({ icon, iconBg, title, sub, body, cancelLabel, onCancel, confirmL
         {body && <p className="text-[#79828b] text-sm mb-5">{body}</p>}
         <div className={`flex gap-3 ${!body ? "mt-4" : ""}`}>
           <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">{cancelLabel}</button>
-          <button onClick={onConfirm} className={`flex-1 py-2.5 rounded-xl font-bold text-sm active:scale-[0.98] transition-transform ${confirmCls}`}>{confirmLabel}</button>
+          <button onClick={onConfirm} className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-transform ${confirmCls}`}>{confirmLabel}</button>
         </div>
       </div>
     </div>

@@ -2,16 +2,20 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { ChevronLeft, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { useLang } from "../i18n";
+import { useAuth } from "../lib/AuthContext";
 
 type Screen = "signin" | "signup" | "forgot";
 
 export function SignIn() {
   const navigate = useNavigate();
   const { t } = useLang();
+  const { signIn, signUp } = useAuth();
   const [screen, setScreen] = useState<Screen>("signin");
   const [showPass, setShowPass]       = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [remember, setRemember]       = useState(false);
+  const [submitting, setSubmitting]   = useState(false);
+  const [error, setError]             = useState<string | null>(null);
 
   const [form, setForm] = useState({
     name: "", email: "", password: "", confirm: "",
@@ -26,8 +30,25 @@ export function SignIn() {
     else setScreen("signin");
   }
 
-  function handleSubmit() {
-    localStorage.setItem("prime_logged_in", "true");
+  async function handleLogin() {
+    setError(null);
+    setSubmitting(true);
+    const { error } = await signIn(form.email, form.password);
+    setSubmitting(false);
+    if (error) { setError(error); return; }
+    navigate("/");
+  }
+
+  async function handleSignup() {
+    setError(null);
+    if (form.password !== form.confirm) {
+      setError("Passwords don't match");
+      return;
+    }
+    setSubmitting(true);
+    const { error } = await signUp(form.name, form.email, form.password);
+    setSubmitting(false);
+    if (error) { setError(error); return; }
     navigate("/");
   }
 
@@ -56,6 +77,12 @@ export function SignIn() {
           {screen === "forgot"  && t.signin.forgotPasswordDesc}
         </p>
       </div>
+
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] text-sm">
+          {error}
+        </div>
+      )}
 
       {/* ── SIGN IN ── */}
       {screen === "signin" && (
@@ -103,10 +130,11 @@ export function SignIn() {
           </div>
 
           <button
-            onClick={handleSubmit}
-            className="w-full py-3.5 rounded-xl bg-[#3390ec] text-white font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)] mb-5"
+            onClick={handleLogin}
+            disabled={submitting}
+            className="w-full py-3.5 rounded-xl bg-[#3390ec] text-white font-bold text-sm transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)] mb-5 disabled:opacity-50"
           >
-            {t.signin.loginBtn}
+            {submitting ? "…" : t.signin.loginBtn}
           </button>
 
           <p className="text-center text-sm text-[#79828b] mb-8">
@@ -116,7 +144,7 @@ export function SignIn() {
             </button>
           </p>
 
-          <SocialSection onSelect={handleSubmit} />
+          <SocialSection />
         </>
       )}
 
@@ -155,10 +183,11 @@ export function SignIn() {
           </div>
 
           <button
-            onClick={handleSubmit}
-            className="w-full py-3.5 rounded-xl bg-[#3390ec] text-white font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)] mb-5"
+            onClick={handleSignup}
+            disabled={submitting}
+            className="w-full py-3.5 rounded-xl bg-[#3390ec] text-white font-bold text-sm transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)] mb-5 disabled:opacity-50"
           >
-            {t.signin.createBtn}
+            {submitting ? "…" : t.signin.createBtn}
           </button>
 
           <p className="text-center text-sm text-[#79828b] mb-8">
@@ -168,7 +197,7 @@ export function SignIn() {
             </button>
           </p>
 
-          <SocialSection onSelect={handleSubmit} />
+          <SocialSection />
         </>
       )}
 
@@ -187,7 +216,7 @@ export function SignIn() {
 
           <button
             onClick={() => setScreen("signin")}
-            className="w-full py-3.5 rounded-xl bg-[#3390ec] text-white font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)]"
+            className="w-full py-3.5 rounded-xl bg-[#3390ec] text-white font-bold text-sm transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)]"
           >
             {t.signin.continueBtn}
           </button>
@@ -250,7 +279,7 @@ function PasswordField({
   );
 }
 
-function SocialSection({ onSelect }: { onSelect: () => void }) {
+function SocialSection() {
   const { t } = useLang();
   return (
     <>
@@ -261,13 +290,13 @@ function SocialSection({ onSelect }: { onSelect: () => void }) {
       </div>
 
       <div className="flex justify-center gap-4">
-        <SocialBtn onClick={onSelect} label="Google">
+        <SocialBtn disabled label="Google — coming soon">
           <GoogleIcon />
         </SocialBtn>
-        <SocialBtn onClick={onSelect} label="Apple">
+        <SocialBtn disabled label="Apple — coming soon">
           <AppleIcon />
         </SocialBtn>
-        <SocialBtn onClick={onSelect} label="Telegram">
+        <SocialBtn disabled label="Telegram — coming soon">
           <TelegramIcon />
         </SocialBtn>
       </div>
@@ -275,12 +304,14 @@ function SocialSection({ onSelect }: { onSelect: () => void }) {
   );
 }
 
-function SocialBtn({ onClick, label, children }: { onClick: () => void; label: string; children: React.ReactNode }) {
+function SocialBtn({ disabled, label, children }: { disabled?: boolean; label: string; children: React.ReactNode }) {
   return (
     <button
-      onClick={onClick}
+      type="button"
+      disabled={disabled}
       aria-label={label}
-      className="w-14 h-14 rounded-full bg-[#17212b] border border-white/10 flex items-center justify-center hover:border-white/25 hover:bg-white/5 active:scale-95 transition-all"
+      title={label}
+      className="w-14 h-14 rounded-full bg-[#17212b] border border-white/10 flex items-center justify-center hover:border-white/25 hover:bg-white/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-white/10 disabled:hover:bg-transparent"
     >
       {children}
     </button>

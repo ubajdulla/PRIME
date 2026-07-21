@@ -1,8 +1,12 @@
-import { useParams } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router";
 import { Navigate } from "react-router";
-import { Send, Instagram, Calendar, MapPin } from "lucide-react";
-import { ALL_PLAYERS, ADMIN_EVENTS, SKILL_STYLE } from "../data/adminData";
+import { Send, Instagram, Calendar, MapPin, User } from "lucide-react";
+import { SKILL_STYLE } from "../data/adminData";
 import { BackBar } from "../components/ui/BackBar";
+import { useAuth } from "../lib/AuthContext";
+import { supabase } from "../lib/supabaseClient";
+import { shortDate } from "../lib/eventDate";
 
 const SKILL_COLOR: Record<string, string> = {
   PRIME:        "text-[#ccff00]",
@@ -13,14 +17,38 @@ const SKILL_COLOR: Record<string, string> = {
   Rookie:       "text-[#79828b]",
 };
 
+type ProfileRow = {
+  id: string; name: string; avatar: string | null; position: string | null; skill_level: string;
+  telegram: string | null; instagram: string | null; show_telegram: boolean; show_instagram: boolean;
+  visible_admin_note: string | null;
+};
+type EventRow = { id: string; title: string; event_date: string; location: string; status: string };
+
 export function PlayerProfile() {
   const { playerId } = useParams<{ playerId: string }>();
+  const { isLoggedIn, loading: authLoading } = useAuth();
 
-  if (localStorage.getItem("prime_logged_in") === "false") {
+  const [player, setPlayer] = useState<ProfileRow | null>(null);
+  const [events, setEvents] = useState<EventRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!playerId) return;
+    (async () => {
+      const [{ data: p }, { data: partRows }] = await Promise.all([
+        supabase.from("profiles").select("id, name, avatar, position, skill_level, telegram, instagram, show_telegram, show_instagram, visible_admin_note").eq("id", playerId).single(),
+        supabase.from("event_participants").select("events(id, title, event_date, location, status)").eq("player_id", playerId),
+      ]);
+      setPlayer((p as ProfileRow) ?? null);
+      setEvents(((partRows ?? []).map(r => r.events).filter(Boolean) as unknown as EventRow[]));
+      setLoading(false);
+    })();
+  }, [playerId]);
+
+  if (authLoading || loading) return null;
+  if (!isLoggedIn) {
     return <Navigate to="/signin" replace />;
   }
-
-  const player = ALL_PLAYERS.find(p => p.id === playerId);
 
   if (!player) {
     return (
@@ -33,15 +61,11 @@ export function PlayerProfile() {
     );
   }
 
-  const style = SKILL_STYLE[player.skillLevel];
-  const ringColor = dotColor(player.skillLevel);
+  const style = SKILL_STYLE[player.skill_level];
+  const ringColor = dotColor(player.skill_level);
 
-  const upcomingEvents = ADMIN_EVENTS.filter(
-    e => e.status === "upcoming" && e.roster.some(r => r.id === player.id)
-  );
-  const pastEvents = ADMIN_EVENTS.filter(
-    e => e.status === "past" && e.roster.some(r => r.id === player.id)
-  );
+  const upcomingEvents = events.filter(e => e.status === "upcoming");
+  const pastEvents = events.filter(e => e.status === "past");
 
   return (
     <div className="min-h-full bg-[#0e1621] pb-4 font-sans">
@@ -50,16 +74,22 @@ export function PlayerProfile() {
       {/* Avatar + identity */}
       <div className="flex flex-col items-center pt-8 pb-6 px-4">
         <div className="relative mb-4">
-          <img
-            src={player.avatar}
-            alt={player.name}
-            className="w-28 h-28 rounded-full object-cover bg-[#17212b]"
-            style={{ boxShadow: `0 0 0 3px ${ringColor}` }}
-          />
+          {player.avatar ? (
+            <img
+              src={player.avatar}
+              alt={player.name}
+              className="w-28 h-28 rounded-full object-cover bg-[#17212b]"
+              style={{ boxShadow: `0 0 0 3px ${ringColor}` }}
+            />
+          ) : (
+            <div className="w-28 h-28 rounded-full bg-[#17212b] flex items-center justify-center" style={{ boxShadow: `0 0 0 3px ${ringColor}` }}>
+              <User size={36} className="text-white/20" />
+            </div>
+          )}
         </div>
         <h1 className="text-xl font-semibold text-white mb-1">{player.name}</h1>
-        <span className={`text-sm font-medium ${SKILL_COLOR[player.skillLevel] ?? "text-white"}`}>
-          {player.skillLevel}
+        <span className={`text-sm font-medium ${SKILL_COLOR[player.skill_level] ?? "text-white"}`}>
+          {player.skill_level}
         </span>
       </div>
 
@@ -69,18 +99,25 @@ export function PlayerProfile() {
         <div className="bg-[#17212b] rounded-xl">
           <div className="flex items-center justify-between px-4 py-3.5">
             <span className="text-sm text-[#aaa]">Position</span>
-            <span className="text-white text-sm font-bold">{player.position}</span>
+            <span className="text-white text-sm font-bold">{player.position ?? "—"}</span>
           </div>
         </div>
 
+        {/* Admin note - server only sends this when it's actually visible to us */}
+        {player.visible_admin_note && (
+          <div className="bg-[#17212b] rounded-xl px-4 py-3.5">
+            <p className="text-sm text-white/80 leading-relaxed">{player.visible_admin_note}</p>
+          </div>
+        )}
+
         {/* Contact */}
-        {((player.showTelegram !== false && player.telegram) || (player.showInstagram !== false && player.instagram)) && (
+        {((player.show_telegram !== false && player.telegram) || (player.show_instagram !== false && player.instagram)) && (
           <section>
             <div className="flex items-center justify-between mb-2 px-1">
               <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Contact</h2>
             </div>
             <div className="bg-[#17212b] rounded-xl overflow-hidden">
-              {player.telegram && player.showTelegram !== false && (
+              {player.telegram && player.show_telegram !== false && (
                 <a href={`https://t.me/${player.telegram.replace("@", "")}`} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] active:bg-white/5 transition-colors">
                   <div className="w-8 h-8 rounded-lg bg-[#3390ec] flex items-center justify-center shrink-0">
@@ -92,9 +129,9 @@ export function PlayerProfile() {
                   </div>
                 </a>
               )}
-              {player.instagram && player.showInstagram !== false && (
+              {player.instagram && player.show_instagram !== false && (
                 <a href={`https://instagram.com/${player.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer"
-                  className={`flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] active:bg-white/5 transition-colors ${player.telegram && player.showTelegram !== false ? "border-t border-white/[0.06]" : ""}`}>
+                  className={`flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] active:bg-white/5 transition-colors ${player.telegram && player.show_telegram !== false ? "border-t border-white/[0.06]" : ""}`}>
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888] flex items-center justify-center shrink-0">
                     <Instagram size={14} className="text-white" />
                   </div>
@@ -118,21 +155,21 @@ export function PlayerProfile() {
           ) : (
             <div className="flex flex-col gap-2">
               {upcomingEvents.map(e => (
-                <div key={e.id} className="block bg-[#17212b] rounded-xl px-4 py-3.5">
+                <Link key={e.id} to={`/events/${e.id}`} className="block bg-[#17212b] rounded-xl px-4 py-3.5 hover:bg-[#1c2a36] transition-colors">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="text-sm font-bold text-white uppercase tracking-wide">{e.title}</span>
                   </div>
                   <div className="flex flex-wrap gap-3 text-xs text-[#aaa]">
                     <span className="flex items-center gap-1">
                       <Calendar size={11} className="text-[#3390ec]" />
-                      {e.date.replace("TODAY • ", "").replace("TOMORROW • ", "")}
+                      {shortDate(e.event_date, true)}
                     </span>
                     <span className="flex items-center gap-1">
                       <MapPin size={11} className="text-[#3390ec]" />
                       {e.location}
                     </span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -148,13 +185,14 @@ export function PlayerProfile() {
           ) : (
             <div className="bg-[#17212b] rounded-xl overflow-hidden">
               {pastEvents.map((e, i) => (
-                <div
+                <Link
                   key={e.id}
-                  className={`flex items-center justify-between px-4 py-2.5 ${i > 0 ? "border-t border-white/[0.06]" : ""}`}
+                  to={`/events/${e.id}`}
+                  className={`flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors ${i > 0 ? "border-t border-white/[0.06]" : ""}`}
                 >
                   <span className="text-sm text-white/75 truncate">{e.title}</span>
-                  <span className="text-xs text-[#aaa] shrink-0 ml-3">{e.date}</span>
-                </div>
+                  <span className="text-xs text-[#aaa] shrink-0 ml-3">{shortDate(e.event_date, true)}</span>
+                </Link>
               ))}
             </div>
           )}

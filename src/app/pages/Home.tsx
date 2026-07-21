@@ -4,119 +4,29 @@ import { UserCircle } from "lucide-react";
 import { Instagram, Send } from "lucide-react";
 import { EventCard, EventCardProps } from "../components/EventCard";
 import { useLang, type Dict } from "../i18n";
+import { useAuth } from "../lib/AuthContext";
+import { supabase } from "../lib/supabaseClient";
+import { SKILL_STYLE } from "../data/adminData";
+import { computeJoinStatus } from "../lib/joinType";
+import { relativeDay, shortDate } from "../lib/eventDate";
 
-const AVATARS = [
-  "https://images.unsplash.com/photo-1667970573560-6ecf6a143514?w=100&h=100&fit=crop",
-  "https://images.unsplash.com/photo-1587930693964-e16abf7299f5?w=100&h=100&fit=crop",
-  "https://images.unsplash.com/photo-1582836997529-023a5ae82b1f?w=100&h=100&fit=crop",
-  "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=100&h=100&fit=crop",
-  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop"
-];
+function formatEventDate(dateStr: string): string {
+  return relativeDay(dateStr) ?? shortDate(dateStr);
+}
 
-const ALL_EVENTS: EventCardProps[] = [
-  {
-    id: "e1",
-    title: "PRO-AM INVITATIONAL #12",
-    date: "TODAY",
-    time: "20:00 - 22:00",
-    location: "Cyber Arena, Sector 4",
-    price: "625 CZK",
-    capacity: { current: 6, max: 10 },
-    avatars: AVATARS.slice(0, 3).concat(AVATARS),
-    status: "JOIN DIRECTLY",
-    category: "GAMES",
-    level: "Advanced",
-    image: "https://images.unsplash.com/photo-1546519638405-a4ebb24f9e0b?w=600&h=400&fit=crop",
-  },
-  {
-    id: "e2",
-    title: "ELITE SCRIMMAGE #48",
-    date: "TODAY",
-    time: "23:00 - 02:00",
-    location: "Neon Hub",
-    price: "375 CZK",
-    capacity: { current: 8, max: 10 },
-    avatars: AVATARS.slice().reverse(),
-    status: "REQUEST ONLY",
-    category: "TOURNAMENT",
-    level: "Pro",
-    image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=600&h=400&fit=crop",
-  },
-  {
-    id: "e3",
-    title: "MORNING GRIND SESSION",
-    date: "TOMORROW",
-    time: "09:00 - 11:00",
-    location: "SportCenter Praha 7",
-    price: "250 CZK",
-    capacity: { current: 9, max: 12 },
-    avatars: AVATARS.slice(1, 4),
-    status: "JOIN DIRECTLY",
-    category: "TRAININGS",
-    level: "Intermediate",
-    image: "https://images.unsplash.com/photo-1504450758481-7338eba7524a?w=600&h=400&fit=crop",
-  },
-  {
-    id: "e4",
-    title: "WEEKEND WARRIORS CLASH",
-    date: "SAT, OCT 26",
-    time: "18:00 - 21:00",
-    location: "Volleyball Arena Dejvice",
-    price: "750 CZK",
-    capacity: { current: 14, max: 16 },
-    avatars: AVATARS.slice(0, 5),
-    status: "REQUEST ONLY",
-    category: "TOURNAMENT",
-    level: "Advanced",
-    image: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=600&h=400&fit=crop",
-  },
-  {
-    id: "e5",
-    title: "BEACH OPEN PICKUP",
-    date: "SUN, OCT 27",
-    time: "15:00 - 17:00",
-    location: "Štvanice Beach Courts",
-    price: "FREE",
-    capacity: { current: 2, max: 12 },
-    avatars: [AVATARS[2]],
-    status: "JOIN DIRECTLY",
-    category: "BEACH",
-    level: "Beginner",
-    image: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=400&fit=crop",
-  },
-  {
-    id: "e6",
-    title: "PRIME LEAGUE FINALS",
-    date: "MON, OCT 28",
-    time: "18:00 - 21:00",
-    location: "Main Stadium",
-    price: "500 CZK",
-    capacity: { current: 12, max: 12 },
-    avatars: AVATARS,
-    status: "JOIN DIRECTLY",
-    category: "TOURNAMENT",
-    level: "Pro",
-    image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=600&h=400&fit=crop",
-    canceled: true,
-  },
-];
-
-type SkillLevel = "Beginner" | "Intermediate" | "Advanced" | "Pro" | "Elite";
-
-const SKILL_COLOR: Record<SkillLevel, string> = {
-  Beginner:     "#3390ec",
-  Intermediate: "#4dcd5e",
-  Advanced:     "#f5c542",
-  Pro:          "#f97316",
-  Elite:        "#e04040",
-};
-
-const MOCK_USER = {
-  firstName: "Alex",
-  skillLevel: "Intermediate" as SkillLevel,
-  position: "Outside Hitter",
-  avatar: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=100&h=100&fit=crop&crop=face",
-  isLoggedIn: true,
+type EventRow = {
+  id: string;
+  title: string;
+  event_date: string;
+  event_time: string;
+  location: string;
+  price_label: string | null;
+  capacity: number;
+  category: string | null;
+  level: string | null;
+  image: string | null;
+  status: string;
+  event_participants: { profiles: { avatar: string | null } | null }[] | null;
 };
 
 const ALL_FILTERS = ["ALL", "TOURNAMENT", "GAMES", "TRAININGS", "EVENTS", "BEACH", "JOIN DIRECTLY", "REQUEST ONLY"] as const;
@@ -166,9 +76,56 @@ export function Home() {
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
-  const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem("prime_logged_in") !== "false");
+  const { isLoggedIn, profile } = useAuth();
 
-  const filtered = ALL_EVENTS.filter(e => {
+  const [events, setEvents] = useState<EventCardProps[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      const [{ data: rows }, { data: counts }] = await Promise.all([
+        supabase
+          .from("events")
+          .select("id, title, event_date, event_time, location, price_label, capacity, category, level, image, status, event_participants(profiles(avatar))")
+          .in("status", ["upcoming", "canceled"])
+          .order("event_date", { ascending: true }),
+        supabase.rpc("event_join_counts"),
+      ]);
+      if (!active) return;
+
+      const countMap = new Map((counts as { event_id: string; joined_count: number }[] | null ?? []).map(c => [c.event_id, c.joined_count]));
+
+      const mapped: EventCardProps[] = ((rows as EventRow[] | null) ?? []).map(row => {
+        const current = countMap.get(row.id) ?? row.event_participants?.length ?? 0;
+        const avatars = (row.event_participants ?? [])
+          .map(p => p.profiles?.avatar)
+          .filter((a): a is string => !!a);
+        return {
+          id: row.id,
+          title: row.title,
+          date: formatEventDate(row.event_date),
+          time: row.event_time,
+          location: row.location,
+          price: row.price_label ?? "FREE",
+          capacity: { current, max: row.capacity },
+          avatars,
+          status: computeJoinStatus(row.level, profile?.skill_level),
+          category: row.category ?? undefined,
+          level: row.level ?? undefined,
+          image: row.image ?? undefined,
+          canceled: row.status === "canceled",
+        };
+      });
+
+      setEvents(mapped);
+      setLoadingEvents(false);
+    }
+    load();
+    return () => { active = false; };
+  }, [profile?.skill_level]);
+
+  const filtered = events.filter(e => {
     if (activeFilter === "ALL") return true;
     if (activeFilter === "REQUEST ONLY" || activeFilter === "JOIN DIRECTLY") return e.status === activeFilter;
     return e.category === activeFilter;
@@ -232,29 +189,34 @@ export function Home() {
         )}
 
         {/* ── Greeting ─────────────────────────────────────────────── */}
-        {isLoggedIn && (
+        {isLoggedIn && profile && (
           <div className={`flex items-center ${COL_GAP} mb-8`}>
             <div className={`${DATE_W} shrink-0`} />
             <div className={`${DOT_W} shrink-0`} />
             <div className="flex-1 min-w-0 flex items-center justify-between gap-6 pb-8 border-b border-white/8">
               <div>
                 <h1 className="font-black italic text-white tracking-widest uppercase text-2xl">
-                  {t.home.greeting.hello}, {MOCK_USER.firstName} 👋
+                  {t.home.greeting.hello}, {profile.name.split(" ")[0]} 👋
                 </h1>
                 <div className="flex items-center gap-2 mt-1.5 text-sm text-[#79828b]">
-                  <span>{MOCK_USER.position}</span>
-                  <span className="text-white/20">•</span>
+                  {profile.position && <><span>{profile.position}</span><span className="text-white/20">•</span></>}
                   <span className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: SKILL_COLOR[MOCK_USER.skillLevel] }} />
-                    <span className="font-semibold" style={{ color: SKILL_COLOR[MOCK_USER.skillLevel] }}>{MOCK_USER.skillLevel}</span>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${SKILL_STYLE[profile.skill_level]?.dot ?? SKILL_STYLE.Rookie.dot}`} />
+                    <span className={`font-semibold ${SKILL_STYLE[profile.skill_level]?.text ?? SKILL_STYLE.Rookie.text}`}>{profile.skill_level}</span>
                   </span>
                 </div>
               </div>
-              <img
-                src={MOCK_USER.avatar}
-                alt=""
-                className="w-16 h-16 rounded-full object-cover bg-[#17212b] shrink-0 ring-2 ring-white/15"
-              />
+              {profile.avatar ? (
+                <img
+                  src={profile.avatar}
+                  alt=""
+                  className="w-16 h-16 rounded-full object-cover bg-[#17212b] shrink-0 ring-2 ring-white/15"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-[#17212b] shrink-0 ring-2 ring-white/15 flex items-center justify-center">
+                  <UserCircle size={32} className="text-[#79828b]" />
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -315,7 +277,7 @@ export function Home() {
 
         {/* ── Chronological timeline ────────────────────────────────── */}
         <div className="flex flex-col">
-          {dateGroups.length === 0 && (
+          {dateGroups.length === 0 && !loadingEvents && (
             <div className={`flex ${COL_GAP}`}>
               <div className={`${DATE_W} shrink-0`} />
               <div className={`${DOT_W}  shrink-0`} />

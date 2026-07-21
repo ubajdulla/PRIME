@@ -1,55 +1,37 @@
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Check, MapPin, Bell, ImageIcon, FolderOpen, ChevronDown } from "lucide-react";
-import { SKILL_ORDER, ADMIN_EVENTS } from "../../data/adminData";
+import { Check, ChevronDown } from "lucide-react";
+import { SKILL_ORDER } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
+import { useAuth } from "../../lib/AuthContext";
+import { supabase } from "../../lib/supabaseClient";
+
+import gamesImage from "../../../imports/events/games.jpg";
+import tournamentImage from "../../../imports/events/tournaments.jpg";
+import trainingsImage from "../../../imports/events/trainings.jpg";
+import beachImage from "../../../imports/events/beach.jpg";
+import eventsImage from "../../../imports/events/events.jpg";
 
 const CATEGORIES = ["GAMES", "TOURNAMENT", "TRAININGS", "BEACH", "EVENTS"];
 
-const LOCATIONS = [
-  "PRIME Sports Hall",
-  "Cyber Arena, Sector 4",
-  "Beach Court A",
-  "Indoor Arena West",
-  "East Side Courts",
-  "Central Sports Hub",
-];
-
-const CATEGORY_IMAGES: Record<string, string[]> = {
-  GAMES: [
-    "https://images.unsplash.com/photo-1547347298-4074fc3086f0?w=800&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=800&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1576678927484-cc907957088c?w=800&h=400&fit=crop",
-  ],
-  TOURNAMENT: [
-    "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?w=800&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1607462109225-6b64ae2dd3cb?w=800&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1540747913346-19212a4cf528?w=800&h=400&fit=crop",
-  ],
-  TRAININGS: [
-    "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=800&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1534258936925-c58bed479fcb?w=800&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1541534401786-2077eed87a74?w=800&h=400&fit=crop",
-  ],
-  BEACH: [
-    "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800&h=400&fit=crop",
-  ],
-  EVENTS: [
-    "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=800&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1540747913346-19212a4cf528?w=800&h=400&fit=crop",
-  ],
+const DEFAULT_IMAGE: Record<string, string> = {
+  GAMES: gamesImage,
+  TOURNAMENT: tournamentImage,
+  TRAININGS: trainingsImage,
+  BEACH: beachImage,
+  EVENTS: eventsImage,
 };
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = ["00", "15", "30", "45"];
+
+function suggestedTitle(category: string, level: string): string {
+  const isAdvancedPlus = SKILL_ORDER.indexOf(level as (typeof SKILL_ORDER)[number]) >= SKILL_ORDER.indexOf("Advanced");
+  if (category === "GAMES")     return isAdvancedPlus ? "GAME 5-1" : "GAME";
+  if (category === "TRAININGS") return isAdvancedPlus ? "Advanced training" : "Training";
+  if (category === "BEACH")     return isAdvancedPlus ? "Beach advanced" : "Beach";
+  return "";
+}
 
 const SEL = "block w-full h-12 bg-[#222f3e] border border-white/10 rounded-xl px-3 pr-8 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors appearance-none cursor-pointer [color-scheme:dark]";
 const INP = "block w-full h-12 bg-[#222f3e] border border-white/10 rounded-xl px-4 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors";
@@ -57,72 +39,107 @@ const INP = "block w-full h-12 bg-[#222f3e] border border-white/10 rounded-xl px
 export function AdminCreateEvent() {
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id: string }>();
-  const editEvent = editId ? ADMIN_EVENTS.find(e => e.id === editId) : null;
-  const isEditMode = !!editEvent;
+  const { user: authUser } = useAuth();
+  const isEditMode = !!editId;
 
   const [done, setDone] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [locationOpen, setLocationOpen] = useState(false);
-  const [imageOpen, setImageOpen] = useState(false);
-  const [customImage, setCustomImage] = useState(false);
-  const [image, setImage] = useState<string>(() => CATEGORY_IMAGES["GAMES"][0]);
-  const locationRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLDivElement>(null);
+  const [loadingEdit, setLoadingEdit] = useState(isEditMode);
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [locations, setLocations] = useState<string[]>([]);
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (locationRef.current && !locationRef.current.contains(e.target as Node)) setLocationOpen(false);
-      if (imageRef.current && !imageRef.current.contains(e.target as Node)) setImageOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    (async () => {
+      const { data } = await supabase.from("locations").select("name").order("created_at");
+      if (data) setLocations(data.map(l => l.name));
+    })();
   }, []);
 
-  const parseTime = (t: string) => ({ h: t.split(":")[0] ?? "20", m: t.split(":")[1] ?? "00" });
-  const startTime = editEvent ? parseTime(editEvent.time.split(" - ")[0] ?? "20:00") : { h: "20", m: "00" };
-  const endTime   = editEvent ? parseTime(editEvent.time.split(" - ")[1] ?? "22:00") : { h: "22", m: "00" };
-
   const [f, setF] = useState({
-    title:       editEvent?.title ?? "",
-    description: editEvent?.description ?? "",
-    category:    editEvent?.category ?? "GAMES",
-    level:       "Rookie",
-    location:    editEvent?.location ?? "",
-    price:       editEvent && editEvent.price > 0 ? String(editEvent.price) : "",
-    capacity:    editEvent ? String(editEvent.capacity) : "",
-    date: "",
-    startH: startTime.h, startM: startTime.m,
-    endH:   endTime.h,   endM:   endTime.m,
-    pubDate: "",
-    pubH: "", pubM: "00",
-    notify: false,
+    title: suggestedTitle("GAMES", "Rookie"), description: "", category: "GAMES", level: "Rookie", location: "",
+    price: "150", capacity: "12", date: "",
+    startH: "00", startM: "00", endH: "00", endM: "00",
   });
 
   useEffect(() => {
-    if (!customImage) {
-      const imgs = CATEGORY_IMAGES[f.category] ?? [];
-      if (imgs.length) setImage(imgs[0]);
+    if (isEditMode || titleTouched) return;
+    setF(p => ({ ...p, title: suggestedTitle(p.category, p.level) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [f.category, f.level, isEditMode, titleTouched]);
+
+  useEffect(() => {
+    if (!editId) return;
+    let active = true;
+    (async () => {
+      const { data } = await supabase.from("events").select("*").eq("id", editId).single();
+      if (!active || !data) { setLoadingEdit(false); return; }
+      const parseTime = (t: string) => ({ h: t.split(":")[0] ?? "20", m: t.split(":")[1] ?? "00" });
+      const [startPart, endPart] = (data.event_time as string).split(" - ");
+      const startTime = parseTime(startPart ?? "20:00");
+      const endTime = parseTime(endPart ?? "22:00");
+      setF({
+        title: data.title ?? "",
+        description: data.description ?? "",
+        category: data.category ?? "GAMES",
+        level: data.level ?? "Rookie",
+        location: data.location ?? "",
+        price: data.price > 0 ? String(data.price) : "",
+        capacity: data.capacity ? String(data.capacity) : "",
+        date: data.event_date ?? "",
+        startH: startTime.h, startM: startTime.m,
+        endH: endTime.h, endM: endTime.m,
+      });
+      setLoadingEdit(false);
+    })();
+    return () => { active = false; };
+  }, [editId]);
+
+  const s = (k: string, v: string) => setF(p => ({ ...p, [k]: v }));
+
+  const showLevel = f.category === "GAMES" || f.category === "TRAININGS" || f.category === "BEACH";
+  const image = DEFAULT_IMAGE[f.category] ?? DEFAULT_IMAGE.GAMES;
+
+  async function handleSave() {
+    const priceNum = f.price ? parseInt(f.price, 10) : 0;
+    const payload = {
+      title: f.title,
+      description: f.description,
+      image,
+      category: f.category,
+      level: showLevel ? f.level : null,
+      event_date: f.date,
+      event_time: `${f.startH}:${f.startM} - ${f.endH}:${f.endM}`,
+      location: f.location,
+      price: priceNum,
+      price_label: priceNum > 0 ? `${priceNum} CZK` : "FREE",
+      capacity: f.capacity ? parseInt(f.capacity, 10) : 0,
+    };
+
+    setError(null);
+    setSaving(true);
+
+    if (isEditMode) {
+      const { error } = await supabase.from("events").update(payload).eq("id", editId);
+      setSaving(false);
+      if (error) { setError(error.message); return; }
+      setDone(true);
+      setTimeout(() => navigate(`/admin/events/${editId}`), 1200);
+      return;
     }
-  }, [f.category]);
 
-  const s = (k: string, v: string | boolean) => setF(p => ({ ...p, [k]: v }));
+    if (!authUser) return;
+    const { error } = await supabase.from("events").insert({ ...payload, moderator_id: authUser.id, status: "upcoming" });
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) { setImage(URL.createObjectURL(file)); setCustomImage(true); setImageOpen(false); }
-  };
+    setSaving(false);
+    if (error) { setError(error.message); return; }
 
-  const showLevel = f.category === "GAMES" || f.category === "TRAININGS";
-  const hasPublish = !!f.pubDate;
-
-  const publishAt = hasPublish
-    ? `${f.pubDate}T${f.pubH || "00"}:${f.pubM}`
-    : "";
-  const isScheduled = !!publishAt && new Date(publishAt) > new Date();
-
-  function handleSave() {
     setDone(true);
-    setTimeout(() => navigate(isEditMode ? `/admin/events/${editId}` : "/admin/events"), 1200);
+    setTimeout(() => navigate("/admin/events"), 1200);
   }
+
+  if (loadingEdit) return <div className="min-h-screen bg-[#0e1621]" />;
 
   if (done) {
     return (
@@ -131,9 +148,8 @@ export function AdminCreateEvent() {
           <Check size={28} className="text-[#4dcd5e]" />
         </div>
         <p className="text-white font-black text-lg uppercase tracking-widest">
-          {isScheduled ? "Event Scheduled!" : isEditMode ? "Changes Saved!" : "Event Saved!"}
+          {isEditMode ? "Changes Saved!" : "Event Saved!"}
         </p>
-        {isScheduled && <p className="text-[#79828b] text-sm">Publishes {new Date(publishAt).toLocaleString()}</p>}
       </div>
     );
   }
@@ -147,9 +163,15 @@ export function AdminCreateEvent() {
 
       <div className="max-w-[700px] mx-auto px-4 sm:px-6 py-5 flex flex-col gap-5">
 
+        {error && (
+          <div className="px-4 py-3 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] text-sm">
+            {error}
+          </div>
+        )}
+
         {/* Title */}
         <Row label="Event Title">
-          <input type="text" value={f.title} onChange={e => s("title", e.target.value)}
+          <input type="text" value={f.title} onChange={e => { setTitleTouched(true); s("title", e.target.value); }}
             placeholder="e.g. PRO-AM INVITATIONAL #13" className={INP} />
         </Row>
 
@@ -160,46 +182,10 @@ export function AdminCreateEvent() {
             className="block w-full bg-[#222f3e] border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none" />
         </Row>
 
-        {/* Image */}
+        {/* Image — auto-picked from category, no upload yet */}
         <Row label="Event Image">
-          <div className="relative" ref={imageRef}>
-            <div className="w-full h-28 rounded-xl overflow-hidden bg-[#222f3e] border border-white/10 mb-2">
-              {image
-                ? <img src={image} alt="" className="w-full h-full object-cover" />
-                : <div className="w-full h-full flex items-center justify-center"><ImageIcon size={22} className="text-[#79828b]" /></div>
-              }
-            </div>
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setImageOpen(v => !v)}
-                className="flex items-center justify-center gap-1.5 flex-1 h-9 bg-[#222f3e] border border-white/10 rounded-xl text-[#79828b] hover:text-white text-[11px] font-black uppercase tracking-wider transition-colors">
-                <ChevronDown size={12} className={`transition-transform ${imageOpen ? "rotate-180" : ""}`} />
-                Preset
-              </button>
-              <label className="flex items-center justify-center gap-1.5 flex-1 h-9 bg-[#222f3e] border border-white/10 rounded-xl text-[#79828b] hover:text-white text-[11px] font-black uppercase tracking-wider transition-colors cursor-pointer">
-                <FolderOpen size={12} />
-                Browse
-                <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
-              </label>
-            </div>
-            {imageOpen && (
-              <div className="absolute left-0 right-0 top-[calc(100%+4px)] bg-[#17212b] border border-white/10 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.4)] z-20 p-2.5">
-                <p className="text-[9px] font-black uppercase tracking-widest text-[#79828b] mb-2">{f.category}</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {(CATEGORY_IMAGES[f.category] ?? []).map((img, i) => (
-                    <button key={i} type="button"
-                      onClick={() => { setImage(img); setCustomImage(false); setImageOpen(false); }}
-                      className={`relative w-full h-20 rounded-lg overflow-hidden border-2 transition-all ${img === image && !customImage ? "border-[#3390ec]" : "border-transparent hover:border-white/30"}`}>
-                      <img src={img} alt="" className="w-full h-full object-cover" />
-                      {img === image && !customImage && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-[#3390ec]/20">
-                          <Check size={14} className="text-white" />
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+          <div className="w-full h-28 rounded-xl overflow-hidden bg-[#222f3e] border border-white/10">
+            <img src={image} alt="" className="w-full h-full object-cover" />
           </div>
         </Row>
 
@@ -273,34 +259,27 @@ export function AdminCreateEvent() {
 
         {/* Location */}
         <Row label="Location">
-          <div className="flex gap-2" ref={locationRef}>
-            <div className="relative flex-1 min-w-0">
-              <input type="text" value={f.location}
-                onChange={e => { s("location", e.target.value); setLocationOpen(true); }}
-                onFocus={() => setLocationOpen(true)}
-                placeholder="Type or select venue..."
-                className={INP + " pr-10"} />
-              <button type="button" onClick={() => setLocationOpen(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] hover:text-white transition-colors">
-                <ChevronDown size={15} className={`transition-transform ${locationOpen ? "rotate-180" : ""}`} />
-              </button>
-              {locationOpen && (
-                <div className="absolute left-0 right-0 top-full mt-1 bg-[#17212b] border border-white/10 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.4)] z-20 overflow-hidden">
-                  {LOCATIONS.filter(l => !f.location || l.toLowerCase().includes(f.location.toLowerCase())).map(l => (
-                    <button key={l} type="button" onClick={() => { s("location", l); setLocationOpen(false); }}
-                      className="block w-full px-4 py-2.5 text-sm font-bold text-white hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 text-left">
-                      {l}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <a href={`https://www.google.com/maps/search/${encodeURIComponent(f.location || "sports venue")}`}
-              target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 h-12 rounded-xl bg-[#222f3e] border border-white/10 text-[#79828b] hover:text-white text-xs font-black shrink-0 transition-colors">
-              <MapPin size={14} />
-              Maps
-            </a>
+          <div className="relative">
+            <input type="text" value={f.location}
+              onChange={e => { s("location", e.target.value); setLocationOpen(true); }}
+              onFocus={() => setLocationOpen(true)}
+              onBlur={() => setTimeout(() => setLocationOpen(false), 150)}
+              placeholder="Type or select venue..."
+              className={INP + " pr-10"} />
+            <button type="button" onClick={() => setLocationOpen(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] hover:text-white transition-colors">
+              <ChevronDown size={15} className={`transition-transform ${locationOpen ? "rotate-180" : ""}`} />
+            </button>
+            {locationOpen && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-[#17212b] border border-white/10 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.4)] z-30 overflow-y-auto max-h-64">
+                {locations.filter(l => !f.location || l.toLowerCase().includes(f.location.toLowerCase())).map(l => (
+                  <button key={l} type="button" onClick={() => { s("location", l); setLocationOpen(false); }}
+                    className="block w-full px-4 py-2.5 text-sm font-bold text-white hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 text-left">
+                    {l}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </Row>
 
@@ -320,41 +299,6 @@ export function AdminCreateEvent() {
           </Row>
         </div>
 
-        {/* Publish At */}
-        <Row
-          label="Publish At"
-          action={
-            <button type="button" onClick={() => s("notify", !f.notify)}
-              title="Notify 1 hour before publish"
-              className={`flex items-center justify-center w-7 h-7 rounded-lg border transition-all ${f.notify ? "bg-[#3390ec]/10 border-[#3390ec]/30 text-[#3390ec]" : "bg-[#222f3e] border-white/10 text-[#79828b] hover:border-white/20 hover:text-white"}`}>
-              <Bell size={13} />
-            </button>
-          }
-        >
-          {/* Publish date */}
-          <div className="overflow-hidden rounded-xl mb-2">
-            <input type="date" value={f.pubDate} onChange={e => s("pubDate", e.target.value)}
-              className="block w-full h-12 bg-[#222f3e] border border-white/10 rounded-xl px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]" />
-          </div>
-          {/* Publish time: hour : minute */}
-          <div className="flex items-center gap-1">
-            <div className="relative flex-1">
-              <select value={f.pubH} onChange={e => s("pubH", e.target.value)} className={SEL}>
-                <option value="">Hour</option>
-                {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-            </div>
-            <span className="text-[#79828b] font-bold text-sm shrink-0">:</span>
-            <div className="relative flex-1">
-              <select value={f.pubM} onChange={e => s("pubM", e.target.value)} className={SEL}>
-                {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-            </div>
-          </div>
-        </Row>
-
         {/* Cancel + Save */}
         <div className="flex gap-3 pt-1">
           <button type="button"
@@ -362,9 +306,9 @@ export function AdminCreateEvent() {
             className="flex-1 py-3.5 rounded-xl font-bold text-sm border border-white/10 text-[#79828b] hover:text-white transition-colors">
             Cancel
           </button>
-          <button type="button" onClick={handleSave}
-            className="flex-1 py-3.5 rounded-xl font-bold text-sm bg-[#3390ec] text-white active:scale-[0.98] transition-transform">
-            {isEditMode ? "Save Changes" : "Save Event"}
+          <button type="button" onClick={handleSave} disabled={saving}
+            className="flex-1 py-3.5 rounded-xl font-bold text-sm bg-[#3390ec] text-white transition-transform disabled:opacity-50">
+            {saving ? "…" : isEditMode ? "Save Changes" : "Save Event"}
           </button>
         </div>
 
@@ -373,12 +317,11 @@ export function AdminCreateEvent() {
   );
 }
 
-function Row({ label, children, action }: { label: string; children: React.ReactNode; action?: React.ReactNode }) {
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <span className="text-[#79828b] text-[11px] font-black uppercase tracking-widest">{label}</span>
-        {action}
       </div>
       {children}
     </div>

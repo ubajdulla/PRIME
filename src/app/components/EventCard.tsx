@@ -48,7 +48,7 @@ export function EventCard({
   return (
     <Link
       to={`/events/${id}`}
-      className={`block relative group rounded-2xl bg-[#17212b] shadow-sm hover:shadow-md transition-shadow active:scale-[0.98] overflow-hidden ${
+      className={`block relative group rounded-2xl bg-[#17212b] shadow-sm hover:shadow-md transition-shadow overflow-hidden ${
         horizontal ? 'min-w-[280px] w-[280px] flex-shrink-0' : 'w-full'
       }`}
     >

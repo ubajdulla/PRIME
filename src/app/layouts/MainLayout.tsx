@@ -4,6 +4,7 @@ import { Calendar, User, Bell, ShieldCheck, ChevronDown, Check } from "lucide-re
 import logo from "../../imports/Prime_logo_nobg_white_border.png";
 import { useLang, LANG_CYCLE, type Lang } from "../i18n";
 import { navDir } from "../lib/navDir";
+import { useAuth } from "../lib/AuthContext";
 
 const LANG_OPTIONS: { code: Lang; label: string }[] = [
   { code: "en", label: "English" },
@@ -49,7 +50,7 @@ export function MainLayout() {
   const desktopLangRef = useRef<HTMLDivElement>(null);
   const mobileLangRef = useRef<HTMLDivElement>(null);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
-  const isLoggedIn = localStorage.getItem("prime_logged_in") !== "false";
+  const { isAdmin } = useAuth();
 
   useLayoutEffect(() => {
     mainRef.current?.scrollTo(0, 0);
@@ -94,7 +95,7 @@ export function MainLayout() {
           <NavItem to="/" end icon={<Calendar size={22} />} label={t.nav.events} />
           <NavItem to="/alerts"  icon={<Bell size={22} />}        label={t.nav.alerts}  />
           <NavItem to="/profile" icon={<User size={22} />}        label={t.nav.profile} />
-          {isLoggedIn && <NavItem to="/admin" icon={<ShieldCheck size={22} />} label={t.nav.admin} />}
+          {isAdmin && <NavItem to="/admin" icon={<ShieldCheck size={22} />} label={t.nav.admin} />}
         </nav>
 
         {/* Desktop lang button — dropdown opens to the right */}
@@ -184,7 +185,7 @@ export function MainLayout() {
         <MobileNavItem to="/" end icon={<Calendar size={24} />} label={t.nav.events} />
         <MobileNavItem to="/alerts"  icon={<Bell size={24} />}  label={t.nav.alerts}  />
         <MobileNavItem to="/profile" icon={<User size={24} />}  label={t.nav.profile} />
-        {isLoggedIn && <MobileNavItem to="/admin" icon={<ShieldCheck size={24} />} label={t.nav.admin} />}
+        {isAdmin && <MobileNavItem to="/admin" icon={<ShieldCheck size={24} />} label={t.nav.admin} />}
       </nav>
     </div>
   );

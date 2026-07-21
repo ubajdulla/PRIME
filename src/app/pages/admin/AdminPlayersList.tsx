@@ -1,30 +1,47 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Search, MoreVertical } from "lucide-react";
-import { ALL_PLAYERS, ADMIN_EVENTS, SKILL_STYLE } from "../../data/adminData";
+import { Search, MoreVertical, ShieldCheck } from "lucide-react";
+import { SKILL_STYLE } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
 import { navDir } from "../../lib/navDir";
+import { supabase } from "../../lib/supabaseClient";
 
 const POSITIONS = ["All", "Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
+
+type PlayerRow = { id: string; name: string; avatar: string | null; position: string | null; skill_level: string; is_admin: boolean };
 
 export function AdminPlayersList() {
   const { level } = useParams<{ level: string }>();
   const navigate = useNavigate();
+  const isAdminGroup = level === "ADMIN";
 
-  const [search, setSearch]                   = useState("");
-  const [position, setPosition]               = useState("All");
+  const [search, setSearch]     = useState("");
+  const [position, setPosition] = useState("All");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [players, setPlayers]   = useState<(PlayerRow & { eventsJoined: number })[]>([]);
+  const [loading, setLoading]   = useState(true);
 
-  const style = SKILL_STYLE[level ?? ""] ?? SKILL_STYLE["Rookie"];
+  const style = isAdminGroup ? null : (SKILL_STYLE[level ?? ""] ?? SKILL_STYLE["Rookie"]);
 
-  const playerStats = ALL_PLAYERS
-    .filter(p => p.skillLevel === level)
-    .map(p => {
-      const events = ADMIN_EVENTS.filter(e => e.roster.some(r => r.id === p.id));
-      return { ...p, eventsJoined: events.length };
-    });
+  useEffect(() => {
+    if (!level) return;
+    (async () => {
+      setLoading(true);
+      const query = supabase.from("profiles").select("id, name, avatar, position, skill_level, is_admin");
+      const { data: profileRows } = isAdminGroup ? await query.eq("is_admin", true) : await query.eq("skill_level", level);
+      const ids = (profileRows ?? []).map(p => p.id);
+      const { data: participantRows } = ids.length
+        ? await supabase.from("event_participants").select("player_id").in("player_id", ids)
+        : { data: [] };
+      setPlayers((profileRows ?? []).map(p => ({
+        ...p,
+        eventsJoined: (participantRows ?? []).filter(r => r.player_id === p.id).length,
+      })));
+      setLoading(false);
+    })();
+  }, [level, isAdminGroup]);
 
-  const filtered = playerStats.filter(p => {
+  const filtered = players.filter(p => {
     if (position !== "All" && p.position !== position) return false;
     if (search.trim() && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -37,9 +54,15 @@ export function AdminPlayersList() {
       <div className="max-w-[900px] mx-auto px-4 py-6">
 
       <div className="flex items-center gap-3 mb-6">
-        <div className={`w-3 h-3 rounded-full ${style.dot}`} />
-        <h1 className={`font-black italic text-2xl uppercase tracking-widest ${style.text}`}>{level}</h1>
-        <span className="text-[#79828b] text-sm font-bold">{playerStats.length} players</span>
+        {isAdminGroup ? (
+          <ShieldCheck size={16} className="text-[#4dcd5e]" />
+        ) : (
+          <div className={`w-3 h-3 rounded-full ${style!.dot}`} />
+        )}
+        <h1 className={`font-black italic text-2xl uppercase tracking-widest ${isAdminGroup ? "text-[#4dcd5e]" : style!.text}`}>
+          {isAdminGroup ? "Admin" : level}
+        </h1>
+        <span className="text-[#79828b] text-sm font-bold">{players.length} players</span>
       </div>
 
       {/* Search */}
@@ -73,7 +96,7 @@ export function AdminPlayersList() {
 
       {/* Player list */}
       <div className="bg-[#17212b] rounded-2xl border border-white/5">
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <p className="text-[#79828b] text-sm text-center py-10">No players found</p>
         )}
         {filtered.map((player, i) => {
@@ -82,14 +105,13 @@ export function AdminPlayersList() {
               key={player.id}
               className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-white/[0.05]" : ""} ${i === 0 ? "rounded-t-2xl" : ""} ${i === filtered.length - 1 ? "rounded-b-2xl" : ""}`}
             >
-              <img
-                src={player.avatar}
-                alt={player.name}
-                className="w-11 h-11 rounded-full border-2 border-[#0e1621] object-cover shrink-0"
-              />
+              {player.avatar
+                ? <img src={player.avatar} alt={player.name} className="w-11 h-11 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
+                : <div className="w-11 h-11 rounded-full border-2 border-[#0e1621] bg-white/5 shrink-0" />
+              }
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-white text-sm truncate">{player.name}</div>
-                <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position}</div>
+                <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position ?? "—"}</div>
               </div>
               <div className="text-right shrink-0 mr-1">
                 <div className="text-white text-sm font-black">{player.eventsJoined}</div>

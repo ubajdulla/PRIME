@@ -1,5 +1,5 @@
-import { Calendar, Clock, MapPin, ChevronRight } from "lucide-react";
-import { getCategoryStyle, type AdminEvent, type EventStatus } from "../data/adminData";
+import { Calendar, Clock, MapPin, ChevronRight, User } from "lucide-react";
+import { getCategoryStyle, type EventStatus } from "../data/adminData";
 
 const STATUS_CONFIG: Record<EventStatus, { label: string; chip: string; dot: string }> = {
   upcoming: { label: "Published", chip: "bg-[#4dcd5e]/10 text-[#4dcd5e]",  dot: "bg-[#4dcd5e]"  },
@@ -10,21 +10,38 @@ const STATUS_CONFIG: Record<EventStatus, { label: string; chip: string; dot: str
 
 const czk = (n: number) => n.toLocaleString("cs-CZ") + " CZK";
 
+export type AdminEventCardData = {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  location: string;
+  price: number;
+  priceLabel: string;
+  capacity: number;
+  category: string;
+  status: EventStatus;
+  moderatorName: string;
+  moderatorAvatar: string | null;
+  rosterCount: number;
+  paidCount: number;
+  unpaidCount: number;
+};
+
 export function AdminEventCard({
   event,
   onNavigate,
 }: {
-  event: AdminEvent & { status: EventStatus };
+  event: AdminEventCardData;
   onNavigate: (path: string) => void;
 }) {
-  const unpaid    = event.roster.filter(p => p.paymentStatus === "unpaid").length;
-  const isFull    = event.roster.length >= event.capacity;
-  const fillPct   = Math.min((event.roster.length / event.capacity) * 100, 100);
+  const isFull    = event.rosterCount >= event.capacity;
+  const fillPct   = event.capacity > 0 ? Math.min((event.rosterCount / event.capacity) * 100, 100) : 0;
   const status    = STATUS_CONFIG[event.status];
-  const collected    = event.roster.filter(p => p.paymentStatus !== "unpaid").length * event.price;
-  const unpaidAmount = unpaid * event.price;
-  const expected     = event.roster.length * event.price;
-  const allPaid      = event.price > 0 && unpaid === 0 && event.roster.length > 0;
+  const collected    = event.paidCount * event.price;
+  const unpaidAmount = event.unpaidCount * event.price;
+  const expected     = event.rosterCount * event.price;
+  const allPaid      = event.price > 0 && event.unpaidCount === 0 && event.rosterCount > 0;
 
   return (
     <div
@@ -78,7 +95,7 @@ export function AdminEventCard({
             <div className="flex items-center justify-between text-[11px] font-bold mb-1.5">
               <span className="text-[#79828b]">Roster</span>
               <span className={isFull ? "text-[#4dcd5e]" : "text-white"}>
-                {event.roster.length} / {event.capacity}
+                {event.rosterCount} / {event.capacity}
               </span>
             </div>
             <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
@@ -99,7 +116,7 @@ export function AdminEventCard({
                 {czk(collected)}
               </div>
             </div>
-            {unpaid > 0 && (
+            {event.unpaidCount > 0 && (
               <>
                 <div className="w-full h-px bg-white/5" />
                 <div>
@@ -120,12 +137,18 @@ export function AdminEventCard({
       {/* Footer: moderator + arrow */}
       <div className="flex items-center gap-3 px-4 py-3 border-t border-white/5">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <img
-            src={event.moderator.avatar}
-            alt={event.moderator.name}
-            className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-white/10"
-          />
-          <span className="text-[#79828b] text-[11px] font-bold truncate">{event.moderator.name}</span>
+          {event.moderatorAvatar ? (
+            <img
+              src={event.moderatorAvatar}
+              alt={event.moderatorName}
+              className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-white/10"
+            />
+          ) : (
+            <div className="w-6 h-6 rounded-full bg-white/5 shrink-0 ring-1 ring-white/10 flex items-center justify-center">
+              <User size={11} className="text-white/30" />
+            </div>
+          )}
+          <span className="text-[#79828b] text-[11px] font-bold truncate">{event.moderatorName}</span>
         </div>
 
         <div className="w-8 h-8 rounded-full bg-[#242f3d] flex items-center justify-center text-white/50 group-hover:text-white group-hover:bg-[#3390ec] transition-colors shrink-0">

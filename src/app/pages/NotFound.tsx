@@ -11,7 +11,7 @@ export function NotFound() {
       </div>
       <button
         onClick={() => navigate("/")}
-        className="px-6 py-2.5 rounded-xl bg-[#3390ec] text-white font-bold text-sm active:scale-[0.98] transition-transform"
+        className="px-6 py-2.5 rounded-xl bg-[#3390ec] text-white font-bold text-sm transition-transform"
       >
         Back to Events
       </button>
