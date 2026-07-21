@@ -79,6 +79,7 @@ export function AdminPlayerProfile() {
 
   const [commentDraft,      setCommentDraft]      = useState("");
   const [commentVisibility, setCommentVisibility] = useState<"admin" | "all">("admin");
+  const [editingComment,    setEditingComment]    = useState(false);
 
   const [toast, setToast] = useState<{ message: string; variant: "success" | "copied" | "publish" | "error"; visible: boolean }>
     ({ message: "", variant: "success", visible: false });
@@ -93,10 +94,6 @@ export function AdminPlayerProfile() {
       supabase.from("event_participants").select("events(id, title, event_date, location, status)").eq("player_id", id),
     ]);
     setProfile((p as ProfileRow) ?? null);
-    if (p) {
-      setCommentDraft((p as ProfileRow).admin_note ?? "");
-      setCommentVisibility((p as ProfileRow).admin_note_visibility);
-    }
     setEvents(((partRows ?? []).map(r => r.events).filter(Boolean) as unknown as EventRow[]));
     setLoading(false);
   }
@@ -111,10 +108,17 @@ export function AdminPlayerProfile() {
     if (!profile) return { ok: false, error: "No profile loaded" };
     const prev = profile;
     setProfile(p => p ? { ...p, ...patch } : p);
-    const { error } = await supabase.from("profiles").update(patch).eq("id", profile.id);
+    // .select() after update is required to detect an RLS block: if a policy
+    // silently excludes the row, Postgres/PostgREST reports 0 rows affected
+    // as success with no error at all, not a permission error.
+    const { data, error } = await supabase.from("profiles").update(patch).eq("id", profile.id).select();
     if (error) {
       setProfile(prev);
       return { ok: false, error: error.message };
+    }
+    if (!data || data.length === 0) {
+      setProfile(prev);
+      return { ok: false, error: "Update was blocked by a database permission rule (0 rows updated)." };
     }
     return { ok: true, error: undefined as string | undefined };
   }
@@ -168,17 +172,16 @@ export function AdminPlayerProfile() {
     return age;
   }
 
-  const noteDirty = commentDraft !== (player.admin_note ?? "") || commentVisibility !== player.admin_note_visibility;
-
-  function cancelNote() {
+  function openNoteEditor() {
     setCommentDraft(player.admin_note ?? "");
     setCommentVisibility(player.admin_note_visibility);
+    setEditingComment(true);
   }
 
   async function saveNote() {
     const result = await patchProfile({ admin_note: commentDraft || null, admin_note_visibility: commentVisibility });
-    if (result.ok) fireToast("Note saved");
-    else fireToast(result.error ?? "Failed to save note", "error");
+    if (result.ok) { setEditingComment(false); fireToast("Note saved"); }
+    else { console.error("Failed to save admin note:", result.error); fireToast(result.error ?? "Failed to save note", "error"); }
   }
 
   async function confirmSuspend() {
@@ -525,30 +528,47 @@ export function AdminPlayerProfile() {
         <section>
           <div className="flex items-center justify-between mb-2 px-1">
             <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Admin Note</h2>
-            {noteDirty && (
+            {editingComment ? (
               <div className="flex items-center gap-3">
-                <button onClick={cancelNote} className="text-[11px] font-bold text-[#79828b] hover:text-white transition-colors">Cancel</button>
+                <button onClick={() => setEditingComment(false)} className="text-[11px] font-bold text-[#79828b] hover:text-white transition-colors">Cancel</button>
                 <button onClick={saveNote} className="text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">Save</button>
               </div>
+            ) : (
+              <button onClick={openNoteEditor} className="flex items-center gap-1 text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">
+                <Pencil size={11} /> {player.admin_note ? "Edit" : "Add Note"}
+              </button>
             )}
           </div>
-          <div className="bg-[#17212b] rounded-xl p-3 flex flex-col gap-2">
-            <textarea value={commentDraft} onChange={e => setCommentDraft(e.target.value)}
-              placeholder="Add a note about this player…" rows={3}
-              className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none" />
-            <div className="flex items-center gap-1.5">
-              <button onClick={() => setCommentVisibility("admin")} title="Admins only"
-                className={`p-1.5 rounded-lg border transition-colors ${commentVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
-                <Lock size={12} />
-              </button>
-              <button onClick={() => setCommentVisibility("all")} title="Visible to everyone"
-                className={`p-1.5 rounded-lg border transition-colors ${commentVisibility === "all" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
-                <Globe size={12} />
-              </button>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#79828b]">
-                {commentVisibility === "admin" ? "Admins only" : "Visible to everyone"}
-              </span>
-            </div>
+          <div className="bg-[#17212b] rounded-xl overflow-hidden">
+            {editingComment ? (
+              <div className="p-3 flex flex-col gap-2">
+                <textarea value={commentDraft} onChange={e => setCommentDraft(e.target.value)} autoFocus
+                  placeholder="Add a note about this player…" rows={3}
+                  className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none" />
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => setCommentVisibility("admin")} title="Admins only"
+                    className={`p-1.5 rounded-lg border transition-colors ${commentVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
+                    <Lock size={12} />
+                  </button>
+                  <button onClick={() => setCommentVisibility("all")} title="Visible to everyone"
+                    className={`p-1.5 rounded-lg border transition-colors ${commentVisibility === "all" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
+                    <Globe size={12} />
+                  </button>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#79828b]">
+                    {commentVisibility === "admin" ? "Admins only" : "Visible to everyone"}
+                  </span>
+                </div>
+              </div>
+            ) : player.admin_note ? (
+              <div className="px-3 py-3 flex items-center gap-2">
+                {player.admin_note_visibility === "admin" ? <Lock size={11} className="text-[#79828b] shrink-0" /> : <Globe size={11} className="text-[#79828b] shrink-0" />}
+                <p className="text-sm text-white/80 leading-relaxed">{player.admin_note}</p>
+              </div>
+            ) : (
+              <div className="py-5 flex items-center justify-center">
+                <span className="text-sm text-[#79828b]">No note yet</span>
+              </div>
+            )}
           </div>
         </section>
 
