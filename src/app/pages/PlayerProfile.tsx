@@ -4,6 +4,7 @@ import { Navigate } from "react-router";
 import { Send, Instagram, Calendar, MapPin, User } from "lucide-react";
 import { SKILL_STYLE } from "../data/adminData";
 import { BackBar } from "../components/ui/BackBar";
+import { TrustDot } from "../components/ui/TrustDot";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { shortDate } from "../lib/eventDate";
@@ -20,9 +21,10 @@ const SKILL_COLOR: Record<string, string> = {
 type ProfileRow = {
   id: string; name: string; avatar: string | null; position: string | null; skill_level: string;
   telegram: string | null; instagram: string | null; show_telegram: boolean; show_instagram: boolean;
-  visible_admin_note: string | null;
+  visible_trust_label: "yellow" | "red" | null;
 };
 type EventRow = { id: string; title: string; event_date: string; location: string; status: string };
+type NoteRow = { id: string; body: string };
 
 export function PlayerProfile() {
   const { playerId } = useParams<{ playerId: string }>();
@@ -30,17 +32,20 @@ export function PlayerProfile() {
 
   const [player, setPlayer] = useState<ProfileRow | null>(null);
   const [events, setEvents] = useState<EventRow[]>([]);
+  const [notes, setNotes] = useState<NoteRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!playerId) return;
     (async () => {
-      const [{ data: p }, { data: partRows }] = await Promise.all([
-        supabase.from("profiles").select("id, name, avatar, position, skill_level, telegram, instagram, show_telegram, show_instagram, visible_admin_note").eq("id", playerId).single(),
+      const [{ data: p }, { data: partRows }, { data: noteRows }] = await Promise.all([
+        supabase.from("profiles").select("id, name, avatar, position, skill_level, telegram, instagram, show_telegram, show_instagram, visible_trust_label").eq("id", playerId).single(),
         supabase.from("event_participants").select("events(id, title, event_date, location, status)").eq("player_id", playerId),
+        supabase.from("player_notes").select("id, body").eq("player_id", playerId).order("created_at", { ascending: false }),
       ]);
       setPlayer((p as ProfileRow) ?? null);
       setEvents(((partRows ?? []).map(r => r.events).filter(Boolean) as unknown as EventRow[]));
+      setNotes((noteRows as NoteRow[]) ?? []);
       setLoading(false);
     })();
   }, [playerId]);
@@ -86,6 +91,7 @@ export function PlayerProfile() {
               <User size={36} className="text-white/20" />
             </div>
           )}
+          <TrustDot label={player.visible_trust_label} size={20} ringClassName="border-[#0e1621]" />
         </div>
         <h1 className="text-xl font-semibold text-white mb-1">{player.name}</h1>
         <span className={`text-sm font-medium ${SKILL_COLOR[player.skill_level] ?? "text-white"}`}>
@@ -103,10 +109,14 @@ export function PlayerProfile() {
           </div>
         </div>
 
-        {/* Admin note - server only sends this when it's actually visible to us */}
-        {player.visible_admin_note && (
-          <div className="bg-[#17212b] rounded-xl px-4 py-3.5">
-            <p className="text-sm text-white/80 leading-relaxed">{player.visible_admin_note}</p>
+        {/* Notes - server RLS only sends notes actually visible to us */}
+        {notes.length > 0 && (
+          <div className="flex flex-col gap-2">
+            {notes.map(n => (
+              <div key={n.id} className="bg-[#17212b] rounded-xl px-4 py-3.5">
+                <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap">{n.body}</p>
+              </div>
+            ))}
           </div>
         )}
 

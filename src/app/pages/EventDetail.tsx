@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Toast } from "../components/ui/Toast";
 import { BackBar } from "../components/ui/BackBar";
+import { TrustDot } from "../components/ui/TrustDot";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { computeJoinStatus } from "../lib/joinType";
@@ -37,8 +38,8 @@ type EventRow = {
   moderator: { id: string; name: string; avatar: string | null } | null;
 };
 
-type RosterPlayer = { id: string; name: string; avatar: string | null; position: string | null };
-type WaitlistEntry = { id: string; name: string; avatar: string | null };
+type RosterPlayer = { id: string; name: string; avatar: string | null; position: string | null; trustLabel: string | null };
+type WaitlistEntry = { id: string; name: string; avatar: string | null; trustLabel: string | null };
 
 type JoinStatus = null | "joined" | "pending";
 
@@ -79,8 +80,8 @@ export function EventDetail() {
   async function load(eventId: string) {
     const [{ data: eventRow, error: eventErr }, { data: participantRows }, { data: requestRows }, { data: counts }] = await Promise.all([
       supabase.from("events").select("*, moderator:profiles!moderator_id(id, name, avatar)").eq("id", eventId).single(),
-      supabase.from("event_participants").select("player_id, joined_at, position, profiles(id, name, avatar, position)").eq("event_id", eventId).order("joined_at", { ascending: true }),
-      supabase.from("event_requests").select("player_id, kind, profiles(id, name, avatar)").eq("event_id", eventId),
+      supabase.from("event_participants").select("player_id, joined_at, position, profiles(id, name, avatar, position, visible_trust_label)").eq("event_id", eventId).order("joined_at", { ascending: true }),
+      supabase.from("event_requests").select("player_id, kind, profiles(id, name, avatar, visible_trust_label)").eq("event_id", eventId),
       supabase.rpc("event_join_counts"),
     ]);
 
@@ -97,12 +98,13 @@ export function EventDetail() {
       name: p.profiles?.name ?? "Unknown",
       avatar: p.profiles?.avatar ?? null,
       position: p.position ?? p.profiles?.position ?? null,
+      trustLabel: p.profiles?.visible_trust_label ?? null,
     }));
     setRoster(rosterList);
 
     const waitlistList: WaitlistEntry[] = (requestRows ?? [])
       .filter(r => r.kind === "waitlist")
-      .map(r => ({ id: r.profiles?.id ?? r.player_id, name: r.profiles?.name ?? "Unknown", avatar: r.profiles?.avatar ?? null }));
+      .map(r => ({ id: r.profiles?.id ?? r.player_id, name: r.profiles?.name ?? "Unknown", avatar: r.profiles?.avatar ?? null, trustLabel: r.profiles?.visible_trust_label ?? null }));
     setWaitlist(waitlistList);
 
     const countRow = (counts as { event_id: string; joined_count: number }[] | null ?? []).find(c => c.event_id === eventId);
@@ -457,17 +459,20 @@ return (
                   key={player.id}
                   className="flex items-center gap-3 bg-[#17212b] border border-white/5 rounded-xl p-2.5"
                 >
-                  {player.avatar ? (
-                    <img
-                      src={player.avatar}
-                      alt={player.name}
-                      className="w-10 h-10 rounded-full object-cover border border-white/10 shrink-0"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 shrink-0 flex items-center justify-center">
-                      <User size={16} className="text-white/30" />
-                    </div>
-                  )}
+                  <div className="relative shrink-0">
+                    {player.avatar ? (
+                      <img
+                        src={player.avatar}
+                        alt={player.name}
+                        className="w-10 h-10 rounded-full object-cover border border-white/10"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                        <User size={16} className="text-white/30" />
+                      </div>
+                    )}
+                    <TrustDot label={player.trustLabel} size={10} ringClassName="border-[#17212b]" />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <span className="font-bold text-sm block text-white">{player.name}</span>
                     {player.position && (
@@ -526,19 +531,20 @@ return (
                   >
                     <div className="flex -space-x-2.5">
                       {stackAvatars.map((p, i) => (
-                        p.avatar ? (
-                          <img
-                            key={p.id}
-                            src={p.avatar}
-                            alt={p.name}
-                            className="w-8 h-8 rounded-full border-2 border-[#17212b] object-cover"
-                            style={{ zIndex: stackAvatars.length - i }}
-                          />
-                        ) : (
-                          <div key={p.id} className="w-8 h-8 rounded-full border-2 border-[#17212b] bg-white/5 flex items-center justify-center" style={{ zIndex: stackAvatars.length - i }}>
-                            <User size={12} className="text-white/30" />
-                          </div>
-                        )
+                        <div key={p.id} className="relative" style={{ zIndex: stackAvatars.length - i }}>
+                          {p.avatar ? (
+                            <img
+                              src={p.avatar}
+                              alt={p.name}
+                              className="w-8 h-8 rounded-full border-2 border-[#17212b] object-cover"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full border-2 border-[#17212b] bg-white/5 flex items-center justify-center">
+                              <User size={12} className="text-white/30" />
+                            </div>
+                          )}
+                          <TrustDot label={p.trustLabel} size={8} ringClassName="border-[#17212b]" />
+                        </div>
                       ))}
                       {stackExtra > 0 && (
                         <div className="w-8 h-8 rounded-full border-2 border-[#17212b] bg-white/10 flex items-center justify-center text-[9px] font-bold text-white/50" style={{ zIndex: 0 }}>
@@ -555,13 +561,16 @@ return (
                       const isMe = player.id === authUser?.id;
                       return (
                         <div key={player.id} className="flex items-center gap-3 px-3 py-2.5 border-t border-white/[0.05]">
-                          {player.avatar ? (
-                            <img src={player.avatar} alt={player.name} className="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 shrink-0 flex items-center justify-center">
-                              <User size={12} className="text-white/30" />
-                            </div>
-                          )}
+                          <div className="relative shrink-0">
+                            {player.avatar ? (
+                              <img src={player.avatar} alt={player.name} className="w-8 h-8 rounded-full object-cover border border-white/10" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                                <User size={12} className="text-white/30" />
+                              </div>
+                            )}
+                            <TrustDot label={player.trustLabel} size={8} ringClassName="border-[#17212b]" />
+                          </div>
                           <span className={`font-bold text-sm flex-1 ${isMe ? theme.primary : "text-white"}`}>
                             {player.name}
                             {isMe && <span className="text-[10px] text-[#79828b] font-bold ml-2 normal-case tracking-normal">{t.event.you}</span>}

@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import {
   Send, Instagram, Calendar, MapPin,
   CheckCircle2, BadgeCheck, Clock, ShieldOff,
   OctagonX, Lock, Globe, ChevronDown,
-  Phone, Mail, User, Pencil,
+  Phone, Mail, User, Pencil, Plus, Flag,
 } from "lucide-react";
 import { SKILL_ORDER, type SkillLevel } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
@@ -40,12 +40,20 @@ type ProfileRow = {
   suspend_reason: string | null;
   is_banned: boolean;
   ban_reason: string | null;
-  admin_note: string | null;
-  admin_note_visibility: "admin" | "all";
+  trust_label: "yellow" | "red" | null;
   is_admin: boolean;
 };
 
 type EventRow = { id: string; title: string; event_date: string; location: string; status: string };
+
+type NoteRow = {
+  id: string;
+  author_name: string;
+  body: string;
+  visibility: "admin" | "all";
+  is_legacy: boolean;
+  created_at: string;
+};
 
 export function AdminPlayerProfile() {
   const { playerId } = useParams<{ playerId: string }>();
@@ -53,6 +61,7 @@ export function AdminPlayerProfile() {
 
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [events,  setEvents]  = useState<EventRow[]>([]);
+  const [notes,   setNotes]   = useState<NoteRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   // ── Modal / draft state (UI-only, not backend state) ────────
@@ -77,9 +86,10 @@ export function AdminPlayerProfile() {
   const [editingContact,   setEditingContact]   = useState(false);
   const [contactDraft,     setContactDraft]     = useState({ phone: "", email: "", telegram: "", instagram: "" });
 
-  const [commentDraft,      setCommentDraft]      = useState("");
-  const [commentVisibility, setCommentVisibility] = useState<"admin" | "all">("admin");
-  const [editingComment,    setEditingComment]    = useState(false);
+  const [noteDraft,      setNoteDraft]      = useState("");
+  const [noteVisibility, setNoteVisibility] = useState<"admin" | "all">("admin");
+  const [savingNote,     setSavingNote]     = useState(false);
+  const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [toast, setToast] = useState<{ message: string; variant: "success" | "copied" | "publish" | "error"; visible: boolean }>
     ({ message: "", variant: "success", visible: false });
@@ -89,12 +99,14 @@ export function AdminPlayerProfile() {
   }
 
   async function load(id: string) {
-    const [{ data: p }, { data: partRows }] = await Promise.all([
+    const [{ data: p }, { data: partRows }, { data: noteRows }] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", id).single(),
       supabase.from("event_participants").select("events(id, title, event_date, location, status)").eq("player_id", id),
+      supabase.from("player_notes").select("*").eq("player_id", id).order("created_at", { ascending: false }),
     ]);
     setProfile((p as ProfileRow) ?? null);
     setEvents(((partRows ?? []).map(r => r.events).filter(Boolean) as unknown as EventRow[]));
+    setNotes((noteRows as NoteRow[]) ?? []);
     setLoading(false);
   }
 
@@ -103,6 +115,21 @@ export function AdminPlayerProfile() {
     setLoading(true);
     load(playerId);
   }, [playerId]);
+
+  // Keep the note composer visible above the on-screen mobile keyboard: the
+  // visualViewport shrinks as the keyboard opens, so re-scroll the focused
+  // textarea into view each time that happens.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    function onResize() {
+      if (document.activeElement === noteTextareaRef.current) {
+        noteTextareaRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+    }
+    vv.addEventListener("resize", onResize);
+    return () => vv.removeEventListener("resize", onResize);
+  }, []);
 
   async function patchProfile(patch: Partial<ProfileRow>) {
     if (!profile) return { ok: false, error: "No profile loaded" };
@@ -172,16 +199,37 @@ export function AdminPlayerProfile() {
     return age;
   }
 
-  function openNoteEditor() {
-    setCommentDraft(player.admin_note ?? "");
-    setCommentVisibility(player.admin_note_visibility);
-    setEditingComment(true);
+  async function addNote() {
+    const body = noteDraft.trim();
+    if (!body || savingNote) return;
+    setSavingNote(true);
+    const { data, error } = await supabase.from("player_notes").insert({
+      player_id: player.id,
+      author_id: viewer?.id ?? null,
+      author_name: viewerProfile?.name ?? "Admin",
+      body,
+      visibility: noteVisibility,
+    }).select().single();
+    setSavingNote(false);
+    if (error || !data) {
+      console.error("Failed to save note:", error);
+      fireToast(error?.message ?? "Failed to save note", "error");
+      return;
+    }
+    setNotes(prev => [data as NoteRow, ...prev]);
+    setNoteDraft("");
+    fireToast("Note added");
   }
 
-  async function saveNote() {
-    const result = await patchProfile({ admin_note: commentDraft || null, admin_note_visibility: commentVisibility });
-    if (result.ok) { setEditingComment(false); fireToast("Note saved"); }
-    else { console.error("Failed to save admin note:", result.error); fireToast(result.error ?? "Failed to save note", "error"); }
+  function handleNoteKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      addNote();
+    }
+  }
+
+  function formatDateTime(d: string) {
+    return new Date(d).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
   }
 
   async function confirmSuspend() {
@@ -361,6 +409,13 @@ export function AdminPlayerProfile() {
               <Clock size={11} /> Suspended until {formatDate(player.suspended_until ?? "")}
             </span>
           )}
+          {player.trust_label && (
+            <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+              player.trust_label === "red" ? "bg-[#ef4444]/10 border border-[#ef4444]/25 text-[#ef4444]" : "bg-[#eab308]/10 border border-[#eab308]/25 text-[#eab308]"
+            }`}>
+              <Flag size={11} /> {player.trust_label === "red" ? "Red flag" : "Yellow flag"}
+            </span>
+          )}
         </div>
       </div>
 
@@ -524,52 +579,67 @@ export function AdminPlayerProfile() {
           </div>
         </section>
 
-        {/* ── Admin Note ────────────────────────────────────── */}
+        {/* ── Notes ────────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-2 px-1">
-            <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Admin Note</h2>
-            {editingComment ? (
-              <div className="flex items-center gap-3">
-                <button onClick={() => setEditingComment(false)} className="text-[11px] font-bold text-[#79828b] hover:text-white transition-colors">Cancel</button>
-                <button onClick={saveNote} className="text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">Save</button>
-              </div>
-            ) : (
-              <button onClick={openNoteEditor} className="flex items-center gap-1 text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">
-                <Pencil size={11} /> {player.admin_note ? "Edit" : "Add Note"}
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Notes</h2>
+          </div>
+          <div className="bg-[#17212b] rounded-xl overflow-hidden p-3 flex flex-col gap-2">
+            {/* Visibility is chosen before writing, not after - so pressing
+                Enter to save (which can happen the moment you finish typing)
+                always uses the choice you actually made, never a default
+                you hadn't gotten to yet. */}
+            <div className="flex items-center gap-1.5">
+              <button type="button" onClick={() => setNoteVisibility("admin")} title="Admins only"
+                className={`p-1.5 rounded-lg border transition-colors ${noteVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
+                <Lock size={12} />
               </button>
-            )}
+              <button type="button" onClick={() => setNoteVisibility("all")} title="Visible to everyone"
+                className={`p-1.5 rounded-lg border transition-colors ${noteVisibility === "all" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
+                <Globe size={12} />
+              </button>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#79828b]">
+                {noteVisibility === "admin" ? "Admins only" : "Visible to everyone"}
+              </span>
+            </div>
+            <textarea ref={noteTextareaRef} value={noteDraft} onChange={e => setNoteDraft(e.target.value)}
+              onKeyDown={handleNoteKeyDown}
+              onFocus={() => noteTextareaRef.current?.scrollIntoView({ block: "center", behavior: "smooth" })}
+              placeholder="Add a note about this player… (Enter to save, Shift+Enter for new line)" rows={2}
+              enterKeyHint="send"
+              className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none" />
+            <div className="flex justify-end">
+              <button type="button" onClick={addNote} disabled={!noteDraft.trim() || savingNote}
+                className="flex items-center gap-1 text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0">
+                <Plus size={12} /> Add Note
+              </button>
+            </div>
           </div>
-          <div className="bg-[#17212b] rounded-xl overflow-hidden">
-            {editingComment ? (
-              <div className="p-3 flex flex-col gap-2">
-                <textarea value={commentDraft} onChange={e => setCommentDraft(e.target.value)} autoFocus
-                  placeholder="Add a note about this player…" rows={3}
-                  className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none" />
-                <div className="flex items-center gap-1.5">
-                  <button onClick={() => setCommentVisibility("admin")} title="Admins only"
-                    className={`p-1.5 rounded-lg border transition-colors ${commentVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
-                    <Lock size={12} />
-                  </button>
-                  <button onClick={() => setCommentVisibility("all")} title="Visible to everyone"
-                    className={`p-1.5 rounded-lg border transition-colors ${commentVisibility === "all" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
-                    <Globe size={12} />
-                  </button>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#79828b]">
-                    {commentVisibility === "admin" ? "Admins only" : "Visible to everyone"}
-                  </span>
+
+          {notes.length === 0 ? (
+            <div className="mt-2 py-5 flex items-center justify-center bg-[#17212b] rounded-xl">
+              <span className="text-sm text-[#79828b]">No notes yet</span>
+            </div>
+          ) : (
+            <div className="mt-2 flex flex-col gap-2">
+              {notes.map(n => (
+                <div key={n.id} className="bg-[#17212b] rounded-xl px-3 py-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    {n.is_legacy ? (
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#79828b]">Legacy note</span>
+                    ) : (
+                      <>
+                        {n.visibility === "admin" ? <Lock size={11} className="text-[#79828b] shrink-0" /> : <Globe size={11} className="text-[#79828b] shrink-0" />}
+                        <span className="text-[11px] font-bold text-white/70">{n.author_name || "Admin"}</span>
+                        <span className="text-[10px] text-[#79828b]">· {formatDateTime(n.created_at)}</span>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap">{n.body}</p>
                 </div>
-              </div>
-            ) : player.admin_note ? (
-              <div className="px-3 py-3 flex items-center gap-2">
-                {player.admin_note_visibility === "admin" ? <Lock size={11} className="text-[#79828b] shrink-0" /> : <Globe size={11} className="text-[#79828b] shrink-0" />}
-                <p className="text-sm text-white/80 leading-relaxed">{player.admin_note}</p>
-              </div>
-            ) : (
-              <div className="py-5 flex items-center justify-center">
-                <span className="text-sm text-[#79828b]">No note yet</span>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* ── Admin Actions ─────────────────────────────────── */}
@@ -666,6 +736,32 @@ export function AdminPlayerProfile() {
                   Ban
                 </button>
               )}
+            </div>
+
+            {/* Trust Label */}
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                player.trust_label === "red" ? "bg-[#ef4444]/15" : player.trust_label === "yellow" ? "bg-[#eab308]/15" : "bg-white/5"
+              }`}>
+                <Flag size={16} className={
+                  player.trust_label === "red" ? "text-[#ef4444]" : player.trust_label === "yellow" ? "text-[#eab308]" : "text-[#79828b]"
+                } />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-white">Trust Label</div>
+                <div className="text-[11px] text-[#79828b]">Admin-only, shown as a dot on their avatar</div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button onClick={async () => { const r = await patchProfile({ trust_label: null }); if (r.ok) fireToast("Trust label cleared"); }}
+                  title="None"
+                  className={`w-7 h-7 rounded-full border-2 bg-white/5 transition-colors ${!player.trust_label ? "border-white" : "border-white/10"}`} />
+                <button onClick={async () => { const r = await patchProfile({ trust_label: "yellow" }); if (r.ok) fireToast("Yellow label set"); }}
+                  title="Yellow — keep an eye on them"
+                  className={`w-7 h-7 rounded-full border-2 bg-[#eab308] transition-colors ${player.trust_label === "yellow" ? "border-white" : "border-white/10"}`} />
+                <button onClick={async () => { const r = await patchProfile({ trust_label: "red" }); if (r.ok) fireToast("Red label set"); }}
+                  title="Red — excluded/problem player"
+                  className={`w-7 h-7 rounded-full border-2 bg-[#ef4444] transition-colors ${player.trust_label === "red" ? "border-white" : "border-white/10"}`} />
+              </div>
             </div>
 
           </div>

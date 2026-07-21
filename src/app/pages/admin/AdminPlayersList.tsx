@@ -3,12 +3,13 @@ import { useNavigate, useParams } from "react-router";
 import { Search, MoreVertical, ShieldCheck } from "lucide-react";
 import { SKILL_STYLE } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
+import { TrustDot } from "../../components/ui/TrustDot";
 import { navDir } from "../../lib/navDir";
 import { supabase } from "../../lib/supabaseClient";
 
 const POSITIONS = ["All", "Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
 
-type PlayerRow = { id: string; name: string; avatar: string | null; position: string | null; skill_level: string; is_admin: boolean };
+type PlayerRow = { id: string; name: string; avatar: string | null; position: string | null; skill_level: string; is_admin: boolean; visible_trust_label: string | null };
 
 export function AdminPlayersList() {
   const { level } = useParams<{ level: string }>();
@@ -27,7 +28,7 @@ export function AdminPlayersList() {
     if (!level) return;
     (async () => {
       setLoading(true);
-      const query = supabase.from("profiles").select("id, name, avatar, position, skill_level, is_admin");
+      const query = supabase.from("profiles").select("id, name, avatar, position, skill_level, is_admin, visible_trust_label");
       const { data: profileRows } = isAdminGroup ? await query.eq("is_admin", true) : await query.eq("skill_level", level);
       const ids = (profileRows ?? []).map(p => p.id);
       const { data: participantRows } = ids.length
@@ -105,10 +106,13 @@ export function AdminPlayersList() {
               key={player.id}
               className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-white/[0.05]" : ""} ${i === 0 ? "rounded-t-2xl" : ""} ${i === filtered.length - 1 ? "rounded-b-2xl" : ""}`}
             >
-              {player.avatar
-                ? <img src={player.avatar} alt={player.name} className="w-11 h-11 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
-                : <div className="w-11 h-11 rounded-full border-2 border-[#0e1621] bg-white/5 shrink-0" />
-              }
+              <div className="relative shrink-0">
+                {player.avatar
+                  ? <img src={player.avatar} alt={player.name} className="w-11 h-11 rounded-full border-2 border-[#0e1621] object-cover" />
+                  : <div className="w-11 h-11 rounded-full border-2 border-[#0e1621] bg-white/5" />
+                }
+                <TrustDot label={player.visible_trust_label} size={11} ringClassName="border-[#0e1621]" />
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-white text-sm truncate">{player.name}</div>
                 <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position ?? "—"}</div>

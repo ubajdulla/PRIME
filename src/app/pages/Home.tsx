@@ -26,7 +26,7 @@ type EventRow = {
   category: string | null;
   level: string | null;
   status: string;
-  event_participants: { profiles: { avatar: string | null } | null }[] | null;
+  event_participants: { profiles: { id: string; avatar: string | null; visible_trust_label: string | null } | null }[] | null;
 };
 
 const ALL_FILTERS = ["ALL", "TOURNAMENT", "GAMES", "TRAININGS", "EVENTS", "BEACH", "JOIN DIRECTLY", "REQUEST ONLY"] as const;
@@ -87,7 +87,7 @@ export function Home() {
       const [{ data: rows }, { data: counts }] = await Promise.all([
         supabase
           .from("events")
-          .select("id, title, event_date, event_time, location, price_label, capacity, category, level, status, event_participants(profiles(avatar))")
+          .select("id, title, event_date, event_time, location, price_label, capacity, category, level, status, event_participants(profiles(id, avatar, visible_trust_label))")
           .in("status", ["upcoming", "canceled"])
           .order("event_date", { ascending: true }),
         supabase.rpc("event_join_counts"),
@@ -99,8 +99,8 @@ export function Home() {
       const mapped: EventCardProps[] = ((rows as EventRow[] | null) ?? []).map(row => {
         const current = countMap.get(row.id) ?? row.event_participants?.length ?? 0;
         const avatars = (row.event_participants ?? [])
-          .map(p => p.profiles?.avatar)
-          .filter((a): a is string => !!a);
+          .filter((p): p is { profiles: { id: string; avatar: string; visible_trust_label: string | null } } => !!p.profiles?.avatar)
+          .map(p => ({ id: p.profiles.id, url: p.profiles.avatar, trustLabel: p.profiles.visible_trust_label }));
         return {
           id: row.id,
           title: row.title,
