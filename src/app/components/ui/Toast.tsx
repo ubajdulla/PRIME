@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import { Check, Copy, Send } from "lucide-react";
+import { Check, Copy, Send, AlertTriangle } from "lucide-react";
 
-type ToastVariant = "success" | "copied" | "publish";
+type ToastVariant = "success" | "copied" | "publish" | "error";
 
 interface ToastProps {
   message: string;
@@ -24,12 +24,14 @@ export function Toast({ message, visible, variant = "success", onHide }: ToastPr
     success: <Check size={16} />,
     copied:  <Copy size={16} />,
     publish: <Send size={16} />,
+    error:   <AlertTriangle size={16} />,
   };
 
   const colorMap: Record<ToastVariant, string> = {
     success: "bg-[#4dcd5e]/15 text-[#4dcd5e]",
     copied:  "bg-[#3390ec]/15 text-[#3390ec]",
     publish: "bg-[#3390ec]/15 text-[#3390ec]",
+    error:   "bg-[#ef4444]/15 text-[#ef4444]",
   };
 
   return (

@@ -89,6 +89,12 @@ export function AdminCreateEvent() {
   const image = categoryImage(f.category);
 
   async function handleSave() {
+    const capacityNum = f.capacity ? parseInt(f.capacity, 10) : 0;
+    if (!capacityNum || capacityNum < 2) {
+      setError("Max Players is required (minimum 2).");
+      return;
+    }
+
     const priceNum = f.price ? parseInt(f.price, 10) : 0;
     const payload = {
       title: f.title,
@@ -100,7 +106,7 @@ export function AdminCreateEvent() {
       location: f.location,
       price: priceNum,
       price_label: priceNum > 0 ? `${priceNum} CZK` : "FREE",
-      capacity: f.capacity ? parseInt(f.capacity, 10) : 0,
+      capacity: capacityNum,
     };
 
     setError(null);
@@ -278,8 +284,8 @@ export function AdminCreateEvent() {
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#79828b]/40 text-sm font-black pointer-events-none select-none">CZK</span>
             </div>
           </Row>
-          <Row label="Max Players">
-            <input type="number" min="2" max="100" value={f.capacity}
+          <Row label="Max Players *">
+            <input type="number" min="2" max="100" required value={f.capacity}
               onChange={e => s("capacity", e.target.value)}
               placeholder="12" className={INP} />
           </Row>
