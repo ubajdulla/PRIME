@@ -4,12 +4,13 @@ import { Search, MoreVertical, ShieldCheck } from "lucide-react";
 import { SKILL_STYLE } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
 import { TrustDot } from "../../components/ui/TrustDot";
+import { VerifiedBadge } from "../../components/ui/VerifiedBadge";
 import { navDir } from "../../lib/navDir";
 import { supabase } from "../../lib/supabaseClient";
 
 const POSITIONS = ["All", "Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
 
-type PlayerRow = { id: string; name: string; avatar: string | null; position: string | null; skill_level: string; is_admin: boolean; visible_trust_label: string | null };
+type PlayerRow = { id: string; name: string; avatar: string | null; position: string | null; skill_level: string; is_admin: boolean; is_verified: boolean; visible_trust_label: string | null };
 
 export function AdminPlayersList() {
   const { level } = useParams<{ level: string }>();
@@ -28,7 +29,7 @@ export function AdminPlayersList() {
     if (!level) return;
     (async () => {
       setLoading(true);
-      const query = supabase.from("profiles").select("id, name, avatar, position, skill_level, is_admin, visible_trust_label");
+      const query = supabase.from("profiles").select("id, name, avatar, position, skill_level, is_admin, is_verified, visible_trust_label");
       const { data: profileRows } = isAdminGroup ? await query.eq("is_admin", true) : await query.eq("skill_level", level);
       const ids = (profileRows ?? []).map(p => p.id);
       const { data: participantRows } = ids.length
@@ -111,6 +112,7 @@ export function AdminPlayersList() {
                   ? <img src={player.avatar} alt={player.name} className="w-11 h-11 rounded-full border-2 border-[#0e1621] object-cover" />
                   : <div className="w-11 h-11 rounded-full border-2 border-[#0e1621] bg-white/5" />
                 }
+                <VerifiedBadge verified={player.is_verified} size={14} ringClassName="border-[#0e1621]" />
                 <TrustDot label={player.visible_trust_label} size={11} ringClassName="border-[#0e1621]" />
               </div>
               <div className="flex-1 min-w-0">

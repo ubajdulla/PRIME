@@ -122,13 +122,16 @@ export function AdminCreateEvent() {
     }
 
     if (!authUser) return;
-    const { error } = await supabase.from("events").insert({ ...payload, moderator_id: authUser.id, status: "upcoming" });
+    const { data, error } = await supabase.from("events")
+      .insert({ ...payload, moderator_id: authUser.id, status: "draft" })
+      .select("id")
+      .single();
 
     setSaving(false);
-    if (error) { setError(error.message); return; }
+    if (error || !data) { setError(error?.message ?? "Could not save event."); return; }
 
     setDone(true);
-    setTimeout(() => navigate("/admin/events"), 1200);
+    setTimeout(() => navigate(`/admin/events/${data.id}`), 1200);
   }
 
   if (loadingEdit) return <div className="min-h-screen bg-[#0e1621]" />;
@@ -140,7 +143,7 @@ export function AdminCreateEvent() {
           <Check size={28} className="text-[#4dcd5e]" />
         </div>
         <p className="text-white font-black text-lg uppercase tracking-widest">
-          {isEditMode ? "Changes Saved!" : "Event Saved!"}
+          {isEditMode ? "Changes Saved!" : "Draft Saved!"}
         </p>
       </div>
     );
@@ -203,13 +206,40 @@ export function AdminCreateEvent() {
           )}
         </div>
 
-        {/* Date */}
-        <Row label="Date">
-          <div className="overflow-hidden rounded-xl">
-            <input type="date" value={f.date} onChange={e => s("date", e.target.value)}
-              className="block w-full h-12 bg-[#222f3e] border border-white/10 rounded-xl px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]" />
-          </div>
-        </Row>
+        {/* Date + Location */}
+        <div className="grid grid-cols-2 gap-3">
+          <Row label="Date">
+            <div className="overflow-hidden rounded-xl">
+              <input type="date" value={f.date} onChange={e => s("date", e.target.value)}
+                onClick={e => e.currentTarget.showPicker?.()}
+                className="block w-full h-12 bg-[#222f3e] border border-white/10 rounded-xl px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]" />
+            </div>
+          </Row>
+          <Row label="Location">
+            <div className="relative">
+              <input type="text" value={f.location}
+                onChange={e => { s("location", e.target.value); setLocationOpen(true); }}
+                onFocus={() => setLocationOpen(true)}
+                onBlur={() => setTimeout(() => setLocationOpen(false), 150)}
+                placeholder="Type or select venue..."
+                className={INP + " pr-10"} />
+              <button type="button" onClick={() => setLocationOpen(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] hover:text-white transition-colors">
+                <ChevronDown size={15} className={`transition-transform ${locationOpen ? "rotate-180" : ""}`} />
+              </button>
+              {locationOpen && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-[#17212b] border border-white/10 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.4)] z-30 overflow-y-auto max-h-64">
+                  {locations.filter(l => !f.location || l.toLowerCase().includes(f.location.toLowerCase())).map(l => (
+                    <button key={l} type="button" onClick={() => { s("location", l); setLocationOpen(false); }}
+                      className="block w-full px-4 py-2.5 text-sm font-bold text-white hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 text-left">
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Row>
+        </div>
 
         {/* Start Time + End Time — hour : minute selects */}
         <div className="grid grid-cols-2 gap-3">
@@ -249,32 +279,6 @@ export function AdminCreateEvent() {
           </Row>
         </div>
 
-        {/* Location */}
-        <Row label="Location">
-          <div className="relative">
-            <input type="text" value={f.location}
-              onChange={e => { s("location", e.target.value); setLocationOpen(true); }}
-              onFocus={() => setLocationOpen(true)}
-              onBlur={() => setTimeout(() => setLocationOpen(false), 150)}
-              placeholder="Type or select venue..."
-              className={INP + " pr-10"} />
-            <button type="button" onClick={() => setLocationOpen(v => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] hover:text-white transition-colors">
-              <ChevronDown size={15} className={`transition-transform ${locationOpen ? "rotate-180" : ""}`} />
-            </button>
-            {locationOpen && (
-              <div className="absolute left-0 right-0 top-full mt-1 bg-[#17212b] border border-white/10 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.4)] z-30 overflow-y-auto max-h-64">
-                {locations.filter(l => !f.location || l.toLowerCase().includes(f.location.toLowerCase())).map(l => (
-                  <button key={l} type="button" onClick={() => { s("location", l); setLocationOpen(false); }}
-                    className="block w-full px-4 py-2.5 text-sm font-bold text-white hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 text-left">
-                    {l}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </Row>
-
         {/* Entry Fee + Max Players */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Row label="Entry Fee">
@@ -291,16 +295,16 @@ export function AdminCreateEvent() {
           </Row>
         </div>
 
-        {/* Cancel + Save */}
+        {/* Back + Save */}
         <div className="flex gap-3 pt-1">
           <button type="button"
             onClick={() => navigate(isEditMode ? `/admin/events/${editId}` : "/admin/events")}
             className="flex-1 py-3.5 rounded-xl font-bold text-sm border border-white/10 text-[#79828b] hover:text-white transition-colors">
-            Cancel
+            Back
           </button>
           <button type="button" onClick={handleSave} disabled={saving}
             className="flex-1 py-3.5 rounded-xl font-bold text-sm bg-[#3390ec] text-white transition-transform disabled:opacity-50">
-            {saving ? "…" : isEditMode ? "Save Changes" : "Save Event"}
+            {saving ? "…" : isEditMode ? "Save Changes" : "Save as Draft"}
           </button>
         </div>
 

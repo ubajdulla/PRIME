@@ -17,6 +17,7 @@ import {
 import { Toast } from "../components/ui/Toast";
 import { BackBar } from "../components/ui/BackBar";
 import { TrustDot } from "../components/ui/TrustDot";
+import { VerifiedBadge } from "../components/ui/VerifiedBadge";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { computeJoinStatus } from "../lib/joinType";
@@ -38,8 +39,8 @@ type EventRow = {
   moderator: { id: string; name: string; avatar: string | null } | null;
 };
 
-type RosterPlayer = { id: string; name: string; avatar: string | null; position: string | null; trustLabel: string | null };
-type WaitlistEntry = { id: string; name: string; avatar: string | null; trustLabel: string | null };
+type RosterPlayer = { id: string; name: string; avatar: string | null; position: string | null; trustLabel: string | null; verified: boolean; isGuest: boolean };
+type WaitlistEntry = { id: string; name: string; avatar: string | null; trustLabel: string | null; verified: boolean };
 
 type JoinStatus = null | "joined" | "pending";
 
@@ -80,8 +81,8 @@ export function EventDetail() {
   async function load(eventId: string) {
     const [{ data: eventRow, error: eventErr }, { data: participantRows }, { data: requestRows }, { data: counts }] = await Promise.all([
       supabase.from("events").select("*, moderator:profiles!moderator_id(id, name, avatar)").eq("id", eventId).single(),
-      supabase.from("event_participants").select("player_id, joined_at, position, profiles(id, name, avatar, position, visible_trust_label)").eq("event_id", eventId).order("joined_at", { ascending: true }),
-      supabase.from("event_requests").select("player_id, kind, profiles(id, name, avatar, visible_trust_label)").eq("event_id", eventId),
+      supabase.from("event_participants").select("id, player_id, guest_name, joined_at, position, profiles(id, name, avatar, position, is_verified, visible_trust_label)").eq("event_id", eventId).order("joined_at", { ascending: true }),
+      supabase.from("event_requests").select("player_id, kind, profiles(id, name, avatar, is_verified, visible_trust_label)").eq("event_id", eventId),
       supabase.rpc("event_join_counts"),
     ]);
 
@@ -93,18 +94,21 @@ export function EventDetail() {
 
     setEvent(eventRow as unknown as EventRow);
 
+    const moderatorId = (eventRow as unknown as EventRow).moderator_id;
     const rosterList: RosterPlayer[] = (participantRows ?? []).map(p => ({
-      id: p.profiles?.id ?? p.player_id,
-      name: p.profiles?.name ?? "Unknown",
+      id: p.profiles?.id ?? `guest-${p.id}`,
+      name: p.profiles?.name ?? p.guest_name ?? "Unknown",
       avatar: p.profiles?.avatar ?? null,
       position: p.position ?? p.profiles?.position ?? null,
       trustLabel: p.profiles?.visible_trust_label ?? null,
-    }));
+      verified: p.profiles?.is_verified ?? false,
+      isGuest: !p.player_id,
+    })).sort((a, b) => (a.id === moderatorId ? -1 : 0) - (b.id === moderatorId ? -1 : 0));
     setRoster(rosterList);
 
     const waitlistList: WaitlistEntry[] = (requestRows ?? [])
       .filter(r => r.kind === "waitlist")
-      .map(r => ({ id: r.profiles?.id ?? r.player_id, name: r.profiles?.name ?? "Unknown", avatar: r.profiles?.avatar ?? null, trustLabel: r.profiles?.visible_trust_label ?? null }));
+      .map(r => ({ id: r.profiles?.id ?? r.player_id, name: r.profiles?.name ?? "Unknown", avatar: r.profiles?.avatar ?? null, trustLabel: r.profiles?.visible_trust_label ?? null, verified: r.profiles?.is_verified ?? false }));
     setWaitlist(waitlistList);
 
     const countRow = (counts as { event_id: string; joined_count: number }[] | null ?? []).find(c => c.event_id === eventId);
@@ -471,6 +475,7 @@ return (
                         <User size={16} className="text-white/30" />
                       </div>
                     )}
+                    <VerifiedBadge verified={player.verified} size={13} ringClassName="border-[#17212b]" />
                     <TrustDot label={player.trustLabel} size={10} ringClassName="border-[#17212b]" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -481,30 +486,32 @@ return (
                       </span>
                     )}
                   </div>
-                  <div className="relative shrink-0">
-                    <button
-                      onClick={e => openMenuAt(`player-${i}`, e)}
-                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
-                    >
-                      <MoreVertical size={16} />
-                    </button>
-                    {openMenu === `player-${i}` && menuPos && createPortal(
-                      <div
-                        style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
-                        className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
-                        onClick={closeMenu}
+                  {!player.isGuest && (
+                    <div className="relative shrink-0">
+                      <button
+                        onClick={e => openMenuAt(`player-${i}`, e)}
+                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
                       >
-                        <button
-                          onClick={() => { navDir.forward(); navigate(playerProfilePath(player.id)); closeMenu(); }}
-                          className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
+                        <MoreVertical size={16} />
+                      </button>
+                      {openMenu === `player-${i}` && menuPos && createPortal(
+                        <div
+                          style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
+                          className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
+                          onClick={closeMenu}
                         >
-                          <User size={14} />
-                          {t.event.viewProfile}
-                        </button>
-                      </div>,
-                      document.body
-                    )}
-                  </div>
+                          <button
+                            onClick={() => { navDir.forward(); navigate(playerProfilePath(player.id)); closeMenu(); }}
+                            className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
+                          >
+                            <User size={14} />
+                            {t.event.viewProfile}
+                          </button>
+                        </div>,
+                        document.body
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -543,6 +550,7 @@ return (
                               <User size={12} className="text-white/30" />
                             </div>
                           )}
+                          <VerifiedBadge verified={p.verified} size={10} ringClassName="border-[#17212b]" />
                           <TrustDot label={p.trustLabel} size={8} ringClassName="border-[#17212b]" />
                         </div>
                       ))}
@@ -569,6 +577,7 @@ return (
                                 <User size={12} className="text-white/30" />
                               </div>
                             )}
+                            <VerifiedBadge verified={player.verified} size={10} ringClassName="border-[#17212b]" />
                             <TrustDot label={player.trustLabel} size={8} ringClassName="border-[#17212b]" />
                           </div>
                           <span className={`font-bold text-sm flex-1 ${isMe ? theme.primary : "text-white"}`}>

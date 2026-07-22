@@ -3,15 +3,17 @@ import { useNavigate, useParams } from "react-router";
 import {
   ChevronDown, MoreVertical,
   CheckCircle2, CreditCard, Banknote, User, ArrowDownToLine,
-  Trash2, Send, CheckCheck, AlertTriangle, Ban, Share2,
-  MapPin, Calendar, Clock, Ticket, Pencil, RotateCcw, X, Check,
+  Trash2, CheckCheck, Share2, Send, Ban, RotateCcw, AlertTriangle, UserPlus,
+  MapPin, Calendar, Clock, Ticket, Pencil, X, Check,
 } from "lucide-react";
 import { BackBar } from "../../components/ui/BackBar";
-import { getCategoryStyle, type PaymentStatus, type EventStatus } from "../../data/adminData";
+import { getCategoryStyle, getStatusStyle, type PaymentStatus, type EventStatus } from "../../data/adminData";
 import { navDir } from "../../lib/navDir";
 import { Toast } from "../../components/ui/Toast";
 import { supabase } from "../../lib/supabaseClient";
-import { shortDate } from "../../lib/eventDate";
+import { useAuth } from "../../lib/AuthContext";
+import { shortDate, isPastDate } from "../../lib/eventDate";
+import { PublishEventModal } from "../../components/PublishEventModal";
 
 type EventRow = {
   id: string;
@@ -25,11 +27,12 @@ type EventRow = {
   price_label: string | null;
   capacity: number;
   status: EventStatus;
+  published_at: string | null;
   moderator_id: string;
   moderator: { id: string; name: string; avatar: string | null } | null;
 };
 
-type RosterEntry = { id: string; name: string; avatar: string | null; position: string | null; paymentStatus: PaymentStatus };
+type RosterEntry = { id: string; rowId: string; name: string; avatar: string | null; position: string | null; paymentStatus: PaymentStatus; isGuest: boolean };
 type PersonEntry = { id: string; name: string; avatar: string | null; position: string | null };
 
 const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
@@ -37,6 +40,7 @@ const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocke
 export function AdminEventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user: authUser, profile: authProfile } = useAuth();
 
   const [event, setEvent] = useState<EventRow | null>(null);
   const [roster, setRoster] = useState<RosterEntry[]>([]);
@@ -50,10 +54,15 @@ export function AdminEventDetail() {
   const [editPositionValue,    setEditPositionValue]    = useState(POSITIONS[0]);
   const [confirmRemoveId,      setConfirmRemoveId]      = useState<string | null>(null);
   const [confirmWaitlistRemId, setConfirmWaitlistRemId] = useState<string | null>(null);
-  const [showDeleteConfirm,    setShowDeleteConfirm]    = useState(false);
-  const [showCancelConfirm,    setShowCancelConfirm]    = useState(false);
-  const [showPublishConfirm,   setShowPublishConfirm]   = useState(false);
   const [showActionDropdown,   setShowActionDropdown]   = useState(false);
+  const [showPublishModal,     setShowPublishModal]     = useState(false);
+  const [showCancelConfirm,    setShowCancelConfirm]    = useState(false);
+  const [showReactivateConfirm, setShowReactivateConfirm] = useState(false);
+  const [showDeleteConfirm,    setShowDeleteConfirm]    = useState(false);
+  const [anonymousName,        setAnonymousName]        = useState("Guest");
+  const [anonymousAddCount,    setAnonymousAddCount]    = useState<string>("1");
+  const [editingAnonName,      setEditingAnonName]      = useState(false);
+  const [addingGuests,         setAddingGuests]         = useState(false);
   const [toast, setToast] = useState<{ message: string; variant: "success" | "copied" | "publish"; visible: boolean }>({ message: "", variant: "success", visible: false });
 
   function fireToast(message: string, variant: "success" | "copied" | "publish") {
@@ -66,20 +75,24 @@ export function AdminEventDetail() {
   async function load(eventId: string) {
     const [{ data: eventRow, error }, { data: participantRows }, { data: requestRows }] = await Promise.all([
       supabase.from("events").select("*, moderator:profiles!moderator_id(id, name, avatar)").eq("id", eventId).single(),
-      supabase.from("event_participants").select("player_id, payment_status, joined_at, position, profiles(id, name, avatar, position)").eq("event_id", eventId).order("joined_at", { ascending: true }),
+      supabase.from("event_participants").select("id, player_id, guest_name, payment_status, joined_at, position, profiles(id, name, avatar, position)").eq("event_id", eventId).order("joined_at", { ascending: true }),
       supabase.from("event_requests").select("player_id, kind, created_at, position, profiles(id, name, avatar)").eq("event_id", eventId).order("created_at", { ascending: true }),
     ]);
 
     if (error || !eventRow) { setNotFound(true); setLoading(false); return; }
 
     setEvent(eventRow as unknown as EventRow);
-    setRoster((participantRows ?? []).map(p => ({
-      id: p.profiles?.id ?? p.player_id,
-      name: p.profiles?.name ?? "Unknown",
+    const moderatorId = (eventRow as unknown as EventRow).moderator_id;
+    const rosterMapped = (participantRows ?? []).map(p => ({
+      id: p.profiles?.id ?? `guest-${p.id}`,
+      rowId: p.id,
+      name: p.profiles?.name ?? p.guest_name ?? "Unknown",
       avatar: p.profiles?.avatar ?? null,
       position: p.position ?? p.profiles?.position ?? null,
       paymentStatus: p.payment_status as PaymentStatus,
-    })));
+      isGuest: !p.player_id,
+    }));
+    setRoster([...rosterMapped].sort((a, b) => (a.id === moderatorId ? -1 : 0) - (b.id === moderatorId ? -1 : 0)));
     setRequests((requestRows ?? []).filter(r => r.kind === "request").map(r => ({
       id: r.profiles?.id ?? r.player_id, name: r.profiles?.name ?? "Unknown", avatar: r.profiles?.avatar ?? null,
       position: r.position ?? r.profiles?.position ?? null,
@@ -121,17 +134,44 @@ export function AdminEventDetail() {
   }
 
   // ── Actions ────────────────────────────────────────────────
-  async function confirmPayment(playerId: string, newStatus: PaymentStatus) {
-    setRoster(prev => prev.map(p => p.id === playerId ? { ...p, paymentStatus: newStatus } : p));
-    await supabase.from("event_participants").update({ payment_status: newStatus }).eq("event_id", event!.id).eq("player_id", playerId);
+  async function confirmPayment(rowId: string, newStatus: PaymentStatus) {
+    setRoster(prev => prev.map(p => p.rowId === rowId ? { ...p, paymentStatus: newStatus } : p));
+    await supabase.from("event_participants").update({ payment_status: newStatus }).eq("id", rowId);
   }
 
-  async function removeFromEvent(playerId: string) {
-    await supabase.from("event_participants").delete().eq("event_id", event!.id).eq("player_id", playerId);
-    setRoster(prev => prev.filter(p => p.id !== playerId));
+  async function removeFromEvent(rowId: string) {
+    await supabase.from("event_participants").delete().eq("id", rowId);
+    setRoster(prev => prev.filter(p => p.rowId !== rowId));
     setConfirmRemoveId(null);
     setOpenMenu(null);
     fireToast("Player Removed!", "success");
+  }
+
+  async function addAnonymousPlayers() {
+    if (!event) return;
+    const count = Math.max(1, Number(anonymousAddCount) || 1);
+    const name = anonymousName.trim() || "Guest";
+    setAddingGuests(true);
+    const { data, error } = await supabase
+      .from("event_participants")
+      .insert(Array.from({ length: count }, () => ({ event_id: event.id, guest_name: name, payment_status: "unpaid" })))
+      .select("id, payment_status, position, guest_name");
+    setAddingGuests(false);
+    if (error || !data) return;
+    setRoster(prev => [
+      ...prev,
+      ...data.map(r => ({
+        id: `guest-${r.id}`,
+        rowId: r.id as string,
+        name: r.guest_name ?? name,
+        avatar: null,
+        position: r.position ?? null,
+        paymentStatus: r.payment_status as PaymentStatus,
+        isGuest: true,
+      })),
+    ]);
+    setAnonymousAddCount("1");
+    fireToast(`${count} Guest${count > 1 ? "s" : ""} Added!`, "success");
   }
 
   async function moveToWaitlist(playerId: string) {
@@ -157,9 +197,9 @@ export function AdminEventDetail() {
     setRoster(prev => [...prev, { id: player.id, name: player.name, avatar: player.avatar, position: player.position, paymentStatus: "unpaid" }]);
   }
 
-  async function updatePosition(playerId: string, position: string) {
-    setRoster(prev => prev.map(p => p.id === playerId ? { ...p, position } : p));
-    await supabase.from("event_participants").update({ position }).eq("event_id", event!.id).eq("player_id", playerId);
+  async function updatePosition(rowId: string, position: string) {
+    setRoster(prev => prev.map(p => p.rowId === rowId ? { ...p, position } : p));
+    await supabase.from("event_participants").update({ position }).eq("id", rowId);
     setEditPositionId(null);
   }
 
@@ -188,9 +228,31 @@ export function AdminEventDetail() {
     setRequests(prev => prev.filter(p => p.id !== playerId));
   }
 
-  async function setEventStatus(status: EventStatus) {
-    await supabase.from("events").update({ status }).eq("id", event!.id);
-    setEvent(prev => prev ? { ...prev, status } : prev);
+  async function publishEvent(publishedAt: string | null) {
+    const { error } = await supabase.from("events").update({ status: "upcoming", published_at: publishedAt }).eq("id", event!.id);
+    if (error) return;
+    setEvent(prev => prev ? { ...prev, status: "upcoming", published_at: publishedAt } : prev);
+    setShowPublishModal(false);
+    fireToast(publishedAt ? "Event Scheduled!" : "Event Published!", "publish");
+  }
+
+  async function publishNow() {
+    await publishEvent(null);
+    setShowActionDropdown(false);
+  }
+
+  async function cancelEvent() {
+    await supabase.from("events").update({ status: "canceled" }).eq("id", event!.id);
+    setEvent(prev => prev ? { ...prev, status: "canceled" } : prev);
+    setShowCancelConfirm(false);
+    fireToast("Event Canceled!", "success");
+  }
+
+  async function reactivateEvent() {
+    await supabase.from("events").update({ status: "upcoming" }).eq("id", event!.id);
+    setEvent(prev => prev ? { ...prev, status: "upcoming" } : prev);
+    setShowReactivateConfirm(false);
+    fireToast("Event Reactivated!", "success");
   }
 
   async function deleteEvent() {
@@ -198,6 +260,29 @@ export function AdminEventDetail() {
     setShowDeleteConfirm(false);
     fireToast("Event Deleted!", "success");
     setTimeout(() => navigate("/admin/events"), 1200);
+  }
+
+  async function joinAsModerator() {
+    if (!authUser || !event) return;
+    const { data, error } = await supabase
+      .from("event_participants")
+      .insert({ event_id: event.id, player_id: authUser.id, payment_status: "unpaid" })
+      .select("id, position")
+      .single();
+    if (error || !data) return;
+    setRoster(prev => [
+      {
+        id: authUser.id,
+        rowId: data.id,
+        name: authProfile?.name ?? "Me",
+        avatar: authProfile?.avatar ?? null,
+        position: data.position ?? null,
+        paymentStatus: "unpaid",
+        isGuest: false,
+      },
+      ...prev,
+    ]);
+    fireToast("Joined as Moderator!", "success");
   }
 
   function openProfile(player: PersonEntry) {
@@ -221,45 +306,79 @@ export function AdminEventDetail() {
 
   const isCanceled  = event.status === "canceled";
   const isDraft     = event.status === "draft";
-  const dropdownLabel = isCanceled ? "Canceled" : isDraft ? "Draft" : "Published";
-  const dropdownCls   = isCanceled
-    ? "shadow-[inset_0_0_0_1.5px_#eab308] text-[#eab308]"
-    : isDraft
-      ? "bg-[#3390ec] text-white shadow-sm"
-      : "shadow-[inset_0_0_0_1.5px_#3390ec] text-[#3390ec]";
+  const isPast      = !isDraft && !isCanceled && isPastDate(event.event_date);
+  const isScheduled = !isDraft && !isCanceled && !isPast && !!event.published_at && new Date(event.published_at) > new Date();
+  const badgeStatus: EventStatus = isCanceled ? "canceled" : isPast ? "past" : "upcoming";
+  const badgeLabel   = isCanceled ? "Canceled" : isPast ? "Past" : "Published";
+  const canJoinEvent = authUser?.id === event.moderator_id && !roster.some(p => p.id === authUser.id);
 
   return (
     <div className="min-h-screen bg-[#0e1621] text-white font-sans">
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={hideToast} />
 
-      {/* ── Publish confirm ─────────────────────────────────── */}
-      {showPublishConfirm && (
+      {/* ── Publish / Schedule modal ─────────────────────────── */}
+      {showPublishModal && (
+        <PublishEventModal
+          initial={event.published_at}
+          onClose={() => setShowPublishModal(false)}
+          onConfirm={publishEvent}
+        />
+      )}
+
+      {/* ── Cancel confirm ───────────────────────────────────── */}
+      {showCancelConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-[#3390ec]/10 border border-[#3390ec]/20 flex items-center justify-center shrink-0">
-                <Send size={18} className="text-[#3390ec]" />
+              <div className="w-10 h-10 rounded-xl bg-[#eab308]/10 border border-[#eab308]/20 flex items-center justify-center shrink-0">
+                <Ban size={18} className="text-[#eab308]" />
               </div>
               <div>
-                <h3 className="font-black italic uppercase tracking-widest text-white text-base">Publish Event?</h3>
-                <p className="text-[#79828b] text-xs">Players will be able to join.</p>
+                <h3 className="font-black italic uppercase tracking-widest text-white text-base">Cancel Event?</h3>
+                <p className="text-[#79828b] text-xs">Players will see the event as canceled.</p>
               </div>
             </div>
             <p className="text-[#79828b] text-sm mb-5">
-              <span className="text-white font-bold">{event.title}</span> will be visible and open for sign-ups.
+              <span className="text-white font-bold">{event.title}</span> will be marked as canceled and remain visible to players.
             </p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowPublishConfirm(false)}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
-              >
-                Cancel
+              <button onClick={() => setShowCancelConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">
+                Back
               </button>
-              <button
-                onClick={async () => { await setEventStatus("upcoming"); setShowPublishConfirm(false); fireToast("Event Published!", "publish"); }}
-                className="flex-1 py-2.5 rounded-xl bg-[#3390ec] text-white font-bold text-sm transition-transform"
-              >
-                Publish
+              <button onClick={cancelEvent}
+                className="flex-1 py-2.5 rounded-xl bg-[#eab308]/10 border border-[#eab308]/30 text-[#eab308] font-bold text-sm transition-transform">
+                Cancel Event
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reactivate confirm ───────────────────────────────── */}
+      {showReactivateConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-[#eab308]/10 border border-[#eab308]/20 flex items-center justify-center shrink-0">
+                <RotateCcw size={18} className="text-[#eab308]" />
+              </div>
+              <div>
+                <h3 className="font-black italic uppercase tracking-widest text-white text-base">Reactivate Event?</h3>
+                <p className="text-[#79828b] text-xs">Players will be able to join again.</p>
+              </div>
+            </div>
+            <p className="text-[#79828b] text-sm mb-5">
+              <span className="text-white font-bold">{event.title}</span> will go back to Published.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowReactivateConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">
+                Back
+              </button>
+              <button onClick={reactivateEvent}
+                className="flex-1 py-2.5 rounded-xl bg-[#eab308]/10 border border-[#eab308]/30 text-[#eab308] font-bold text-sm transition-transform">
+                Reactivate
               </button>
             </div>
           </div>
@@ -283,51 +402,13 @@ export function AdminEventDetail() {
               All roster, waitlist, and request data for <span className="text-white font-bold">{event.title}</span> will be permanently removed.
             </p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={deleteEvent}
-                className="flex-1 py-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-bold text-sm transition-transform"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Cancel confirm ───────────────────────────────────── */}
-      {showCancelConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-[#eab308]/10 border border-[#eab308]/20 flex items-center justify-center shrink-0">
-                <Ban size={18} className="text-[#eab308]" />
-              </div>
-              <div>
-                <h3 className="font-black italic uppercase tracking-widest text-white text-base">Cancel Event?</h3>
-                <p className="text-[#79828b] text-xs">Players will see the event as canceled.</p>
-              </div>
-            </div>
-            <p className="text-[#79828b] text-sm mb-5">
-              <span className="text-white font-bold">{event.title}</span> will be marked as canceled and remain visible to players.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowCancelConfirm(false)}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
-              >
+              <button onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">
                 Back
               </button>
-              <button
-                onClick={async () => { await setEventStatus("canceled"); setShowCancelConfirm(false); fireToast("Event Canceled!", "success"); }}
-                className="flex-1 py-2.5 rounded-xl bg-[#eab308]/10 border border-[#eab308]/30 text-[#eab308] font-bold text-sm transition-transform"
-              >
-                Cancel Event
+              <button onClick={deleteEvent}
+                className="flex-1 py-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-bold text-sm transition-transform">
+                Delete
               </button>
             </div>
           </div>
@@ -469,43 +550,74 @@ export function AdminEventDetail() {
               <span className="text-[#79828b]">/ {event.capacity} Players</span>
             </h2>
 
-            {/* Action dropdown (replaces CTA button) */}
+            {/* Status CTA + actions dropdown */}
             <div className="relative" onMouseDown={e => e.stopPropagation()}>
               <button
                 onClick={() => setShowActionDropdown(v => !v)}
-                className={`w-36 py-2 px-3 flex items-center justify-between rounded-lg font-bold text-sm transition-all ${dropdownCls}`}
+                className={`w-36 py-2 px-3 flex items-center justify-between rounded-lg font-bold text-sm transition-all ${
+                  isDraft || isScheduled ? "bg-[#3390ec] text-white shadow-sm" : getStatusStyle(badgeStatus)
+                }`}
               >
-                <span>{dropdownLabel}</span>
+                <span>{isDraft ? "Publish" : isScheduled ? "Scheduled" : badgeLabel}</span>
                 <ChevronDown size={13} className={`transition-transform duration-200 shrink-0 ${showActionDropdown ? "rotate-180" : ""}`} />
               </button>
 
               {showActionDropdown && (
-                <div className="absolute right-0 top-full mt-1.5 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.6)] z-20 overflow-hidden w-full">
-                  {isDraft && !isCanceled && (
+                <div className="absolute right-0 top-full mt-1.5 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.6)] z-20 overflow-hidden w-44">
+                  {isDraft && (
                     <button
-                      onClick={() => { setShowPublishConfirm(true); setShowActionDropdown(false); }}
+                      onClick={() => { setShowPublishModal(true); setShowActionDropdown(false); }}
                       className="flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#3390ec] hover:bg-[#3390ec]/5 transition-colors text-left"
                     >
                       <Send size={14} />
-                      Publish
+                      Publish…
                     </button>
                   )}
-                  {isCanceled ? (
+                  {isScheduled && (
+                    <>
+                      <button
+                        onClick={publishNow}
+                        className="flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#3390ec] hover:bg-[#3390ec]/5 transition-colors text-left"
+                      >
+                        <Send size={14} />
+                        Publish Now
+                      </button>
+                      <button
+                        onClick={() => { setShowPublishModal(true); setShowActionDropdown(false); }}
+                        className="flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#3390ec] hover:bg-[#3390ec]/5 transition-colors text-left border-t border-white/5"
+                      >
+                        <Calendar size={14} />
+                        Reschedule…
+                      </button>
+                    </>
+                  )}
+                  {canJoinEvent && (
                     <button
-                      onClick={async () => { await setEventStatus("upcoming"); setShowActionDropdown(false); fireToast("Event Reactivated!", "success"); }}
-                      className="flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#eab308] hover:bg-[#eab308]/5 transition-colors text-left"
+                      onClick={() => { joinAsModerator(); setShowActionDropdown(false); }}
+                      className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left ${(isDraft || isScheduled) ? "border-t border-white/5" : ""}`}
                     >
-                      <RotateCcw size={14} />
-                      Reactivate
+                      <UserPlus size={14} />
+                      Join Event
                     </button>
-                  ) : (
-                    <button
-                      onClick={() => { setShowCancelConfirm(true); setShowActionDropdown(false); }}
-                      className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#eab308] hover:bg-[#eab308]/5 transition-colors text-left ${isDraft ? "border-t border-white/5" : ""}`}
-                    >
-                      <Ban size={14} />
-                      Cancel Event
-                    </button>
+                  )}
+                  {!isDraft && (
+                    isCanceled ? (
+                      <button
+                        onClick={() => { setShowReactivateConfirm(true); setShowActionDropdown(false); }}
+                        className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#eab308] hover:bg-[#eab308]/5 transition-colors text-left ${(isScheduled || canJoinEvent) ? "border-t border-white/5" : ""}`}
+                      >
+                        <RotateCcw size={14} />
+                        Reactivate Event
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => { setShowCancelConfirm(true); setShowActionDropdown(false); }}
+                        className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#eab308] hover:bg-[#eab308]/5 transition-colors text-left ${(isScheduled || canJoinEvent) ? "border-t border-white/5" : ""}`}
+                      >
+                        <Ban size={14} />
+                        Cancel Event
+                      </button>
+                    )
                   )}
                   <button
                     onClick={() => { setShowDeleteConfirm(true); setShowActionDropdown(false); }}
@@ -527,6 +639,50 @@ export function AdminEventDetail() {
             />
           </div>
 
+          {/* Anonymous player card */}
+          <div className="mx-0 mb-7">
+            <div className="bg-[#17212b] border border-dashed border-white/[0.12] rounded-xl p-3 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full border-2 border-[#0e1621] bg-white/5 flex items-center justify-center shrink-0">
+                <User size={16} className="text-white/30" />
+              </div>
+              <div className="flex-1 min-w-0">
+                {editingAnonName ? (
+                  <input
+                    autoFocus
+                    value={anonymousName}
+                    onChange={e => setAnonymousName(e.target.value)}
+                    onBlur={() => setEditingAnonName(false)}
+                    onKeyDown={e => e.key === "Enter" && setEditingAnonName(false)}
+                    className="w-full bg-transparent border-b border-white/20 text-white font-bold text-sm outline-none"
+                  />
+                ) : (
+                  <button onClick={() => setEditingAnonName(true)} className="flex items-center gap-1.5 group">
+                    <span className="font-bold text-white/40 text-sm group-hover:text-white/60 transition-colors">
+                      {anonymousName}
+                    </span>
+                    <Pencil size={10} className="text-white/20 group-hover:text-white/40 transition-colors" />
+                  </button>
+                )}
+              </div>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={anonymousAddCount}
+                onChange={e => setAnonymousAddCount(e.target.value.replace(/[^0-9]/g, ""))}
+                onBlur={() => setAnonymousAddCount(v => (!v || Number(v) < 1) ? "1" : v)}
+                className="w-10 h-8 bg-white/5 border border-white/10 rounded-lg text-white font-black text-sm text-center outline-none focus:border-white/25 shrink-0"
+              />
+              <button
+                onClick={addAnonymousPlayers}
+                disabled={addingGuests}
+                className="px-3 h-8 flex items-center justify-center gap-1 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-white/5 border-white/10 text-[#79828b] hover:text-white hover:border-white/25 disabled:opacity-50"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+
           {/* Roster list */}
           <div className="flex flex-col gap-2 mb-8">
             {roster.length === 0 && (
@@ -546,7 +702,7 @@ export function AdminEventDetail() {
                     {player.position && <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position}</div>}
                   </div>
                   {event.price > 0 && (
-                    <PaymentToggle status={player.paymentStatus} onConfirm={s => confirmPayment(player.id, s)} />
+                    <PaymentToggle status={player.paymentStatus} onConfirm={s => confirmPayment(player.rowId, s)} />
                   )}
                   <button
                     onMouseDown={e => e.stopPropagation()}
@@ -563,7 +719,7 @@ export function AdminEventDetail() {
                       <div className="flex items-center gap-3 px-4 py-3">
                         <span className="text-white text-xs font-bold flex-1">Remove {player.name}?</span>
                         <button
-                          onClick={() => removeFromEvent(player.id)}
+                          onClick={() => removeFromEvent(player.rowId)}
                           className="px-3 py-1.5 bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] text-[11px] font-black uppercase tracking-wider rounded-lg"
                         >
                           Confirm
@@ -586,7 +742,7 @@ export function AdminEventDetail() {
                           <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
                         </div>
                         <button
-                          onClick={() => updatePosition(player.id, editPositionValue)}
+                          onClick={() => updatePosition(player.rowId, editPositionValue)}
                           className="px-3 py-1.5 bg-[#3390ec]/10 border border-[#3390ec]/30 text-[#3390ec] text-[11px] font-black uppercase tracking-wider rounded-lg"
                         >
                           Save
@@ -600,9 +756,9 @@ export function AdminEventDetail() {
                       </div>
                     ) : (
                       <div className="flex flex-col">
-                        <MenuAction icon={<User size={14} />} label="View Profile" onClick={() => openProfile(player)} />
+                        {!player.isGuest && <MenuAction icon={<User size={14} />} label="View Profile" onClick={() => openProfile(player)} />}
                         <MenuAction icon={<Pencil size={14} />} label="Edit Position" onClick={() => { setEditPositionValue(player.position && POSITIONS.includes(player.position) ? player.position : POSITIONS[0]); setEditPositionId(player.id); }} />
-                        <MenuAction icon={<ArrowDownToLine size={14} />} label="Move to Waitlist" onClick={() => moveToWaitlist(player.id)} />
+                        {!player.isGuest && <MenuAction icon={<ArrowDownToLine size={14} />} label="Move to Waitlist" onClick={() => moveToWaitlist(player.id)} />}
                         <MenuAction icon={<Trash2 size={14} />} label="Remove from Event" danger onClick={() => setConfirmRemoveId(player.id)} />
                       </div>
                     )}

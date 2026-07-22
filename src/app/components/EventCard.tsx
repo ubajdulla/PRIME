@@ -1,6 +1,5 @@
 import { Link } from "react-router";
-import { MapPin, Calendar, Clock, ChevronRight } from "lucide-react";
-import { TrustDot } from "./ui/TrustDot";
+import { MapPin, Calendar, Clock, ChevronRight, User } from "lucide-react";
 
 const LEVEL_STYLE: Record<string, { bg: string; text: string; border: string }> = {
   PRIME:        { bg: "bg-[#ccff00]/15", text: "text-[#ccff00]",  border: "border-[#ccff00]/30" },
@@ -19,7 +18,7 @@ export interface EventCardProps {
   location: string;
   price: string;
   capacity: { current: number; max: number };
-  avatars: { id: string; url: string; trustLabel?: string | null }[];
+  avatars: { id: string; url: string | null }[];
   status: "REQUEST ONLY" | "JOIN DIRECTLY";
   image?: string;
   category?: string;
@@ -144,12 +143,17 @@ export function EventCard({
             <div className="flex -space-x-2">
               {avatars.slice(0, 3).map((av, idx) => (
                 <div key={av.id ?? idx} className="relative shrink-0">
-                  <img
-                    src={av.url}
-                    className="w-7 h-7 rounded-full border-2 border-[#17212b] object-cover bg-[#222f3e]"
-                    alt="Player avatar"
-                  />
-                  <TrustDot label={av.trustLabel} size={9} ringClassName="border-[#17212b]" />
+                  {av.url ? (
+                    <img
+                      src={av.url}
+                      className="w-7 h-7 rounded-full border-2 border-[#17212b] object-cover bg-[#222f3e]"
+                      alt="Player avatar"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full border-2 border-[#17212b] bg-[#222f3e] flex items-center justify-center">
+                      <User size={12} className="text-white/30" />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

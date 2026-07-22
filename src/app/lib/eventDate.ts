@@ -13,6 +13,15 @@ export function relativeDay(dateStr: string): "TODAY" | "TOMORROW" | null {
   return null;
 }
 
+// An event is "past" once its date has gone by - not a stored status, computed live
+// so history sections and filters stay correct without any admin action or cron job.
+export function isPastDate(dateStr: string): boolean {
+  const d = new Date(dateStr + "T00:00:00");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return d.getTime() < today.getTime();
+}
+
 export function shortDate(dateStr: string, titleCase = false): string {
   const d = new Date(dateStr + "T00:00:00");
   const dow = titleCase ? DOW_TITLE[d.getDay()] : DOW_UPPER[d.getDay()];

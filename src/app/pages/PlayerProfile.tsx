@@ -5,9 +5,10 @@ import { Send, Instagram, Calendar, MapPin, User } from "lucide-react";
 import { SKILL_STYLE } from "../data/adminData";
 import { BackBar } from "../components/ui/BackBar";
 import { TrustDot } from "../components/ui/TrustDot";
+import { VerifiedBadge } from "../components/ui/VerifiedBadge";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
-import { shortDate } from "../lib/eventDate";
+import { shortDate, isPastDate } from "../lib/eventDate";
 
 const SKILL_COLOR: Record<string, string> = {
   PRIME:        "text-[#ccff00]",
@@ -21,6 +22,7 @@ const SKILL_COLOR: Record<string, string> = {
 type ProfileRow = {
   id: string; name: string; avatar: string | null; position: string | null; skill_level: string;
   telegram: string | null; instagram: string | null; show_telegram: boolean; show_instagram: boolean;
+  is_verified: boolean;
   visible_trust_label: "yellow" | "red" | null;
 };
 type EventRow = { id: string; title: string; event_date: string; location: string; status: string };
@@ -39,7 +41,7 @@ export function PlayerProfile() {
     if (!playerId) return;
     (async () => {
       const [{ data: p }, { data: partRows }, { data: noteRows }] = await Promise.all([
-        supabase.from("profiles").select("id, name, avatar, position, skill_level, telegram, instagram, show_telegram, show_instagram, visible_trust_label").eq("id", playerId).single(),
+        supabase.from("profiles").select("id, name, avatar, position, skill_level, telegram, instagram, show_telegram, show_instagram, is_verified, visible_trust_label").eq("id", playerId).single(),
         supabase.from("event_participants").select("events(id, title, event_date, location, status)").eq("player_id", playerId),
         supabase.from("player_notes").select("id, body").eq("player_id", playerId).order("created_at", { ascending: false }),
       ]);
@@ -69,8 +71,8 @@ export function PlayerProfile() {
   const style = SKILL_STYLE[player.skill_level];
   const ringColor = dotColor(player.skill_level);
 
-  const upcomingEvents = events.filter(e => e.status === "upcoming");
-  const pastEvents = events.filter(e => e.status === "past");
+  const upcomingEvents = events.filter(e => e.status === "upcoming" && !isPastDate(e.event_date));
+  const pastEvents = events.filter(e => isPastDate(e.event_date));
 
   return (
     <div className="min-h-full bg-[#0e1621] pb-4 font-sans">
@@ -91,6 +93,7 @@ export function PlayerProfile() {
               <User size={36} className="text-white/20" />
             </div>
           )}
+          <VerifiedBadge verified={player.is_verified} size={28} ringClassName="border-[#0e1621]" />
           <TrustDot label={player.visible_trust_label} size={20} ringClassName="border-[#0e1621]" />
         </div>
         <h1 className="text-xl font-semibold text-white mb-1">{player.name}</h1>

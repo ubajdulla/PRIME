@@ -1,11 +1,14 @@
 import { Calendar, Clock, MapPin, ChevronRight, User } from "lucide-react";
 import { getCategoryStyle, type EventStatus } from "../data/adminData";
 
-const STATUS_CONFIG: Record<EventStatus, { label: string; chip: string; dot: string }> = {
-  upcoming: { label: "Published", chip: "bg-[#4dcd5e]/10 text-[#4dcd5e]",  dot: "bg-[#4dcd5e]"  },
-  past:     { label: "Past",      chip: "bg-white/5 text-[#79828b]",        dot: "bg-[#79828b]"  },
-  draft:    { label: "Draft",     chip: "bg-[#eab308]/10 text-[#eab308]",   dot: "bg-[#eab308]"  },
-  canceled: { label: "Canceled",  chip: "bg-[#ef4444]/10 text-[#ef4444]",   dot: "bg-[#ef4444]"  },
+type DisplayStatus = EventStatus | "scheduled";
+
+const STATUS_CONFIG: Record<DisplayStatus, { label: string; chip: string; dot: string }> = {
+  upcoming:  { label: "Published", chip: "bg-[#4dcd5e]/10 text-[#4dcd5e]",  dot: "bg-[#4dcd5e]"  },
+  scheduled: { label: "Scheduled", chip: "bg-[#a855f7]/10 text-[#a855f7]",  dot: "bg-[#a855f7]"  },
+  past:      { label: "Past",      chip: "bg-white/5 text-[#79828b]",        dot: "bg-[#79828b]"  },
+  draft:     { label: "Draft",     chip: "bg-[#eab308]/10 text-[#eab308]",   dot: "bg-[#eab308]"  },
+  canceled:  { label: "Canceled",  chip: "bg-[#ef4444]/10 text-[#ef4444]",   dot: "bg-[#ef4444]"  },
 };
 
 const czk = (n: number) => n.toLocaleString("cs-CZ") + " CZK";
@@ -21,6 +24,8 @@ export type AdminEventCardData = {
   capacity: number;
   category: string;
   status: EventStatus;
+  isPast: boolean;
+  publishedAt: string | null;
   moderatorName: string;
   moderatorAvatar: string | null;
   rosterCount: number;
@@ -35,12 +40,16 @@ export function AdminEventCard({
   event: AdminEventCardData;
   onNavigate: (path: string) => void;
 }) {
-  const isFull    = event.rosterCount >= event.capacity;
-  const fillPct   = event.capacity > 0 ? Math.min((event.rosterCount / event.capacity) * 100, 100) : 0;
-  const status    = STATUS_CONFIG[event.status];
+  const isFull      = event.rosterCount >= event.capacity;
+  const fillPct     = event.capacity > 0 ? Math.min((event.rosterCount / event.capacity) * 100, 100) : 0;
+  const isScheduled = !!event.publishedAt && new Date(event.publishedAt) > new Date();
+  const displayStatus: DisplayStatus = event.status === "draft" || event.status === "canceled"
+    ? event.status
+    : event.isPast ? "past" : isScheduled ? "scheduled" : "upcoming";
+  const status      = STATUS_CONFIG[displayStatus];
   const collected    = event.paidCount * event.price;
   const unpaidAmount = event.unpaidCount * event.price;
-  const expected     = event.rosterCount * event.price;
+  const expected     = event.capacity * event.price;
   const allPaid      = event.price > 0 && event.unpaidCount === 0 && event.rosterCount > 0;
 
   return (

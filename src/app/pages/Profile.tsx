@@ -4,7 +4,7 @@ import { useLang } from "../i18n";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { SKILL_STYLE } from "../data/adminData";
-import { shortDate } from "../lib/eventDate";
+import { shortDate, isPastDate } from "../lib/eventDate";
 import {
   Phone, Mail, Instagram, Send, MapPin, Calendar, Clock,
   Pencil, Camera, LogOut, User, Eye, EyeOff,
@@ -50,12 +50,12 @@ export function Profile() {
       const pending = (reqRows  ?? []).map(r => r.events).filter(Boolean) as unknown as EventRow[];
 
       setUpcomingEvents([
-        ...joined.filter(e => e.status === "upcoming").map(e => ({ event: e, pending: false })),
-        ...pending.filter(e => e.status === "upcoming").map(e => ({ event: e, pending: true })),
+        ...joined.filter(e => e.status === "upcoming" && !isPastDate(e.event_date)).map(e => ({ event: e, pending: false })),
+        ...pending.filter(e => e.status === "upcoming" && !isPastDate(e.event_date)).map(e => ({ event: e, pending: true })),
       ].sort((a, b) => a.event.event_date.localeCompare(b.event.event_date)));
 
       setPastEvents(
-        joined.filter(e => e.status === "past").sort((a, b) => b.event_date.localeCompare(a.event_date))
+        joined.filter(e => isPastDate(e.event_date)).sort((a, b) => b.event_date.localeCompare(a.event_date))
       );
     })();
   }, [authUser]);

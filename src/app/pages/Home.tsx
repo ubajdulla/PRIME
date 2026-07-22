@@ -26,7 +26,7 @@ type EventRow = {
   category: string | null;
   level: string | null;
   status: string;
-  event_participants: { profiles: { id: string; avatar: string | null; visible_trust_label: string | null } | null }[] | null;
+  event_participants: { id: string; profiles: { id: string; avatar: string | null } | null }[] | null;
 };
 
 const ALL_FILTERS = ["ALL", "TOURNAMENT", "GAMES", "TRAININGS", "EVENTS", "BEACH", "JOIN DIRECTLY", "REQUEST ONLY"] as const;
@@ -84,11 +84,15 @@ export function Home() {
   useEffect(() => {
     let active = true;
     async function load() {
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
       const [{ data: rows }, { data: counts }] = await Promise.all([
         supabase
           .from("events")
-          .select("id, title, event_date, event_time, location, price_label, capacity, category, level, status, event_participants(profiles(id, avatar, visible_trust_label))")
+          .select("id, title, event_date, event_time, location, price_label, capacity, category, level, status, event_participants(id, profiles(id, avatar))")
           .in("status", ["upcoming", "canceled"])
+          .gte("event_date", todayStr)
+          .or(`published_at.is.null,published_at.lte.${now.toISOString().replace(/\.\d+Z$/, "Z")}`)
           .order("event_date", { ascending: true }),
         supabase.rpc("event_join_counts"),
       ]);
@@ -99,8 +103,7 @@ export function Home() {
       const mapped: EventCardProps[] = ((rows as EventRow[] | null) ?? []).map(row => {
         const current = countMap.get(row.id) ?? row.event_participants?.length ?? 0;
         const avatars = (row.event_participants ?? [])
-          .filter((p): p is { profiles: { id: string; avatar: string; visible_trust_label: string | null } } => !!p.profiles?.avatar)
-          .map(p => ({ id: p.profiles.id, url: p.profiles.avatar, trustLabel: p.profiles.visible_trust_label }));
+          .map(p => ({ id: p.profiles?.id ?? `guest-${p.id}`, url: p.profiles?.avatar ?? null }));
         return {
           id: row.id,
           title: row.title,

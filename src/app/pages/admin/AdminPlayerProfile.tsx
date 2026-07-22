@@ -11,6 +11,7 @@ import { BackBar } from "../../components/ui/BackBar";
 import { Toast } from "../../components/ui/Toast";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../lib/AuthContext";
+import { isPastDate } from "../../lib/eventDate";
 
 const SUPERADMIN_EMAIL = "ubajdulla@seznam.cz";
 
@@ -86,6 +87,7 @@ export function AdminPlayerProfile() {
   const [editingContact,   setEditingContact]   = useState(false);
   const [contactDraft,     setContactDraft]     = useState({ phone: "", email: "", telegram: "", instagram: "" });
 
+  const [addingNote,     setAddingNote]     = useState(false);
   const [noteDraft,      setNoteDraft]      = useState("");
   const [noteVisibility, setNoteVisibility] = useState<"admin" | "all">("admin");
   const [savingNote,     setSavingNote]     = useState(false);
@@ -168,8 +170,8 @@ export function AdminPlayerProfile() {
   const ringColor    = dotColor(displaySkill);
   const today        = new Date().toISOString().split("T")[0];
 
-  const upcomingEvents = events.filter(e => e.status === "upcoming");
-  const pastEvents     = events.filter(e => e.status === "past");
+  const upcomingEvents = events.filter(e => e.status === "upcoming" && !isPastDate(e.event_date));
+  const pastEvents     = events.filter(e => isPastDate(e.event_date));
 
   // Mirrors the DB trigger (010_admin_hierarchy.sql): a regular admin can't
   // ban/suspend/change the skill level of another admin or of themselves,
@@ -218,6 +220,7 @@ export function AdminPlayerProfile() {
     }
     setNotes(prev => [data as NoteRow, ...prev]);
     setNoteDraft("");
+    setAddingNote(false);
     fireToast("Note added");
   }
 
@@ -225,6 +228,9 @@ export function AdminPlayerProfile() {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       addNote();
+    } else if (e.key === "Escape") {
+      setAddingNote(false);
+      setNoteDraft("");
     }
   }
 
@@ -583,38 +589,43 @@ export function AdminPlayerProfile() {
         <section>
           <div className="flex items-center justify-between mb-2 px-1">
             <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Notes</h2>
+            {addingNote ? (
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={() => { setAddingNote(false); setNoteDraft(""); }}
+                  className="text-[11px] font-bold text-[#79828b] hover:text-white transition-colors">Cancel</button>
+                <button type="button" onClick={addNote} disabled={!noteDraft.trim() || savingNote}
+                  className="text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Save</button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setAddingNote(true)}
+                className="flex items-center gap-1 text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">
+                <Plus size={11} /> Add Note
+              </button>
+            )}
           </div>
-          <div className="bg-[#17212b] rounded-xl overflow-hidden p-3 flex flex-col gap-2">
-            {/* Visibility is chosen before writing, not after - so pressing
-                Enter to save (which can happen the moment you finish typing)
-                always uses the choice you actually made, never a default
-                you hadn't gotten to yet. */}
-            <div className="flex items-center gap-1.5">
-              <button type="button" onClick={() => setNoteVisibility("admin")} title="Admins only"
-                className={`p-1.5 rounded-lg border transition-colors ${noteVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
-                <Lock size={12} />
-              </button>
-              <button type="button" onClick={() => setNoteVisibility("all")} title="Visible to everyone"
-                className={`p-1.5 rounded-lg border transition-colors ${noteVisibility === "all" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
-                <Globe size={12} />
-              </button>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#79828b]">
-                {noteVisibility === "admin" ? "Admins only" : "Visible to everyone"}
-              </span>
+          {addingNote && (
+            <div className="bg-[#17212b] rounded-xl overflow-hidden p-3 flex flex-col gap-2 mb-2">
+              <textarea ref={noteTextareaRef} value={noteDraft} onChange={e => setNoteDraft(e.target.value)}
+                onKeyDown={handleNoteKeyDown} autoFocus
+                onFocus={() => noteTextareaRef.current?.scrollIntoView({ block: "center", behavior: "smooth" })}
+                placeholder="Add a note about this player… (Enter to save, Shift+Enter for new line)" rows={2}
+                enterKeyHint="send"
+                className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none" />
+              <div className="flex items-center gap-1.5">
+                <button type="button" onClick={() => setNoteVisibility("admin")} title="Admins only"
+                  className={`p-1.5 rounded-lg border transition-colors ${noteVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
+                  <Lock size={12} />
+                </button>
+                <button type="button" onClick={() => setNoteVisibility("all")} title="Visible to everyone"
+                  className={`p-1.5 rounded-lg border transition-colors ${noteVisibility === "all" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
+                  <Globe size={12} />
+                </button>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#79828b]">
+                  {noteVisibility === "admin" ? "Admins only" : "Visible to everyone"}
+                </span>
+              </div>
             </div>
-            <textarea ref={noteTextareaRef} value={noteDraft} onChange={e => setNoteDraft(e.target.value)}
-              onKeyDown={handleNoteKeyDown}
-              onFocus={() => noteTextareaRef.current?.scrollIntoView({ block: "center", behavior: "smooth" })}
-              placeholder="Add a note about this player… (Enter to save, Shift+Enter for new line)" rows={2}
-              enterKeyHint="send"
-              className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none" />
-            <div className="flex justify-end">
-              <button type="button" onClick={addNote} disabled={!noteDraft.trim() || savingNote}
-                className="flex items-center gap-1 text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0">
-                <Plus size={12} /> Add Note
-              </button>
-            </div>
-          </div>
+          )}
 
           {notes.length === 0 ? (
             <div className="mt-2 py-5 flex items-center justify-center bg-[#17212b] rounded-xl">
