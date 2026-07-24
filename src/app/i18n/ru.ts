@@ -61,6 +61,9 @@ export const ru: Dict = {
     emptyAllDesc: "Мы сообщим тебе, когда что-то изменится в твоих событиях.",
     markAllRead: "Отметить все как прочитанные",
     markRead: "Отметить как прочитанное",
+    accept: "Принять",
+    decline: "Отклонить",
+    swapUnavailable: "Этот запрос больше недоступен",
   },
   profile: {
     position: "Позиция",

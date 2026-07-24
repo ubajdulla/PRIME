@@ -1,17 +1,22 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import {
   Bell,
   CheckCircle2,
   XCircle,
-  Users,
-  CalendarClock,
-  AlertTriangle,
+  ArrowLeftRight,
   ChevronRight,
+  Ban,
+  UserCheck,
 } from "lucide-react";
 import { useLang } from "../i18n";
+import { useAuth } from "../lib/AuthContext";
+import { supabase } from "../lib/supabaseClient";
+import { Toast } from "../components/ui/Toast";
 
-type AlertType = "reminder" | "confirmed" | "approved" | "denied" | "spots" | "cancelled" | "change";
+type AlertType =
+  | "moderator_swap_request" | "moderator_swap_accepted" | "moderator_swap_declined"
+  | "event_canceled" | "waitlist_promoted";
 
 interface AlertItem {
   id: string;
@@ -21,129 +26,197 @@ interface AlertItem {
   time: string;
   unread: boolean;
   eventId?: string;
+  relatedId?: string;
 }
 
-const MOCK_ALERTS: { group: string; items: AlertItem[] }[] = [
-  {
-    group: "Today",
-    items: [
-      {
-        id: "a1",
-        type: "reminder",
-        title: "PRO-AM INVITATIONAL #12 starts in 2 hours",
-        description: "Cyber Arena, Sector 4 · 20:00 – 22:00",
-        time: "18:03",
-        unread: true,
-        eventId: "e1",
-      },
-      {
-        id: "a2",
-        type: "spots",
-        title: "Spots just opened in MIDNIGHT SCRIM",
-        description: "2 spots freed up — join before it fills again.",
-        time: "14:31",
-        unread: true,
-        eventId: "e2",
-      },
-      {
-        id: "a3",
-        type: "approved",
-        title: "Your request was approved",
-        description: "WEEKEND WARRIORS CLASH · Sat, Oct 26",
-        time: "11:47",
-        unread: false,
-        eventId: "e4",
-      },
-    ],
-  },
-  {
-    group: "Yesterday",
-    items: [
-      {
-        id: "a4",
-        type: "confirmed",
-        title: "Registration confirmed",
-        description: "MORNING GRIND SESSION · Tomorrow, 09:00 – 11:00",
-        time: "22:15",
-        unread: false,
-        eventId: "e3",
-      },
-      {
-        id: "a5",
-        type: "change",
-        title: "Event time changed",
-        description: "CASUAL LOBBY MIX moved from 13:00 to 15:00.",
-        time: "09:04",
-        unread: false,
-        eventId: "e5",
-      },
-    ],
-  },
-  {
-    group: "Earlier",
-    items: [
-      {
-        id: "a6",
-        type: "denied",
-        title: "Request declined",
-        description: "MIDNIGHT SCRIM is full — your request was not accepted.",
-        time: "Oct 22",
-        unread: false,
-        eventId: "e2",
-      },
-      {
-        id: "a7",
-        type: "cancelled",
-        title: "Event cancelled",
-        description: "FRIDAY NIGHT CLASH has been cancelled by the organiser.",
-        time: "Oct 19",
-        unread: false,
-      },
-    ],
-  },
-];
+type NotificationRow = {
+  id: string;
+  type: AlertType;
+  title: string;
+  body: string;
+  event_id: string | null;
+  related_id: string | null;
+  read: boolean;
+  created_at: string;
+};
 
 const TYPE_CONFIG: Record<
   AlertType,
-  { icon: React.ComponentType<{ size?: number; className?: string }>; bg: string; color: string }
+  { icon: React.ComponentType<{ size?: number; className?: string }>; bg: string; color: string; linkPrefix: "/admin/events/" | "/events/" }
 > = {
-  reminder:  { icon: CalendarClock,  bg: "bg-[#3390ec]/15", color: "text-[#3390ec]" },
-  confirmed: { icon: CheckCircle2,   bg: "bg-[#22c55e]/15", color: "text-[#22c55e]" },
-  approved:  { icon: CheckCircle2,   bg: "bg-[#22c55e]/15", color: "text-[#22c55e]" },
-  denied:    { icon: XCircle,        bg: "bg-[#ef4444]/15", color: "text-[#ef4444]" },
-  spots:     { icon: Users,          bg: "bg-[#a78bfa]/15", color: "text-[#a78bfa]" },
-  cancelled: { icon: XCircle,        bg: "bg-[#ef4444]/15", color: "text-[#ef4444]" },
-  change:    { icon: AlertTriangle,  bg: "bg-[#e5a93d]/15", color: "text-[#e5a93d]" },
+  moderator_swap_request:   { icon: ArrowLeftRight, bg: "bg-[#3390ec]/15", color: "text-[#3390ec]", linkPrefix: "/admin/events/" },
+  moderator_swap_accepted:  { icon: CheckCircle2,   bg: "bg-[#22c55e]/15", color: "text-[#22c55e]", linkPrefix: "/admin/events/" },
+  moderator_swap_declined:  { icon: XCircle,        bg: "bg-[#ef4444]/15", color: "text-[#ef4444]", linkPrefix: "/admin/events/" },
+  event_canceled:           { icon: Ban,            bg: "bg-[#ef4444]/15", color: "text-[#ef4444]", linkPrefix: "/events/" },
+  waitlist_promoted:        { icon: UserCheck,      bg: "bg-[#22c55e]/15", color: "text-[#22c55e]", linkPrefix: "/events/" },
 };
 
 type Filter = "all" | "unread";
 
+function bucketFor(createdAt: string): "Today" | "Yesterday" | "Earlier" {
+  const day = new Date(createdAt); day.setHours(0, 0, 0, 0);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const diff = Math.round((today.getTime() - day.getTime()) / 86_400_000);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  return "Earlier";
+}
+
+function formatTime(createdAt: string, group: string): string {
+  const d = new Date(createdAt);
+  return group === "Earlier"
+    ? d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
+    : d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
 export function Alerts() {
   const { t } = useLang();
+  const { user: authUser } = useAuth();
   const [filter, setFilter] = useState<Filter>("all");
-  const [alerts, setAlerts] = useState(MOCK_ALERTS);
+  const [rows, setRows] = useState<NotificationRow[]>([]);
+  const [swapStatus, setSwapStatus] = useState<Record<string, string>>({});
+  const [toast, setToast] = useState<{ message: string; variant: "success" | "error"; visible: boolean }>({ message: "", variant: "success", visible: false });
 
-  const totalUnread = alerts.flatMap(g => g.items).filter(a => a.unread).length;
-
-  function markAllRead() {
-    setAlerts(prev =>
-      prev.map(g => ({
-        ...g,
-        items: g.items.map(a => ({ ...a, unread: false })),
-      }))
-    );
+  function fireToast(message: string, variant: "success" | "error") {
+    setToast({ message, variant, visible: true });
   }
 
-  function markRead(id: string) {
-    setAlerts(prev =>
-      prev.map(g => ({
-        ...g,
-        items: g.items.map(a => (a.id === id ? { ...a, unread: false } : a)),
-      }))
-    );
+  async function loadNotifications() {
+    if (!authUser) return;
+    const { data } = await supabase
+      .from("notifications")
+      .select("id, type, title, body, event_id, related_id, read, created_at")
+      .eq("recipient_id", authUser.id)
+      .order("created_at", { ascending: false });
+    const list = (data ?? []) as NotificationRow[];
+    setRows(list);
+
+    const swapIds = [...new Set(list.filter(r => r.type === "moderator_swap_request" && r.related_id).map(r => r.related_id!))];
+    if (swapIds.length) {
+      const { data: swaps } = await supabase.from("moderator_swap_requests").select("id, status").in("id", swapIds);
+      setSwapStatus(Object.fromEntries((swaps ?? []).map(s => [s.id, s.status])));
+    }
   }
 
-  const filteredGroups = alerts
+  useEffect(() => {
+    loadNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUser?.id]);
+
+  function toAlertItem(r: NotificationRow): AlertItem {
+    const group = bucketFor(r.created_at);
+    return {
+      id: r.id,
+      type: r.type,
+      title: r.title,
+      description: r.body,
+      time: formatTime(r.created_at, group),
+      unread: !r.read,
+      eventId: r.event_id ?? undefined,
+      relatedId: r.related_id ?? undefined,
+    };
+  }
+
+  const groupedAll = useMemo(() => {
+    const buckets: Record<"Today" | "Yesterday" | "Earlier", AlertItem[]> = { Today: [], Yesterday: [], Earlier: [] };
+    for (const r of rows) buckets[bucketFor(r.created_at)].push(toAlertItem(r));
+    return (["Today", "Yesterday", "Earlier"] as const)
+      .map(group => ({ group, items: buckets[group] }))
+      .filter(g => g.items.length > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows]);
+
+  const totalUnread = rows.filter(r => !r.read).length;
+
+  async function markRead(id: string) {
+    setRows(prev => prev.map(r => r.id === id ? { ...r, read: true } : r));
+    await supabase.from("notifications").update({ read: true }).eq("id", id);
+  }
+
+  async function markAllRead() {
+    const ids = rows.filter(r => !r.read).map(r => r.id);
+    setRows(prev => prev.map(r => ({ ...r, read: true })));
+    if (ids.length) await supabase.from("notifications").update({ read: true }).in("id", ids);
+  }
+
+  async function acceptSwap(alert: AlertItem) {
+    const swapId = alert.relatedId;
+    if (!swapId) return;
+    const { data: swap } = await supabase
+      .from("moderator_swap_requests")
+      .select("*, events(title), from_admin:profiles!from_admin_id(is_admin)")
+      .eq("id", swapId).eq("status", "pending").single();
+
+    if (!swap) {
+      fireToast(t.alerts.swapUnavailable, "error");
+      await markRead(alert.id);
+      setSwapStatus(prev => ({ ...prev, [swapId]: "resolved" }));
+      return;
+    }
+
+    // Belt-and-suspenders: re-check the initiator is still an admin (RLS only
+    // re-validates the accepting admin's is_admin() on the events update below).
+    const initiatorStillAdmin = (swap.from_admin as unknown as { is_admin: boolean } | null)?.is_admin ?? false;
+
+    if (initiatorStillAdmin) {
+      const { error: eventErr } = await supabase.from("events").update({ moderator_id: swap.to_admin_id }).eq("id", swap.event_id);
+      if (!eventErr) {
+        await supabase.from("moderator_swap_requests").update({ status: "accepted", responded_at: new Date().toISOString() }).eq("id", swapId);
+        const { error: notifyErr } = await supabase.from("notifications").insert([
+          { recipient_id: swap.from_admin_id, type: "moderator_swap_accepted", title: "Swap Successful",
+            body: `Your moderator swap for "${swap.events?.title}" was accepted.`, event_id: swap.event_id, related_id: swapId },
+          { recipient_id: swap.to_admin_id, type: "moderator_swap_accepted", title: "Swap Successful",
+            body: `You are now the moderator for "${swap.events?.title}".`, event_id: swap.event_id, related_id: swapId },
+        ]);
+        if (notifyErr) console.error("Failed to send swap-accepted notifications:", notifyErr);
+        fireToast("Swap Accepted!", "success");
+        await markRead(alert.id);
+        setSwapStatus(prev => ({ ...prev, [swapId]: "resolved" }));
+        return;
+      }
+    }
+
+    // RLS blocked it, or the initiator is no longer an admin — auto-decline
+    // instead of leaving a silently stuck pending row.
+    await supabase.from("moderator_swap_requests").update({ status: "declined", responded_at: new Date().toISOString() }).eq("id", swapId);
+    const { error: notifyErr1 } = await supabase.from("notifications").insert({
+      recipient_id: swap.from_admin_id, type: "moderator_swap_declined",
+      title: "Swap Could Not Be Completed",
+      body: `The moderator swap for "${swap.events?.title}" could not be completed.`,
+      event_id: swap.event_id, related_id: swapId,
+    });
+    if (notifyErr1) console.error("Failed to send swap-failed notification:", notifyErr1);
+    fireToast("Could Not Complete The Swap", "error");
+    await markRead(alert.id);
+    setSwapStatus(prev => ({ ...prev, [swapId]: "resolved" }));
+  }
+
+  async function declineSwap(alert: AlertItem) {
+    const swapId = alert.relatedId;
+    if (!swapId) return;
+    const { data: swap } = await supabase
+      .from("moderator_swap_requests")
+      .select("*, events(title)")
+      .eq("id", swapId).eq("status", "pending").single();
+    if (!swap) {
+      fireToast(t.alerts.swapUnavailable, "error");
+      await markRead(alert.id);
+      setSwapStatus(prev => ({ ...prev, [swapId]: "resolved" }));
+      return;
+    }
+    await supabase.from("moderator_swap_requests").update({ status: "declined", responded_at: new Date().toISOString() }).eq("id", swapId);
+    const { error: notifyErr2 } = await supabase.from("notifications").insert({
+      recipient_id: swap.from_admin_id, type: "moderator_swap_declined", title: "Swap Declined",
+      body: `Your moderator swap request for "${swap.events?.title}" was declined.`,
+      event_id: swap.event_id, related_id: swapId,
+    });
+    if (notifyErr2) console.error("Failed to send swap-declined notification:", notifyErr2);
+    fireToast("Swap Declined", "success");
+    await markRead(alert.id);
+    setSwapStatus(prev => ({ ...prev, [swapId]: "resolved" }));
+  }
+
+  const filteredGroups = groupedAll
     .map(g => ({
       ...g,
       items: filter === "unread" ? g.items.filter(a => a.unread) : g.items,
@@ -154,6 +227,7 @@ export function Alerts() {
 
   return (
     <div className="flex flex-col min-h-full bg-[#0e1621] w-full">
+      <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
       <div className="w-full max-w-[640px] mx-auto flex flex-col pt-8 pb-10 px-4">
 
         {/* Header */}
@@ -219,7 +293,18 @@ export function Alerts() {
               </div>
               <div className="flex flex-col rounded-2xl bg-[#17212b] overflow-hidden divide-y divide-white/5">
                 {items.map(alert => (
-                  <AlertRow key={alert.id} alert={alert} onRead={markRead} markReadLabel={t.alerts.markRead} />
+                  <AlertRow
+                    key={alert.id}
+                    alert={alert}
+                    swapStatus={swapStatus}
+                    onRead={markRead}
+                    onAccept={acceptSwap}
+                    onDecline={declineSwap}
+                    markReadLabel={t.alerts.markRead}
+                    acceptLabel={t.alerts.accept}
+                    declineLabel={t.alerts.decline}
+                    unavailableLabel={t.alerts.swapUnavailable}
+                  />
                 ))}
               </div>
             </div>
@@ -231,9 +316,23 @@ export function Alerts() {
   );
 }
 
-function AlertRow({ alert, onRead, markReadLabel }: { alert: AlertItem; onRead: (id: string) => void; markReadLabel: string }) {
+function AlertRow({
+  alert, swapStatus, onRead, onAccept, onDecline, markReadLabel, acceptLabel, declineLabel, unavailableLabel,
+}: {
+  alert: AlertItem;
+  swapStatus: Record<string, string>;
+  onRead: (id: string) => void;
+  onAccept: (alert: AlertItem) => void;
+  onDecline: (alert: AlertItem) => void;
+  markReadLabel: string;
+  acceptLabel: string;
+  declineLabel: string;
+  unavailableLabel: string;
+}) {
   const cfg = TYPE_CONFIG[alert.type];
   const Icon = cfg.icon;
+  const isSwapRequest = alert.type === "moderator_swap_request";
+  const swapState = alert.relatedId ? swapStatus[alert.relatedId] : undefined;
 
   const inner = (
     <div className={`w-full flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03] ${
@@ -252,13 +351,35 @@ function AlertRow({ alert, onRead, markReadLabel }: { alert: AlertItem; onRead: 
         <p className="text-[#79828b] text-xs mt-0.5 leading-relaxed line-clamp-2">
           {alert.description}
         </p>
-        {alert.unread && (
-          <button
-            onClick={e => { e.preventDefault(); e.stopPropagation(); onRead(alert.id); }}
-            className="mt-2 text-[#3390ec] text-[11px] font-bold hover:text-white transition-colors"
-          >
-            {markReadLabel}
-          </button>
+
+        {isSwapRequest ? (
+          swapState === "pending" ? (
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={e => { e.preventDefault(); e.stopPropagation(); onAccept(alert); }}
+                className="px-3 py-1 rounded-lg bg-[#22c55e]/15 text-[#22c55e] text-[11px] font-bold hover:bg-[#22c55e]/25 transition-colors"
+              >
+                {acceptLabel}
+              </button>
+              <button
+                onClick={e => { e.preventDefault(); e.stopPropagation(); onDecline(alert); }}
+                className="px-3 py-1 rounded-lg bg-[#ef4444]/15 text-[#ef4444] text-[11px] font-bold hover:bg-[#ef4444]/25 transition-colors"
+              >
+                {declineLabel}
+              </button>
+            </div>
+          ) : (
+            <p className="mt-2 text-[#79828b] text-[11px] italic">{unavailableLabel}</p>
+          )
+        ) : (
+          alert.unread && (
+            <button
+              onClick={e => { e.preventDefault(); e.stopPropagation(); onRead(alert.id); }}
+              className="mt-2 text-[#3390ec] text-[11px] font-bold hover:text-white transition-colors"
+            >
+              {markReadLabel}
+            </button>
+          )
         )}
       </div>
 
@@ -275,7 +396,7 @@ function AlertRow({ alert, onRead, markReadLabel }: { alert: AlertItem; onRead: 
   );
 
   return alert.eventId ? (
-    <Link to={`/events/${alert.eventId}`} className="block">
+    <Link to={`${cfg.linkPrefix}${alert.eventId}`} className="block">
       {inner}
     </Link>
   ) : (

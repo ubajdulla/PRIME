@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router";
 import { useLang } from "../i18n";
@@ -21,7 +21,7 @@ import { VerifiedBadge } from "../components/ui/VerifiedBadge";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { computeJoinStatus } from "../lib/joinType";
-import { shortDate } from "../lib/eventDate";
+import { shortDate, isRosterLocked } from "../lib/eventDate";
 
 type EventRow = {
   id: string;
@@ -35,6 +35,7 @@ type EventRow = {
   price_label: string | null;
   capacity: number;
   status: string;
+  roster_lock_override: "locked" | "unlocked" | null;
   moderator_id: string;
   moderator: { id: string; name: string; avatar: string | null } | null;
 };
@@ -67,23 +68,38 @@ export function EventDetail() {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [waitlistOpen, setWaitlistOpen] = useState(false);
+  const waitlistBoxRef = useRef<HTMLDivElement>(null);
+
+  // No expand animation to wait out here - the rows show/hide the instant React
+  // commits the DOM change, so the scroll can fire in the same breath instead of
+  // waiting on a transition (which was the source of the noticeable lag).
+  useEffect(() => {
+    if (!waitlistOpen) return;
+    waitlistBoxRef.current?.scrollIntoView({ behavior: "instant", block: "nearest" });
+  }, [waitlistOpen]);
   const [busy, setBusy] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
 
   const [event, setEvent] = useState<EventRow | null>(null);
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
-  const [guestCount, setGuestCount] = useState(0);
   const [myStatus, setMyStatus] = useState<JoinStatus>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   async function load(eventId: string) {
-    const [{ data: eventRow, error: eventErr }, { data: participantRows }, { data: requestRows }, { data: counts }] = await Promise.all([
+    // Guests can't read event_participants/profiles directly (RLS), so they go through
+    // the public_roster/public_organizer views instead - same whitelisted columns only.
+    const isGuestViewer = !authUser;
+
+    const [{ data: eventRow, error: eventErr }, { data: participantRows }, { data: requestRows }] = await Promise.all([
       supabase.from("events").select("*, moderator:profiles!moderator_id(id, name, avatar)").eq("id", eventId).single(),
-      supabase.from("event_participants").select("id, player_id, guest_name, joined_at, position, profiles(id, name, avatar, position, is_verified, visible_trust_label)").eq("event_id", eventId).order("joined_at", { ascending: true }),
-      supabase.from("event_requests").select("player_id, kind, profiles(id, name, avatar, is_verified, visible_trust_label)").eq("event_id", eventId),
-      supabase.rpc("event_join_counts"),
+      isGuestViewer
+        ? supabase.from("public_roster").select("id, name, avatar, position, is_verified, is_guest").eq("event_id", eventId).order("joined_at", { ascending: true })
+        : supabase.from("event_participants").select("id, player_id, guest_name, joined_at, position, profiles(id, name, avatar, position, is_verified, visible_trust_label)").eq("event_id", eventId).order("joined_at", { ascending: true }),
+      isGuestViewer
+        ? Promise.resolve({ data: [] as { player_id: string; kind: string; profiles: { id: string; name: string; avatar: string | null; is_verified: boolean; visible_trust_label: string | null } | null }[] })
+        : supabase.from("event_requests").select("player_id, kind, profiles(id, name, avatar, is_verified, visible_trust_label)").eq("event_id", eventId),
     ]);
 
     if (eventErr || !eventRow) {
@@ -92,27 +108,41 @@ export function EventDetail() {
       return;
     }
 
-    setEvent(eventRow as unknown as EventRow);
+    const row = eventRow as unknown as EventRow;
 
-    const moderatorId = (eventRow as unknown as EventRow).moderator_id;
-    const rosterList: RosterPlayer[] = (participantRows ?? []).map(p => ({
-      id: p.profiles?.id ?? `guest-${p.id}`,
-      name: p.profiles?.name ?? p.guest_name ?? "Unknown",
-      avatar: p.profiles?.avatar ?? null,
-      position: p.position ?? p.profiles?.position ?? null,
-      trustLabel: p.profiles?.visible_trust_label ?? null,
-      verified: p.profiles?.is_verified ?? false,
-      isGuest: !p.player_id,
-    })).sort((a, b) => (a.id === moderatorId ? -1 : 0) - (b.id === moderatorId ? -1 : 0));
+    if (isGuestViewer && !row.moderator) {
+      const { data: org } = await supabase.from("public_organizer").select("id, name, avatar").eq("event_id", eventId).maybeSingle();
+      if (org) row.moderator = org;
+    }
+    setEvent(row);
+
+    const moderatorId = row.moderator_id;
+    const rosterList: RosterPlayer[] = isGuestViewer
+      ? ((participantRows ?? []) as unknown as { id: string; name: string; avatar: string | null; position: string | null; is_verified: boolean; is_guest: boolean }[]).map(p => ({
+          id: p.id,
+          name: p.name,
+          avatar: p.avatar,
+          position: p.position,
+          trustLabel: null,
+          verified: p.is_verified,
+          isGuest: p.is_guest,
+        }))
+      : ((participantRows ?? []) as unknown as { id: string; player_id: string | null; guest_name: string | null; position: string | null; profiles: { id: string; name: string; avatar: string | null; position: string | null; is_verified: boolean; visible_trust_label: string | null } | null }[]).map(p => ({
+          id: p.profiles?.id ?? `guest-${p.id}`,
+          name: p.profiles?.name ?? p.guest_name ?? "Unknown",
+          avatar: p.profiles?.avatar ?? null,
+          position: p.position ?? p.profiles?.position ?? null,
+          trustLabel: p.profiles?.visible_trust_label ?? null,
+          verified: p.profiles?.is_verified ?? false,
+          isGuest: !p.player_id,
+        }));
+    rosterList.sort((a, b) => (a.id === moderatorId ? -1 : 0) - (b.id === moderatorId ? -1 : 0));
     setRoster(rosterList);
 
     const waitlistList: WaitlistEntry[] = (requestRows ?? [])
       .filter(r => r.kind === "waitlist")
       .map(r => ({ id: r.profiles?.id ?? r.player_id, name: r.profiles?.name ?? "Unknown", avatar: r.profiles?.avatar ?? null, trustLabel: r.profiles?.visible_trust_label ?? null, verified: r.profiles?.is_verified ?? false }));
     setWaitlist(waitlistList);
-
-    const countRow = (counts as { event_id: string; joined_count: number }[] | null ?? []).find(c => c.event_id === eventId);
-    setGuestCount(countRow?.joined_count ?? 0);
 
     if (authUser) {
       const joined = rosterList.some(p => p.id === authUser.id);
@@ -137,8 +167,9 @@ export function EventDetail() {
   const isRequestOnly = event ? computeJoinStatus(event.level, profile?.skill_level) === "REQUEST ONLY" : false;
   const requiresPosition = event?.category === "GAMES" && POSITION_REQUIRED_LEVELS.includes(event?.level ?? "");
   const maxCapacity = event?.capacity ?? 0;
-  const currentCapacity = isLoggedIn ? roster.length : guestCount;
+  const currentCapacity = roster.length;
   const isFull = maxCapacity > 0 && currentCapacity >= maxCapacity;
+  const rosterLocked = event ? isRosterLocked(event.event_date, event.roster_lock_override) : false;
   const title = event?.title ?? "";
 
   const theme = {
@@ -351,9 +382,10 @@ return (
               </div>
               <div>
                 <div className="text-[10px] font-bold text-[#79828b] uppercase tracking-widest leading-tight">{t.event.organizer}</div>
-                <div className="text-white font-bold text-sm">{event.moderator?.name ?? (isLoggedIn ? "—" : "Sign in to view")}</div>
+                <div className="text-white font-bold text-sm">{event.moderator?.name ?? "—"}</div>
               </div>
             </div>
+            {isLoggedIn && (
             <div className="relative">
               <button
                 onClick={e => openMenuAt("organizer", e)}
@@ -378,6 +410,7 @@ return (
                 document.body
               )}
             </div>
+            )}
           </div>
 
           {/* Info Panel */}
@@ -430,7 +463,7 @@ return (
               <span className="w-36 py-2 flex items-center justify-center rounded-lg font-bold text-sm bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] cursor-default">
                 {t.event.canceled.toUpperCase()}
               </span>
-            ) : (
+            ) : myStatus === "joined" && rosterLocked ? null : (
               <button
                 onClick={handleJoinClick}
                 className={`w-36 py-2 justify-center rounded-lg font-bold text-sm transition-all ${
@@ -452,93 +485,139 @@ return (
             />
           </div>
 
-          {/* Player List */}
-          {isLoggedIn ? (
-            <div className="flex flex-col gap-2">
-              {roster.length === 0 && (
-                <p className="text-[#79828b] text-sm py-4 text-center">No one has joined yet — be the first!</p>
-              )}
-              {roster.map((player, i) => (
-                <div
-                  key={player.id}
-                  className="flex items-center gap-3 bg-[#17212b] border border-white/5 rounded-xl p-2.5"
-                >
-                  <div className="relative shrink-0">
-                    {player.avatar ? (
-                      <img
-                        src={player.avatar}
-                        alt={player.name}
-                        className="w-10 h-10 rounded-full object-cover border border-white/10"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                        <User size={16} className="text-white/30" />
-                      </div>
-                    )}
-                    <VerifiedBadge verified={player.verified} size={13} ringClassName="border-[#17212b]" />
-                    <TrustDot label={player.trustLabel} size={10} ringClassName="border-[#17212b]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="font-bold text-sm block text-white">{player.name}</span>
-                    {player.position && (
-                      <span className={`text-[10px] font-bold uppercase tracking-widest ${theme.primary}`}>
-                        {player.position}
-                      </span>
-                    )}
-                  </div>
-                  {!player.isGuest && (
-                    <div className="relative shrink-0">
-                      <button
-                        onClick={e => openMenuAt(`player-${i}`, e)}
-                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
-                      >
-                        <MoreVertical size={16} />
-                      </button>
-                      {openMenu === `player-${i}` && menuPos && createPortal(
-                        <div
-                          style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
-                          className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
-                          onClick={closeMenu}
-                        >
-                          <button
-                            onClick={() => { navDir.forward(); navigate(playerProfilePath(player.id)); closeMenu(); }}
-                            className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
-                          >
-                            <User size={14} />
-                            {t.event.viewProfile}
-                          </button>
-                        </div>,
-                        document.body
-                      )}
+          {/* Player List — visible to guests too; only the "View Profile" action requires login */}
+          <div className="flex flex-col gap-2">
+            {roster.length === 0 && (
+              <p className="text-[#79828b] text-sm py-4 text-center">No one has joined yet — be the first!</p>
+            )}
+            {roster.map((player, i) => (
+              <div
+                key={player.id}
+                className="flex items-center gap-3 bg-[#17212b] border border-white/5 rounded-xl p-2.5"
+              >
+                <div className="relative shrink-0">
+                  {player.avatar ? (
+                    <img
+                      src={player.avatar}
+                      alt={player.name}
+                      className="w-10 h-10 rounded-full object-cover border border-white/10"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                      <User size={16} className="text-white/30" />
                     </div>
                   )}
+                  <VerifiedBadge verified={player.verified} size={13} ringClassName="border-[#17212b]" />
+                  <TrustDot label={player.trustLabel} size={10} ringClassName="border-[#17212b]" />
                 </div>
-              ))}
-            </div>
-          ) : (
-            <button
-              onClick={() => navigate("/signin")}
-              className="w-full text-center bg-[#17212b] border border-white/5 rounded-xl py-4 text-sm text-[#79828b] hover:text-white transition-colors"
-            >
-              Sign in to see who's playing
-            </button>
-          )}
+                <div className="flex-1 min-w-0">
+                  <span className="font-bold text-sm block text-white">{player.name}</span>
+                  {requiresPosition && player.position && (
+                    <span className={`text-[10px] font-bold uppercase tracking-widest ${theme.primary}`}>
+                      {player.position}
+                    </span>
+                  )}
+                </div>
+                {isLoggedIn && !player.isGuest && (
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={e => openMenuAt(`player-${i}`, e)}
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+                    {openMenu === `player-${i}` && menuPos && createPortal(
+                      <div
+                        style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
+                        className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
+                        onClick={closeMenu}
+                      >
+                        <button
+                          onClick={() => { navDir.forward(); navigate(playerProfilePath(player.id)); closeMenu(); }}
+                          className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
+                        >
+                          <User size={14} />
+                          {t.event.viewProfile}
+                        </button>
+                      </div>,
+                      document.body
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
 
           {/* Waitlist */}
           {isLoggedIn && waitlist.length > 0 && (() => {
-            const stackAvatars = waitlist.slice(0, 3);
-            const stackExtra = waitlist.length - 3;
+            const renderRow = (player: WaitlistEntry, i: number, withTopBorder: boolean) => {
+              const menuKey = `waitlist-${i}`;
+              const isMe = player.id === authUser?.id;
+              return (
+                <div key={player.id} className={`flex items-center gap-3 px-3 py-2.5 ${withTopBorder ? "border-t border-white/[0.05]" : ""}`}>
+                  <div className="relative shrink-0">
+                    {player.avatar ? (
+                      <img src={player.avatar} alt={player.name} className="w-8 h-8 rounded-full object-cover border border-white/10" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                        <User size={12} className="text-white/30" />
+                      </div>
+                    )}
+                    <VerifiedBadge verified={player.verified} size={10} ringClassName="border-[#17212b]" />
+                    <TrustDot label={player.trustLabel} size={8} ringClassName="border-[#17212b]" />
+                  </div>
+                  <span className={`font-bold text-sm flex-1 ${isMe ? theme.primary : "text-white"}`}>
+                    {player.name}
+                    {isMe && <span className="text-[10px] text-[#79828b] font-bold ml-2 normal-case tracking-normal">{t.event.you}</span>}
+                  </span>
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={e => openMenuAt(menuKey, e)}
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+                    {openMenu === menuKey && menuPos && createPortal(
+                      <div
+                        style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
+                        className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
+                        onClick={closeMenu}
+                      >
+                        <button
+                          onClick={() => { if (isMe) navigate("/profile"); else { navDir.forward(); navigate(playerProfilePath(player.id)); } closeMenu(); }}
+                          className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
+                        >
+                          <User size={14} />
+                          {t.event.viewProfile}
+                        </button>
+                      </div>,
+                      document.body
+                    )}
+                  </div>
+                </div>
+              );
+            };
+
+            if (waitlist.length === 1) {
+              return (
+                <div className="mt-4 mb-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">{t.event.waitlist}</p>
+                  <div className="bg-[#17212b] border border-white/5 rounded-xl overflow-hidden">
+                    {renderRow(waitlist[0], 0, false)}
+                  </div>
+                </div>
+              );
+            }
+
             return (
-              <div className="mt-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">{t.event.waitlist}</p>
-                <div className="bg-[#17212b] border border-white/5 rounded-xl overflow-hidden">
-                  <button
-                    onClick={() => setWaitlistOpen(v => !v)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5"
-                  >
+              <div className="mt-4 mb-4">
+                <div ref={waitlistBoxRef} className="scroll-mb-16 bg-[#17212b] border border-white/5 rounded-xl overflow-hidden">
+                  {/* Avatar stack + count stays put whether collapsed or expanded - only
+                      the chevron and the rows below react to waitlistOpen. */}
+                  <button onClick={() => setWaitlistOpen(v => !v)} className="w-full flex items-center gap-3 px-3 py-2.5">
                     <div className="flex -space-x-2.5">
-                      {stackAvatars.map((p, i) => (
-                        <div key={p.id} className="relative" style={{ zIndex: stackAvatars.length - i }}>
+                      {waitlist.slice(0, 3).map((p, i) => (
+                        <div key={p.id} className="relative" style={{ zIndex: 3 - i }}>
                           {p.avatar ? (
                             <img
                               src={p.avatar}
@@ -554,64 +633,16 @@ return (
                           <TrustDot label={p.trustLabel} size={8} ringClassName="border-[#17212b]" />
                         </div>
                       ))}
-                      {stackExtra > 0 && (
+                      {waitlist.length > 3 && (
                         <div className="w-8 h-8 rounded-full border-2 border-[#17212b] bg-white/10 flex items-center justify-center text-[9px] font-bold text-white/50" style={{ zIndex: 0 }}>
-                          +{stackExtra}
+                          +{waitlist.length - 3}
                         </div>
                       )}
                     </div>
                     <span className="flex-1 text-left text-white font-bold text-sm">{t.event.players(waitlist.length)}</span>
-                    <ChevronDown size={15} className={`text-[#79828b] transition-transform duration-300 shrink-0 ${waitlistOpen ? "rotate-180" : ""}`} />
+                    <ChevronDown size={15} className={`text-[#79828b] shrink-0 transition-transform duration-200 ${waitlistOpen ? "rotate-180" : ""}`} />
                   </button>
-                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${waitlistOpen ? "max-h-[600px]" : "max-h-0"}`}>
-                    {waitlist.map((player, i) => {
-                      const menuKey = `waitlist-${i}`;
-                      const isMe = player.id === authUser?.id;
-                      return (
-                        <div key={player.id} className="flex items-center gap-3 px-3 py-2.5 border-t border-white/[0.05]">
-                          <div className="relative shrink-0">
-                            {player.avatar ? (
-                              <img src={player.avatar} alt={player.name} className="w-8 h-8 rounded-full object-cover border border-white/10" />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                                <User size={12} className="text-white/30" />
-                              </div>
-                            )}
-                            <VerifiedBadge verified={player.verified} size={10} ringClassName="border-[#17212b]" />
-                            <TrustDot label={player.trustLabel} size={8} ringClassName="border-[#17212b]" />
-                          </div>
-                          <span className={`font-bold text-sm flex-1 ${isMe ? theme.primary : "text-white"}`}>
-                            {player.name}
-                            {isMe && <span className="text-[10px] text-[#79828b] font-bold ml-2 normal-case tracking-normal">{t.event.you}</span>}
-                          </span>
-                          <div className="relative shrink-0">
-                            <button
-                              onClick={e => openMenuAt(menuKey, e)}
-                              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
-                            >
-                              <MoreVertical size={16} />
-                            </button>
-                            {openMenu === menuKey && menuPos && createPortal(
-                              <div
-                                style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
-                                className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
-                                onClick={closeMenu}
-                              >
-                                <button
-                                  onClick={() => { if (isMe) navigate("/profile"); else { navDir.forward(); navigate(playerProfilePath(player.id)); } closeMenu(); }}
-                                  className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
-                                >
-                                  <User size={14} />
-                                  {t.event.viewProfile}
-                                </button>
-                              </div>,
-                              document.body
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  {waitlistOpen && waitlist.map((player, i) => renderRow(player, i, true))}
                 </div>
               </div>
             );

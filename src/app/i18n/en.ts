@@ -61,6 +61,9 @@ export const en: Dict = {
     emptyAllDesc: "We'll let you know when there's an update on your scrimmages.",
     markAllRead: "Mark all as read",
     markRead: "Mark as read",
+    accept: "Accept",
+    decline: "Decline",
+    swapUnavailable: "This request is no longer available",
   },
   profile: {
     position: "Position",

@@ -59,6 +59,9 @@ export interface Dict {
     emptyAllDesc: string;
     markAllRead: string;
     markRead: string;
+    accept: string;
+    decline: string;
+    swapUnavailable: string;
   };
   profile: {
     position: string;

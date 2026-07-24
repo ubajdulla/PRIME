@@ -5,6 +5,7 @@ import logo from "../../imports/Prime_logo_nobg_white_border.png";
 import { useLang, LANG_CYCLE, type Lang } from "../i18n";
 import { navDir } from "../lib/navDir";
 import { useAuth } from "../lib/AuthContext";
+import { supabase } from "../lib/supabaseClient";
 
 const LANG_OPTIONS: { code: Lang; label: string }[] = [
   { code: "en", label: "English" },
@@ -50,7 +51,17 @@ export function MainLayout() {
   const desktopLangRef = useRef<HTMLDivElement>(null);
   const mobileLangRef = useRef<HTMLDivElement>(null);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
-  const { isAdmin } = useAuth();
+  const [unreadAlerts, setUnreadAlerts] = useState(0);
+  const { isAdmin, user } = useAuth();
+
+  // No realtime in this app - re-check on every navigation (cheap count-only
+  // query) so the badge clears shortly after the user reads/actions an alert.
+  useEffect(() => {
+    if (!user) { setUnreadAlerts(0); return; }
+    supabase.from("notifications").select("id", { count: "exact", head: true })
+      .eq("recipient_id", user.id).eq("read", false)
+      .then(({ count }) => setUnreadAlerts(count ?? 0));
+  }, [user?.id, location.pathname]);
 
   useLayoutEffect(() => {
     mainRef.current?.scrollTo(0, 0);
@@ -93,7 +104,7 @@ export function MainLayout() {
         </div>
         <nav className="flex flex-col flex-1 justify-center gap-0.5 px-3">
           <NavItem to="/" end icon={<Calendar size={22} />} label={t.nav.events} />
-          <NavItem to="/alerts"  icon={<Bell size={22} />}        label={t.nav.alerts}  />
+          <NavItem to="/alerts"  icon={<Bell size={22} />}        label={t.nav.alerts}  badge={unreadAlerts} />
           <NavItem to="/profile" icon={<User size={22} />}        label={t.nav.profile} />
           {isAdmin && <NavItem to="/admin" icon={<ShieldCheck size={22} />} label={t.nav.admin} />}
         </nav>
@@ -183,7 +194,7 @@ export function MainLayout() {
       {/* ── Mobile Bottom Nav ─────────────────────────────── */}
       <nav className="md:hidden shrink-0 w-full bg-[#17212b] border-t border-[#101923] flex justify-around items-center p-2 z-50 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[0_-4px_20px_rgba(0,0,0,0.2)]">
         <MobileNavItem to="/" end icon={<Calendar size={24} />} label={t.nav.events} />
-        <MobileNavItem to="/alerts"  icon={<Bell size={24} />}  label={t.nav.alerts}  />
+        <MobileNavItem to="/alerts"  icon={<Bell size={24} />}  label={t.nav.alerts}  badge={unreadAlerts} />
         <MobileNavItem to="/profile" icon={<User size={24} />}  label={t.nav.profile} />
         {isAdmin && <MobileNavItem to="/admin" icon={<ShieldCheck size={24} />} label={t.nav.admin} />}
       </nav>
@@ -191,7 +202,7 @@ export function MainLayout() {
   );
 }
 
-function NavItem({ to, icon, label, end }: { to: string; icon: React.ReactNode; label: string; end?: boolean }) {
+function NavItem({ to, icon, label, end, badge }: { to: string; icon: React.ReactNode; label: string; end?: boolean; badge?: number }) {
   return (
     <NavLink
       to={to}
@@ -199,17 +210,22 @@ function NavItem({ to, icon, label, end }: { to: string; icon: React.ReactNode; 
       replace
       onClick={() => navDir.none()}
       className={({ isActive }) =>
-        `flex items-center justify-center w-12 h-12 rounded-xl transition-colors
+        `relative flex items-center justify-center w-12 h-12 rounded-xl transition-colors
          ${isActive ? "bg-white/[0.12] text-white" : "text-[#8899a6] hover:text-white hover:bg-white/10"}`
       }
       title={label}
     >
       {icon}
+      {!!badge && (
+        <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-[#3390ec] text-white text-[10px] font-bold flex items-center justify-center">
+          {badge > 9 ? "9+" : badge}
+        </span>
+      )}
     </NavLink>
   );
 }
 
-function MobileNavItem({ to, icon, label, end }: { to: string; icon: React.ReactNode; label: string; end?: boolean }) {
+function MobileNavItem({ to, icon, label, end, badge }: { to: string; icon: React.ReactNode; label: string; end?: boolean; badge?: number }) {
   return (
     <NavLink
       to={to}
@@ -217,12 +233,19 @@ function MobileNavItem({ to, icon, label, end }: { to: string; icon: React.React
       replace
       onClick={() => navDir.none()}
       className={({ isActive }) =>
-        `flex flex-col items-center gap-1 p-2 min-w-[56px] transition-colors ${
+        `relative flex flex-col items-center gap-1 p-2 min-w-[56px] transition-colors ${
           isActive ? "text-[#3390ec]" : "text-[#79828b]"
         }`
       }
     >
-      {icon}
+      <div className="relative">
+        {icon}
+        {!!badge && (
+          <span className="absolute -top-1 -right-1.5 min-w-[14px] h-3.5 px-1 rounded-full bg-[#3390ec] text-white text-[9px] font-bold flex items-center justify-center">
+            {badge > 9 ? "9+" : badge}
+          </span>
+        )}
+      </div>
       <span className="text-[10px] font-bold">{label}</span>
     </NavLink>
   );

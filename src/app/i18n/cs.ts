@@ -61,6 +61,9 @@ export const cs: Dict = {
     emptyAllDesc: "Dáme ti vědět, jakmile se něco změní u tvých eventů.",
     markAllRead: "Označit vše jako přečtené",
     markRead: "Označit jako přečtené",
+    accept: "Přijmout",
+    decline: "Odmítnout",
+    swapUnavailable: "Tento požadavek už není dostupný",
   },
   profile: {
     position: "Pozice",

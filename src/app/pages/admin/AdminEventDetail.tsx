@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router";
 import {
   ChevronDown, MoreVertical,
   CheckCircle2, CreditCard, Banknote, User, ArrowDownToLine,
-  Trash2, CheckCheck, Share2, Send, Ban, RotateCcw, AlertTriangle, UserPlus,
-  MapPin, Calendar, Clock, Ticket, Pencil, X, Check,
+  Trash2, CheckCheck, Share2, Send, Ban, RotateCcw, AlertTriangle, UserPlus, UserMinus,
+  MapPin, Calendar, Clock, Ticket, Pencil, X, Check, ArrowLeftRight, Lock, Unlock,
 } from "lucide-react";
 import { BackBar } from "../../components/ui/BackBar";
 import { getCategoryStyle, getStatusStyle, type PaymentStatus, type EventStatus } from "../../data/adminData";
@@ -12,7 +13,7 @@ import { navDir } from "../../lib/navDir";
 import { Toast } from "../../components/ui/Toast";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../lib/AuthContext";
-import { shortDate, isPastDate } from "../../lib/eventDate";
+import { shortDate, isPastDate, isRosterLocked } from "../../lib/eventDate";
 import { PublishEventModal } from "../../components/PublishEventModal";
 
 type EventRow = {
@@ -28,6 +29,7 @@ type EventRow = {
   capacity: number;
   status: EventStatus;
   published_at: string | null;
+  roster_lock_override: "locked" | "unlocked" | null;
   moderator_id: string;
   moderator: { id: string; name: string; avatar: string | null } | null;
 };
@@ -59,13 +61,18 @@ export function AdminEventDetail() {
   const [showCancelConfirm,    setShowCancelConfirm]    = useState(false);
   const [showReactivateConfirm, setShowReactivateConfirm] = useState(false);
   const [showDeleteConfirm,    setShowDeleteConfirm]    = useState(false);
+  const [showLeaveEventConfirm, setShowLeaveEventConfirm] = useState(false);
+  const [otherAdmins,          setOtherAdmins]          = useState<{ id: string; name: string; avatar: string | null }[]>([]);
+  const [pendingSwap,          setPendingSwap]          = useState<{ id: string; to_admin_name: string } | null>(null);
+  const [showSwapMenu,         setShowSwapMenu]         = useState(false);
+  const [swapMenuPos,          setSwapMenuPos]          = useState<{ top: number; right: number } | null>(null);
   const [anonymousName,        setAnonymousName]        = useState("Guest");
   const [anonymousAddCount,    setAnonymousAddCount]    = useState<string>("1");
   const [editingAnonName,      setEditingAnonName]      = useState(false);
   const [addingGuests,         setAddingGuests]         = useState(false);
-  const [toast, setToast] = useState<{ message: string; variant: "success" | "copied" | "publish"; visible: boolean }>({ message: "", variant: "success", visible: false });
+  const [toast, setToast] = useState<{ message: string; variant: "success" | "copied" | "publish" | "error"; visible: boolean }>({ message: "", variant: "success", visible: false });
 
-  function fireToast(message: string, variant: "success" | "copied" | "publish") {
+  function fireToast(message: string, variant: "success" | "copied" | "publish" | "error") {
     setToast({ message, variant, visible: true });
   }
   function hideToast() {
@@ -115,10 +122,26 @@ export function AdminEventDetail() {
     function close() {
       setShowActionDropdown(false);
       setOpenMenu(null);
+      setShowSwapMenu(false);
     }
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, []);
+
+  useEffect(() => {
+    if (!event || !authUser || authUser.id !== event.moderator_id) return;
+    (async () => {
+      const [{ data: admins }, { data: swap }] = await Promise.all([
+        supabase.from("profiles").select("id, name, avatar").eq("is_admin", true).neq("id", authUser.id),
+        supabase.from("moderator_swap_requests")
+          .select("id, to_admin:profiles!to_admin_id(name)")
+          .eq("event_id", event.id).eq("from_admin_id", authUser.id).eq("status", "pending")
+          .maybeSingle(),
+      ]);
+      setOtherAdmins(admins ?? []);
+      setPendingSwap(swap ? { id: swap.id, to_admin_name: (swap.to_admin as unknown as { name: string } | null)?.name ?? "" } : null);
+    })();
+  }, [event?.id, event?.moderator_id, authUser?.id]);
 
   if (loading) return <div className="min-h-screen bg-[#0e1621]" />;
 
@@ -195,6 +218,12 @@ export function AdminEventDetail() {
     ]);
     setWaitlist(prev => prev.filter(p => p.id !== playerId));
     setRoster(prev => [...prev, { id: player.id, name: player.name, avatar: player.avatar, position: player.position, paymentStatus: "unpaid" }]);
+    const { error: notifyErr } = await supabase.from("notifications").insert({
+      recipient_id: playerId, type: "waitlist_promoted", title: "You're In!",
+      body: `A spot opened up in "${event!.title}" — you've been moved from the waitlist to the roster.`,
+      event_id: event!.id,
+    });
+    if (notifyErr) console.error("Failed to send waitlist-promotion notification:", notifyErr);
   }
 
   async function updatePosition(rowId: string, position: string) {
@@ -244,6 +273,17 @@ export function AdminEventDetail() {
   async function cancelEvent() {
     await supabase.from("events").update({ status: "canceled" }).eq("id", event!.id);
     setEvent(prev => prev ? { ...prev, status: "canceled" } : prev);
+    const recipientIds = roster.filter(p => !p.isGuest).map(p => p.id);
+    if (recipientIds.length) {
+      const { error: notifyErr } = await supabase.from("notifications").insert(
+        recipientIds.map(recipientId => ({
+          recipient_id: recipientId, type: "event_canceled", title: "Event Canceled",
+          body: `"${event!.title}" (${shortDate(event!.event_date, true)}, ${event!.event_time}) was canceled by the organizer.`,
+          event_id: event!.id,
+        }))
+      );
+      if (notifyErr) console.error("Failed to send cancellation notifications:", notifyErr);
+    }
     setShowCancelConfirm(false);
     fireToast("Event Canceled!", "success");
   }
@@ -253,6 +293,14 @@ export function AdminEventDetail() {
     setEvent(prev => prev ? { ...prev, status: "upcoming" } : prev);
     setShowReactivateConfirm(false);
     fireToast("Event Reactivated!", "success");
+  }
+
+  async function toggleRosterLock() {
+    const nextOverride = rosterLocked ? "unlocked" : "locked";
+    await supabase.from("events").update({ roster_lock_override: nextOverride }).eq("id", event!.id);
+    setEvent(prev => prev ? { ...prev, roster_lock_override: nextOverride } : prev);
+    setShowActionDropdown(false);
+    fireToast(rosterLocked ? "Roster Unlocked!" : "Roster Locked!", "success");
   }
 
   async function deleteEvent() {
@@ -285,6 +333,58 @@ export function AdminEventDetail() {
     fireToast("Joined as Moderator!", "success");
   }
 
+  async function leaveAsModerator() {
+    if (!authUser || !event) return;
+    await supabase.from("event_participants").delete().eq("event_id", event.id).eq("player_id", authUser.id);
+    setRoster(prev => prev.filter(p => p.id !== authUser.id));
+    setShowLeaveEventConfirm(false);
+    fireToast("Left Event!", "success");
+  }
+
+  async function initiateSwap(toAdminId: string, toAdminName: string) {
+    if (!authUser || !event) return;
+    const { data, error } = await supabase
+      .from("moderator_swap_requests")
+      .insert({ event_id: event.id, from_admin_id: authUser.id, to_admin_id: toAdminId })
+      .select("id")
+      .single();
+    if (error || !data) { fireToast("Could Not Send Swap Request", "error"); return; }
+
+    const { error: notifyError } = await supabase.from("notifications").insert({
+      recipient_id: toAdminId,
+      type: "moderator_swap_request",
+      title: "Moderator Swap Request",
+      body: `${authProfile?.name ?? "The previous admin"} wants to swap moderator duties with you for "${event.title}".`,
+      event_id: event.id,
+      related_id: data.id,
+    });
+
+    setPendingSwap({ id: data.id, to_admin_name: toAdminName });
+    setShowSwapMenu(false);
+
+    if (notifyError) {
+      console.error("Failed to notify target admin of swap request:", notifyError);
+      fireToast(`Swap Request Saved, But ${toAdminName} Wasn't Notified`, "error");
+    } else {
+      fireToast(`Swap Request Sent To ${toAdminName}!`, "success");
+    }
+  }
+
+  async function cancelSwap() {
+    if (!pendingSwap) return;
+    await supabase.from("moderator_swap_requests")
+      .update({ status: "canceled", responded_at: new Date().toISOString() })
+      .eq("id", pendingSwap.id);
+    setPendingSwap(null);
+    fireToast("Swap Request Canceled", "success");
+  }
+
+  function openSwapMenu(e: React.MouseEvent<HTMLButtonElement>) {
+    const r = e.currentTarget.getBoundingClientRect();
+    setSwapMenuPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+    setShowSwapMenu(v => !v);
+  }
+
   function openProfile(player: PersonEntry) {
     navDir.forward();
     navigate(`/admin/player/${player.id}`);
@@ -311,6 +411,9 @@ export function AdminEventDetail() {
   const badgeStatus: EventStatus = isCanceled ? "canceled" : isPast ? "past" : "upcoming";
   const badgeLabel   = isCanceled ? "Canceled" : isPast ? "Past" : "Published";
   const canJoinEvent = authUser?.id === event.moderator_id && !roster.some(p => p.id === authUser.id);
+  const canLeaveEvent = authUser?.id === event.moderator_id && roster.some(p => p.id === authUser.id);
+  const rosterLocked = isRosterLocked(event.event_date, event.roster_lock_override);
+  const showLockToggle = !isDraft && !isCanceled && !isScheduled;
 
   return (
     <div className="min-h-screen bg-[#0e1621] text-white font-sans">
@@ -379,6 +482,36 @@ export function AdminEventDetail() {
               <button onClick={reactivateEvent}
                 className="flex-1 py-2.5 rounded-xl bg-[#eab308]/10 border border-[#eab308]/30 text-[#eab308] font-bold text-sm transition-transform">
                 Reactivate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Leave event confirm ──────────────────────────────── */}
+      {showLeaveEventConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0">
+                <UserMinus size={18} className="text-white" />
+              </div>
+              <div>
+                <h3 className="font-black italic uppercase tracking-widest text-white text-base">Leave Event?</h3>
+                <p className="text-[#79828b] text-xs">You'll be removed from the roster.</p>
+              </div>
+            </div>
+            <p className="text-[#79828b] text-sm mb-5">
+              You'll no longer be a participant in <span className="text-white font-bold">{event.title}</span>. You can rejoin later from here.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowLeaveEventConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">
+                Back
+              </button>
+              <button onClick={leaveAsModerator}
+                className="flex-1 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-bold text-sm transition-transform">
+                Leave Event
               </button>
             </div>
           </div>
@@ -481,12 +614,64 @@ export function AdminEventDetail() {
                 <div className="text-white font-bold text-sm">{event.moderator?.name ?? "—"}</div>
               </div>
             </div>
-            <button
-              onClick={() => { navDir.forward(); navigate(`/admin/player/${event.moderator_id}`); }}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
-            >
-              <User size={16} />
-            </button>
+            {authUser?.id !== event.moderator_id ? (
+              <button
+                onClick={() => { navDir.forward(); navigate(`/admin/player/${event.moderator_id}`); }}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
+              >
+                <User size={16} />
+              </button>
+            ) : pendingSwap ? (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-[#eab308] px-2 py-1 bg-[#eab308]/10 rounded-full whitespace-nowrap">
+                  Swap Pending
+                </span>
+                <button
+                  onClick={cancelSwap}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onMouseDown={e => e.stopPropagation()}
+                onClick={openSwapMenu}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
+              >
+                <ArrowLeftRight size={16} />
+              </button>
+            )}
+
+            {showSwapMenu && swapMenuPos && createPortal(
+              <div
+                onMouseDown={e => e.stopPropagation()}
+                style={{ position: "fixed", top: swapMenuPos.top, right: swapMenuPos.right, zIndex: 40 }}
+                className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden w-64 max-h-80 overflow-y-auto"
+              >
+                {otherAdmins.length === 0 && (
+                  <p className="text-[#79828b] text-xs text-center py-6 px-4">No other admins available</p>
+                )}
+                {otherAdmins.map(a => (
+                  <button
+                    key={a.id}
+                    onClick={() => initiateSwap(a.id, a.name)}
+                    className="flex items-center gap-3 w-full px-3 py-2.5 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-0"
+                  >
+                    {a.avatar ? (
+                      <img src={a.avatar} alt={a.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+                        <User size={14} className="text-white/30" />
+                      </div>
+                    )}
+                    <span className="flex-1 text-white font-bold text-sm truncate">{a.name}</span>
+                    <ArrowLeftRight size={14} className="text-[#79828b] shrink-0" />
+                  </button>
+                ))}
+              </div>,
+              document.body
+            )}
           </div>
 
           {/* Info panel */}
@@ -526,12 +711,12 @@ export function AdminEventDetail() {
             <div className="flex items-center justify-between mb-3">
               <span className="text-[#79828b] text-[11px] font-black uppercase tracking-widest">Payments</span>
               <span className="text-white font-black text-sm">
-                {collectedCZK.toLocaleString()} / {(roster.length * event.price).toLocaleString()} CZK
+                {collectedCZK.toLocaleString()} / {(event.capacity * event.price).toLocaleString()} CZK
               </span>
             </div>
             <div className="h-2 bg-white/5 rounded-full overflow-hidden mb-3 flex">
-              <div className="h-full bg-[#4dcd5e] transition-all" style={{ width: roster.length > 0 ? `${(cashPaid / roster.length) * 100}%` : "0%" }} />
-              <div className="h-full bg-[#3390ec] transition-all" style={{ width: roster.length > 0 ? `${(onlinePaid / roster.length) * 100}%` : "0%" }} />
+              <div className="h-full bg-[#4dcd5e] transition-all" style={{ width: event.capacity > 0 ? `${(cashPaid / event.capacity) * 100}%` : "0%" }} />
+              <div className="h-full bg-[#3390ec] transition-all" style={{ width: event.capacity > 0 ? `${(onlinePaid / event.capacity) * 100}%` : "0%" }} />
             </div>
             <div className="flex gap-4 flex-wrap">
               <LegendDot color="#4dcd5e" label={`${cashPaid} cash`} />
@@ -600,11 +785,29 @@ export function AdminEventDetail() {
                       Join Event
                     </button>
                   )}
+                  {showLockToggle && (
+                    <button
+                      onClick={toggleRosterLock}
+                      className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left ${canJoinEvent ? "border-t border-white/5" : ""}`}
+                    >
+                      {rosterLocked ? <Unlock size={14} /> : <Lock size={14} />}
+                      {rosterLocked ? "Unlock Roster" : "Lock Roster"}
+                    </button>
+                  )}
+                  {canLeaveEvent && (
+                    <button
+                      onClick={() => { setShowLeaveEventConfirm(true); setShowActionDropdown(false); }}
+                      className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left ${(isDraft || isScheduled || canJoinEvent || showLockToggle) ? "border-t border-white/5" : ""}`}
+                    >
+                      <UserMinus size={14} />
+                      Leave Event
+                    </button>
+                  )}
                   {!isDraft && (
                     isCanceled ? (
                       <button
                         onClick={() => { setShowReactivateConfirm(true); setShowActionDropdown(false); }}
-                        className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#eab308] hover:bg-[#eab308]/5 transition-colors text-left ${(isScheduled || canJoinEvent) ? "border-t border-white/5" : ""}`}
+                        className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#eab308] hover:bg-[#eab308]/5 transition-colors text-left ${(isScheduled || canJoinEvent || canLeaveEvent || showLockToggle) ? "border-t border-white/5" : ""}`}
                       >
                         <RotateCcw size={14} />
                         Reactivate Event
@@ -612,7 +815,7 @@ export function AdminEventDetail() {
                     ) : (
                       <button
                         onClick={() => { setShowCancelConfirm(true); setShowActionDropdown(false); }}
-                        className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#eab308] hover:bg-[#eab308]/5 transition-colors text-left ${(isScheduled || canJoinEvent) ? "border-t border-white/5" : ""}`}
+                        className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#eab308] hover:bg-[#eab308]/5 transition-colors text-left ${(isScheduled || canJoinEvent || canLeaveEvent || showLockToggle) ? "border-t border-white/5" : ""}`}
                       >
                         <Ban size={14} />
                         Cancel Event

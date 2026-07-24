@@ -100,10 +100,28 @@ export function Home() {
 
       const countMap = new Map((counts as { event_id: string; joined_count: number }[] | null ?? []).map(c => [c.event_id, c.joined_count]));
 
+      // Guests can't read event_participants/profiles directly (RLS), so the embedded
+      // join above comes back empty for them - fall back to the public_roster view
+      // (same whitelisted columns used on EventDetail) just for avatars.
+      const eventIds = ((rows as EventRow[] | null) ?? []).map(r => r.id);
+      const guestAvatarsByEvent = new Map<string, { id: string; url: string | null }[]>();
+      if (!isLoggedIn && eventIds.length > 0) {
+        const { data: publicRoster } = await supabase
+          .from("public_roster")
+          .select("event_id, id, avatar")
+          .in("event_id", eventIds);
+        for (const p of (publicRoster ?? []) as { event_id: string; id: string; avatar: string | null }[]) {
+          const list = guestAvatarsByEvent.get(p.event_id) ?? [];
+          list.push({ id: p.id, url: p.avatar });
+          guestAvatarsByEvent.set(p.event_id, list);
+        }
+      }
+
       const mapped: EventCardProps[] = ((rows as EventRow[] | null) ?? []).map(row => {
         const current = countMap.get(row.id) ?? row.event_participants?.length ?? 0;
-        const avatars = (row.event_participants ?? [])
-          .map(p => ({ id: p.profiles?.id ?? `guest-${p.id}`, url: p.profiles?.avatar ?? null }));
+        const avatars = isLoggedIn
+          ? (row.event_participants ?? []).map(p => ({ id: p.profiles?.id ?? `guest-${p.id}`, url: p.profiles?.avatar ?? null }))
+          : guestAvatarsByEvent.get(row.id) ?? [];
         return {
           id: row.id,
           title: row.title,
@@ -126,7 +144,7 @@ export function Home() {
     }
     load();
     return () => { active = false; };
-  }, [profile?.skill_level]);
+  }, [profile?.skill_level, isLoggedIn]);
 
   const filtered = events.filter(e => {
     if (activeFilter === "ALL") return true;
