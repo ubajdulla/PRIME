@@ -91,7 +91,6 @@ export const cs: Dict = {
     rosterTitle: "Transparentní sestava",
     capacity: "Kapacita",
     joined: "přihlášeno",
-    viewProfile: "Zobrazit profil",
     groupChat: "Skupinový chat",
     waitlistCount: (n) =>
       `${n} ${n === 1 ? "hráč" : n < 5 ? "hráči" : "hráčů"} na čekací listině`,
@@ -116,6 +115,8 @@ export const cs: Dict = {
     joinDesc: "Budeš okamžitě přidán do sestavy.",
     requestDesc: "Tvoje žádost bude odeslána organizátorovi ke schválení.",
     selectPosition: "Vyber svou pozici",
+    teamName: "Název týmu",
+    teamNamePlaceholder: "Zadej název svého týmu",
     keep: "Ponechat",
   },
   signin: {

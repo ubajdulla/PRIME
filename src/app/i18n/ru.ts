@@ -91,7 +91,6 @@ export const ru: Dict = {
     rosterTitle: "Прозрачный состав",
     capacity: "Вместимость",
     joined: "участвует",
-    viewProfile: "Просмотр профиля",
     groupChat: "Групповой чат",
     waitlistCount: (n) =>
       `${n} ${n === 1 ? "игрок" : n < 5 ? "игрока" : "игроков"} в листе ожидания`,
@@ -117,6 +116,8 @@ export const ru: Dict = {
     joinDesc: "Ты будешь немедленно добавлен в состав.",
     requestDesc: "Твоя заявка будет отправлена организатору на рассмотрение.",
     selectPosition: "Выбери позицию",
+    teamName: "Название команды",
+    teamNamePlaceholder: "Введите название вашей команды",
     keep: "Оставить",
   },
   signin: {

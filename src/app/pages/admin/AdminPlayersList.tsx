@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Search, MoreVertical, ShieldCheck } from "lucide-react";
+import { Search, ShieldCheck } from "lucide-react";
 import { SKILL_STYLE } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
 import { TrustDot } from "../../components/ui/TrustDot";
@@ -19,7 +19,6 @@ export function AdminPlayersList() {
 
   const [search, setSearch]     = useState("");
   const [position, setPosition] = useState("All");
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [players, setPlayers]   = useState<(PlayerRow & { eventsJoined: number })[]>([]);
   const [loading, setLoading]   = useState(true);
 
@@ -107,14 +106,18 @@ export function AdminPlayersList() {
               key={player.id}
               className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-white/[0.05]" : ""} ${i === 0 ? "rounded-t-2xl" : ""} ${i === filtered.length - 1 ? "rounded-b-2xl" : ""}`}
             >
-              <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => { navDir.forward(); navigate(`/admin/player/${player.id}`); }}
+                className="relative shrink-0 cursor-pointer"
+              >
                 {player.avatar
                   ? <img src={player.avatar} alt={player.name} className="w-11 h-11 rounded-full border-2 border-[#0e1621] object-cover" />
                   : <div className="w-11 h-11 rounded-full border-2 border-[#0e1621] bg-white/5" />
                 }
                 <VerifiedBadge verified={player.is_verified} size={14} ringClassName="border-[#0e1621]" />
                 <TrustDot label={player.visible_trust_label} size={11} ringClassName="border-[#0e1621]" />
-              </div>
+              </button>
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-white text-sm truncate">{player.name}</div>
                 <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position ?? "—"}</div>
@@ -122,24 +125,6 @@ export function AdminPlayersList() {
               <div className="text-right shrink-0 mr-1">
                 <div className="text-white text-sm font-black">{player.eventsJoined}</div>
                 <div className="text-[#79828b] text-[10px]">events</div>
-              </div>
-              <div className="relative shrink-0">
-                <button
-                  onClick={() => setOpenMenu(openMenu === player.id ? null : player.id)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg text-[#79828b] hover:text-white hover:bg-white/5 transition-colors"
-                >
-                  <MoreVertical size={15} />
-                </button>
-                {openMenu === player.id && (
-                  <div className="absolute right-0 top-full mt-1 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.4)] z-20 overflow-hidden min-w-[200px]">
-                    <button
-                      onClick={() => { navDir.forward(); navigate(`/admin/player/${player.id}`); setOpenMenu(null); }}
-                      className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
-                    >
-                      View Profile
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           );

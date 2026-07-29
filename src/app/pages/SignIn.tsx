@@ -106,10 +106,12 @@ export function SignIn() {
 
           {/* Remember me + Forgot */}
           <div className="flex items-center justify-between mb-6">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
+            <label
+              onClick={() => setRemember(v => !v)}
+              className="flex items-center gap-2 cursor-pointer select-none py-1 -my-1"
+            >
               <div
-                onClick={() => setRemember(v => !v)}
-                className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${
                   remember ? "bg-[#3390ec] border-[#3390ec]" : "border-white/20 bg-white/5"
                 }`}
               >

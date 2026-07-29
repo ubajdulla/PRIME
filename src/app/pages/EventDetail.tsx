@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router";
 import { useLang } from "../i18n";
 import { navDir } from "../lib/navDir";
@@ -9,7 +8,6 @@ import {
   Calendar,
   Clock,
   CheckCircle2,
-  MoreVertical,
   User,
   Ticket,
   Share2,
@@ -40,13 +38,23 @@ type EventRow = {
   moderator: { id: string; name: string; avatar: string | null } | null;
 };
 
-type RosterPlayer = { id: string; name: string; avatar: string | null; position: string | null; trustLabel: string | null; verified: boolean; isGuest: boolean };
+type RosterPlayer = { id: string; name: string; avatar: string | null; position: string | null; teamName: string | null; trustLabel: string | null; verified: boolean; isGuest: boolean };
 type WaitlistEntry = { id: string; name: string; avatar: string | null; trustLabel: string | null; verified: boolean };
 
 type JoinStatus = null | "joined" | "pending";
 
 const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
 const POSITION_REQUIRED_LEVELS = ["Advanced", "Pro", "PRIME"];
+
+// Mobile scrolls inside <main> (fixed header/footer bars around it); desktop scrolls the window.
+function findScrollParent(el: HTMLElement): HTMLElement | (Window & typeof globalThis) {
+  let node = el.parentElement;
+  while (node) {
+    if (/(auto|scroll)/.test(getComputedStyle(node).overflowY)) return node;
+    node = node.parentElement;
+  }
+  return window;
+}
 
 export function EventDetail() {
   const navigate = useNavigate();
@@ -58,8 +66,6 @@ export function EventDetail() {
     return isAdmin ? `/admin/player/${playerId}` : `/players/${playerId}`;
   }
 
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const [toast, setToast] = useState({ message: "", visible: false });
   function fireToast(message: string) {
     setToast({ message, visible: true });
@@ -69,16 +75,10 @@ export function EventDetail() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [waitlistOpen, setWaitlistOpen] = useState(false);
   const waitlistBoxRef = useRef<HTMLDivElement>(null);
-
-  // No expand animation to wait out here - the rows show/hide the instant React
-  // commits the DOM change, so the scroll can fire in the same breath instead of
-  // waiting on a transition (which was the source of the noticeable lag).
-  useEffect(() => {
-    if (!waitlistOpen) return;
-    waitlistBoxRef.current?.scrollIntoView({ behavior: "instant", block: "nearest" });
-  }, [waitlistOpen]);
+  const waitlistRowsRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
+  const [teamName, setTeamName] = useState("");
 
   const [event, setEvent] = useState<EventRow | null>(null);
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
@@ -86,6 +86,35 @@ export function EventDetail() {
   const [myStatus, setMyStatus] = useState<JoinStatus>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  // Rather than predicting where the box will end up (fragile - depends on its
+  // exact position on screen, and any math has to be redone if that changes),
+  // this tracks the box's *actual* height frame by frame while the grid-rows
+  // transition runs, and scrolls by exactly the same delta every time it moves.
+  // The scroll then simply mirrors whatever the CSS animation is really doing,
+  // in both directions, with nothing to get out of sync.
+  // Depends on waitlist.length because the box (and its ref) only exists in the
+  // DOM once the data has loaded and there's more than one waitlisted player.
+  useEffect(() => {
+    const rows = waitlistRowsRef.current;
+    const box = waitlistBoxRef.current;
+    if (!rows || !box) return;
+    const scrollParent = findScrollParent(box);
+    // ResizeObserver always fires once immediately on observe() with the current
+    // size - skip that first call so it doesn't scroll on mount, only on actual
+    // subsequent changes (i.e. the accordion toggling).
+    let lastHeight: number | null = null;
+    const observer = new ResizeObserver(([entry]) => {
+      const newHeight = entry.contentRect.height;
+      if (lastHeight !== null) {
+        const delta = newHeight - lastHeight;
+        if (delta !== 0) scrollParent.scrollBy({ top: delta });
+      }
+      lastHeight = newHeight;
+    });
+    observer.observe(rows);
+    return () => observer.disconnect();
+  }, [waitlist.length]);
 
   async function load(eventId: string) {
     // Guests can't read event_participants/profiles directly (RLS), so they go through
@@ -95,8 +124,8 @@ export function EventDetail() {
     const [{ data: eventRow, error: eventErr }, { data: participantRows }, { data: requestRows }] = await Promise.all([
       supabase.from("events").select("*, moderator:profiles!moderator_id(id, name, avatar)").eq("id", eventId).single(),
       isGuestViewer
-        ? supabase.from("public_roster").select("id, name, avatar, position, is_verified, is_guest").eq("event_id", eventId).order("joined_at", { ascending: true })
-        : supabase.from("event_participants").select("id, player_id, guest_name, joined_at, position, profiles(id, name, avatar, position, is_verified, visible_trust_label)").eq("event_id", eventId).order("joined_at", { ascending: true }),
+        ? supabase.from("public_roster").select("id, name, avatar, position, team_name, is_verified, is_guest").eq("event_id", eventId).order("joined_at", { ascending: true })
+        : supabase.from("event_participants").select("id, player_id, guest_name, joined_at, position, team_name, profiles(id, name, avatar, position, is_verified, visible_trust_label)").eq("event_id", eventId).order("joined_at", { ascending: true }),
       isGuestViewer
         ? Promise.resolve({ data: [] as { player_id: string; kind: string; profiles: { id: string; name: string; avatar: string | null; is_verified: boolean; visible_trust_label: string | null } | null }[] })
         : supabase.from("event_requests").select("player_id, kind, profiles(id, name, avatar, is_verified, visible_trust_label)").eq("event_id", eventId),
@@ -118,20 +147,22 @@ export function EventDetail() {
 
     const moderatorId = row.moderator_id;
     const rosterList: RosterPlayer[] = isGuestViewer
-      ? ((participantRows ?? []) as unknown as { id: string; name: string; avatar: string | null; position: string | null; is_verified: boolean; is_guest: boolean }[]).map(p => ({
+      ? ((participantRows ?? []) as unknown as { id: string; name: string; avatar: string | null; position: string | null; team_name: string | null; is_verified: boolean; is_guest: boolean }[]).map(p => ({
           id: p.id,
           name: p.name,
           avatar: p.avatar,
           position: p.position,
+          teamName: p.team_name,
           trustLabel: null,
           verified: p.is_verified,
           isGuest: p.is_guest,
         }))
-      : ((participantRows ?? []) as unknown as { id: string; player_id: string | null; guest_name: string | null; position: string | null; profiles: { id: string; name: string; avatar: string | null; position: string | null; is_verified: boolean; visible_trust_label: string | null } | null }[]).map(p => ({
+      : ((participantRows ?? []) as unknown as { id: string; player_id: string | null; guest_name: string | null; position: string | null; team_name: string | null; profiles: { id: string; name: string; avatar: string | null; position: string | null; is_verified: boolean; visible_trust_label: string | null } | null }[]).map(p => ({
           id: p.profiles?.id ?? `guest-${p.id}`,
           name: p.profiles?.name ?? p.guest_name ?? "Unknown",
           avatar: p.profiles?.avatar ?? null,
           position: p.position ?? p.profiles?.position ?? null,
+          teamName: p.team_name,
           trustLabel: p.profiles?.visible_trust_label ?? null,
           verified: p.profiles?.is_verified ?? false,
           isGuest: !p.player_id,
@@ -166,6 +197,7 @@ export function EventDetail() {
   const isCanceled = event?.status === "canceled";
   const isRequestOnly = event ? computeJoinStatus(event.level, profile?.skill_level) === "REQUEST ONLY" : false;
   const requiresPosition = event?.category === "GAMES" && POSITION_REQUIRED_LEVELS.includes(event?.level ?? "");
+  const requiresTeamName = event?.category === "TOURNAMENT";
   const maxCapacity = event?.capacity ?? 0;
   const currentCapacity = roster.length;
   const isFull = maxCapacity > 0 && currentCapacity >= maxCapacity;
@@ -181,19 +213,20 @@ export function EventDetail() {
   function handleJoinClick() {
     if (!isLoggedIn) { navigate("/signin"); return; }
     if (myStatus) { setShowLeaveConfirm(true); }
-    else { setSelectedPosition(null); setShowJoinModal(true); }
+    else { setSelectedPosition(null); setTeamName(""); setShowJoinModal(true); }
   }
 
   async function confirmJoin() {
     if (!authUser || !event || busy) return;
     setBusy(true);
     const position = requiresPosition ? selectedPosition : null;
+    const team_name = requiresTeamName ? teamName.trim() : null;
     if (isRequestOnly) {
-      await supabase.from("event_requests").insert({ event_id: event.id, player_id: authUser.id, kind: "request", status: "pending", position });
+      await supabase.from("event_requests").insert({ event_id: event.id, player_id: authUser.id, kind: "request", status: "pending", position, team_name });
     } else if (isFull) {
-      await supabase.from("event_requests").insert({ event_id: event.id, player_id: authUser.id, kind: "waitlist", status: "pending", position });
+      await supabase.from("event_requests").insert({ event_id: event.id, player_id: authUser.id, kind: "waitlist", status: "pending", position, team_name });
     } else {
-      await supabase.from("event_participants").insert({ event_id: event.id, player_id: authUser.id, position });
+      await supabase.from("event_participants").insert({ event_id: event.id, player_id: authUser.id, position, team_name });
     }
     await load(event.id);
     setBusy(false);
@@ -213,15 +246,6 @@ export function EventDetail() {
     setShowLeaveConfirm(false);
   }
 
-  function openMenuAt(key: string, e: React.MouseEvent<HTMLButtonElement>) {
-    if (openMenu === key) { setOpenMenu(null); setMenuPos(null); return; }
-    const r = e.currentTarget.getBoundingClientRect();
-    setMenuPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
-    setOpenMenu(key);
-  }
-
-  function closeMenu() { setOpenMenu(null); setMenuPos(null); }
-
   const joinButtonLabel = () => {
     if (myStatus === "joined") return t.event.joined;
     if (myStatus === "pending") return t.profile.pending;
@@ -229,11 +253,11 @@ export function EventDetail() {
     return isRequestOnly ? t.event.sendRequest : t.event.joinDirectly;
   };
 
-  if (loading) return <div className="min-h-screen bg-[#0e1621]" />;
+  if (loading) return <div className="min-h-full bg-[#0e1621]" />;
 
   if (notFound || !event) {
     return (
-      <div className="min-h-screen bg-[#0e1621] text-white">
+      <div className="min-h-full bg-[#0e1621] text-white">
         <BackBar label="Events" to="/" />
         <div className="px-4 py-16 text-center text-[#79828b] text-sm">{t.common.nothingHere}</div>
       </div>
@@ -241,14 +265,8 @@ export function EventDetail() {
   }
 
 return (
-    <div className="min-h-screen bg-[#0e1621] text-white font-sans">
+    <div className="min-h-full bg-[#0e1621] text-white font-sans">
       <Toast message={toast.message} visible={toast.visible} variant="copied" onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
-
-      {/* Invisible backdrop to close any open dropdown menu */}
-      {openMenu && createPortal(
-        <div className="fixed inset-0 z-[39]" onClick={closeMenu} />,
-        document.body
-      )}
 
       {/* Join confirmation modal */}
       {showJoinModal && (
@@ -288,6 +306,19 @@ return (
               </div>
             )}
 
+            {requiresTeamName && (
+              <div className="mb-5">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2">{t.event.teamName}</p>
+                <input
+                  autoFocus
+                  value={teamName}
+                  onChange={e => setTeamName(e.target.value)}
+                  placeholder={t.event.teamNamePlaceholder}
+                  className="w-full h-10 bg-white/5 border border-white/10 rounded-lg px-3 text-white text-sm font-bold outline-none focus:border-white/25 transition-colors placeholder:text-[#79828b] placeholder:font-normal"
+                />
+              </div>
+            )}
+
             <div className="flex gap-3">
               <button
                 onClick={() => setShowJoinModal(false)}
@@ -297,7 +328,7 @@ return (
               </button>
               <button
                 onClick={confirmJoin}
-                disabled={busy || (requiresPosition && !selectedPosition)}
+                disabled={busy || (requiresPosition && !selectedPosition) || (requiresTeamName && !teamName.trim())}
                 className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${theme.button}`}
               >
                 {isRequestOnly || isFull ? t.event.sendRequest : t.event.join}
@@ -364,7 +395,12 @@ return (
           {/* Organizer */}
           <div className="flex items-center justify-between bg-[#17212b] border border-white/5 rounded-xl p-2.5 mb-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="relative">
+              <button
+                type="button"
+                onClick={() => { navDir.forward(); navigate(playerProfilePath(event.moderator_id)); }}
+                className={`relative shrink-0 ${isLoggedIn ? "cursor-pointer" : "cursor-default"}`}
+                disabled={!isLoggedIn}
+              >
                 {event.moderator?.avatar ? (
                   <img
                     src={event.moderator.avatar}
@@ -379,38 +415,12 @@ return (
                 <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#3390ec] rounded-full flex items-center justify-center border-2 border-[#17212b]">
                   <CheckCircle2 size={10} className="text-white" strokeWidth={3} />
                 </div>
-              </div>
+              </button>
               <div>
                 <div className="text-[10px] font-bold text-[#79828b] uppercase tracking-widest leading-tight">{t.event.organizer}</div>
                 <div className="text-white font-bold text-sm">{event.moderator?.name ?? "—"}</div>
               </div>
             </div>
-            {isLoggedIn && (
-            <div className="relative">
-              <button
-                onClick={e => openMenuAt("organizer", e)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
-              >
-                <MoreVertical size={18} />
-              </button>
-              {openMenu === "organizer" && menuPos && createPortal(
-                <div
-                  style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
-                  className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
-                  onClick={closeMenu}
-                >
-                  <button
-                    onClick={() => { navDir.forward(); navigate(playerProfilePath(event.moderator_id)); closeMenu(); }}
-                    className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
-                  >
-                    <User size={14} />
-                    {t.event.viewProfile}
-                  </button>
-                </div>,
-                document.body
-              )}
-            </div>
-            )}
           </div>
 
           {/* Info Panel */}
@@ -495,21 +505,43 @@ return (
                 key={player.id}
                 className="flex items-center gap-3 bg-[#17212b] border border-white/5 rounded-xl p-2.5"
               >
-                <div className="relative shrink-0">
-                  {player.avatar ? (
-                    <img
-                      src={player.avatar}
-                      alt={player.name}
-                      className="w-10 h-10 rounded-full object-cover border border-white/10"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                      <User size={16} className="text-white/30" />
-                    </div>
-                  )}
-                  <VerifiedBadge verified={player.verified} size={13} ringClassName="border-[#17212b]" />
-                  <TrustDot label={player.trustLabel} size={10} ringClassName="border-[#17212b]" />
-                </div>
+                {isLoggedIn && !player.isGuest ? (
+                  <button
+                    type="button"
+                    onClick={() => { navDir.forward(); navigate(playerProfilePath(player.id)); }}
+                    className="relative shrink-0 cursor-pointer"
+                  >
+                    {player.avatar ? (
+                      <img
+                        src={player.avatar}
+                        alt={player.name}
+                        className="w-10 h-10 rounded-full object-cover border border-white/10"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                        <User size={16} className="text-white/30" />
+                      </div>
+                    )}
+                    <VerifiedBadge verified={player.verified} size={13} ringClassName="border-[#17212b]" />
+                    <TrustDot label={player.trustLabel} size={10} ringClassName="border-[#17212b]" />
+                  </button>
+                ) : (
+                  <div className="relative shrink-0">
+                    {player.avatar ? (
+                      <img
+                        src={player.avatar}
+                        alt={player.name}
+                        className="w-10 h-10 rounded-full object-cover border border-white/10"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                        <User size={16} className="text-white/30" />
+                      </div>
+                    )}
+                    <VerifiedBadge verified={player.verified} size={13} ringClassName="border-[#17212b]" />
+                    <TrustDot label={player.trustLabel} size={10} ringClassName="border-[#17212b]" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <span className="font-bold text-sm block text-white">{player.name}</span>
                   {requiresPosition && player.position && (
@@ -517,45 +549,27 @@ return (
                       {player.position}
                     </span>
                   )}
+                  {requiresTeamName && player.teamName && (
+                    <span className={`text-[10px] font-bold uppercase tracking-widest ${theme.primary}`}>
+                      {player.teamName}
+                    </span>
+                  )}
                 </div>
-                {isLoggedIn && !player.isGuest && (
-                  <div className="relative shrink-0">
-                    <button
-                      onClick={e => openMenuAt(`player-${i}`, e)}
-                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
-                    >
-                      <MoreVertical size={16} />
-                    </button>
-                    {openMenu === `player-${i}` && menuPos && createPortal(
-                      <div
-                        style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
-                        className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
-                        onClick={closeMenu}
-                      >
-                        <button
-                          onClick={() => { navDir.forward(); navigate(playerProfilePath(player.id)); closeMenu(); }}
-                          className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
-                        >
-                          <User size={14} />
-                          {t.event.viewProfile}
-                        </button>
-                      </div>,
-                      document.body
-                    )}
-                  </div>
-                )}
               </div>
             ))}
           </div>
 
           {/* Waitlist */}
           {isLoggedIn && waitlist.length > 0 && (() => {
-            const renderRow = (player: WaitlistEntry, i: number, withTopBorder: boolean) => {
-              const menuKey = `waitlist-${i}`;
+            const renderRow = (player: WaitlistEntry, withTopBorder: boolean) => {
               const isMe = player.id === authUser?.id;
               return (
                 <div key={player.id} className={`flex items-center gap-3 px-3 py-2.5 ${withTopBorder ? "border-t border-white/[0.05]" : ""}`}>
-                  <div className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => { if (isMe) navigate("/profile"); else { navDir.forward(); navigate(playerProfilePath(player.id)); } }}
+                    className="relative shrink-0 cursor-pointer"
+                  >
                     {player.avatar ? (
                       <img src={player.avatar} alt={player.name} className="w-8 h-8 rounded-full object-cover border border-white/10" />
                     ) : (
@@ -565,35 +579,11 @@ return (
                     )}
                     <VerifiedBadge verified={player.verified} size={10} ringClassName="border-[#17212b]" />
                     <TrustDot label={player.trustLabel} size={8} ringClassName="border-[#17212b]" />
-                  </div>
+                  </button>
                   <span className={`font-bold text-sm flex-1 ${isMe ? theme.primary : "text-white"}`}>
                     {player.name}
                     {isMe && <span className="text-[10px] text-[#79828b] font-bold ml-2 normal-case tracking-normal">{t.event.you}</span>}
                   </span>
-                  <div className="relative shrink-0">
-                    <button
-                      onClick={e => openMenuAt(menuKey, e)}
-                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
-                    >
-                      <MoreVertical size={16} />
-                    </button>
-                    {openMenu === menuKey && menuPos && createPortal(
-                      <div
-                        style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 40 }}
-                        className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden min-w-[140px]"
-                        onClick={closeMenu}
-                      >
-                        <button
-                          onClick={() => { if (isMe) navigate("/profile"); else { navDir.forward(); navigate(playerProfilePath(player.id)); } closeMenu(); }}
-                          className="flex items-center gap-2 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left"
-                        >
-                          <User size={14} />
-                          {t.event.viewProfile}
-                        </button>
-                      </div>,
-                      document.body
-                    )}
-                  </div>
                 </div>
               );
             };
@@ -603,7 +593,7 @@ return (
                 <div className="mt-4 mb-4">
                   <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">{t.event.waitlist}</p>
                   <div className="bg-[#17212b] border border-white/5 rounded-xl overflow-hidden">
-                    {renderRow(waitlist[0], 0, false)}
+                    {renderRow(waitlist[0], false)}
                   </div>
                 </div>
               );
@@ -611,7 +601,7 @@ return (
 
             return (
               <div className="mt-4 mb-4">
-                <div ref={waitlistBoxRef} className="scroll-mb-16 bg-[#17212b] border border-white/5 rounded-xl overflow-hidden">
+                <div ref={waitlistBoxRef} className="bg-[#17212b] border border-white/5 rounded-xl overflow-hidden">
                   {/* Avatar stack + count stays put whether collapsed or expanded - only
                       the chevron and the rows below react to waitlistOpen. */}
                   <button onClick={() => setWaitlistOpen(v => !v)} className="w-full flex items-center gap-3 px-3 py-2.5">
@@ -642,7 +632,13 @@ return (
                     <span className="flex-1 text-left text-white font-bold text-sm">{t.event.players(waitlist.length)}</span>
                     <ChevronDown size={15} className={`text-[#79828b] shrink-0 transition-transform duration-200 ${waitlistOpen ? "rotate-180" : ""}`} />
                   </button>
-                  {waitlistOpen && waitlist.map((player, i) => renderRow(player, i, true))}
+                  <div
+                    className={`grid transition-[grid-template-rows] duration-200 ease-in-out ${waitlistOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+                  >
+                    <div ref={waitlistRowsRef} className="overflow-hidden min-h-0">
+                      {waitlist.map(player => renderRow(player, true))}
+                    </div>
+                  </div>
                 </div>
               </div>
             );

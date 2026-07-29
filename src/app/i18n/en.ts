@@ -91,7 +91,6 @@ export const en: Dict = {
     rosterTitle: "Transparent Roster",
     capacity: "Capacity",
     joined: "Joined",
-    viewProfile: "View Profile",
     groupChat: "Group Chat",
     waitlistCount: (n) => `${n} player${n === 1 ? "" : "s"} on waitlist`,
     sendRequest: "Send a Request",
@@ -115,6 +114,8 @@ export const en: Dict = {
     joinDesc: "You'll be added to the roster immediately.",
     requestDesc: "Your request will be sent to the organizer for approval.",
     selectPosition: "Select your position",
+    teamName: "Team name",
+    teamNamePlaceholder: "Enter your team's name",
     keep: "Keep",
   },
   signin: {

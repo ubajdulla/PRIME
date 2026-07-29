@@ -34,8 +34,8 @@ type EventRow = {
   moderator: { id: string; name: string; avatar: string | null } | null;
 };
 
-type RosterEntry = { id: string; rowId: string; name: string; avatar: string | null; position: string | null; paymentStatus: PaymentStatus; isGuest: boolean };
-type PersonEntry = { id: string; name: string; avatar: string | null; position: string | null };
+type RosterEntry = { id: string; rowId: string; name: string; avatar: string | null; position: string | null; teamName: string | null; paymentStatus: PaymentStatus; isGuest: boolean };
+type PersonEntry = { id: string; name: string; avatar: string | null; position: string | null; teamName: string | null };
 
 const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
 
@@ -54,6 +54,8 @@ export function AdminEventDetail() {
   const [openMenu,             setOpenMenu]             = useState<string | null>(null);
   const [editPositionId,       setEditPositionId]       = useState<string | null>(null);
   const [editPositionValue,    setEditPositionValue]    = useState(POSITIONS[0]);
+  const [editTeamNameId,       setEditTeamNameId]       = useState<string | null>(null);
+  const [editTeamNameValue,    setEditTeamNameValue]    = useState("");
   const [confirmRemoveId,      setConfirmRemoveId]      = useState<string | null>(null);
   const [confirmWaitlistRemId, setConfirmWaitlistRemId] = useState<string | null>(null);
   const [showActionDropdown,   setShowActionDropdown]   = useState(false);
@@ -82,8 +84,8 @@ export function AdminEventDetail() {
   async function load(eventId: string) {
     const [{ data: eventRow, error }, { data: participantRows }, { data: requestRows }] = await Promise.all([
       supabase.from("events").select("*, moderator:profiles!moderator_id(id, name, avatar)").eq("id", eventId).single(),
-      supabase.from("event_participants").select("id, player_id, guest_name, payment_status, joined_at, position, profiles(id, name, avatar, position)").eq("event_id", eventId).order("joined_at", { ascending: true }),
-      supabase.from("event_requests").select("player_id, kind, created_at, position, profiles(id, name, avatar)").eq("event_id", eventId).order("created_at", { ascending: true }),
+      supabase.from("event_participants").select("id, player_id, guest_name, payment_status, joined_at, position, team_name, profiles(id, name, avatar, position)").eq("event_id", eventId).order("joined_at", { ascending: true }),
+      supabase.from("event_requests").select("player_id, kind, created_at, position, team_name, profiles(id, name, avatar)").eq("event_id", eventId).order("created_at", { ascending: true }),
     ]);
 
     if (error || !eventRow) { setNotFound(true); setLoading(false); return; }
@@ -96,6 +98,7 @@ export function AdminEventDetail() {
       name: p.profiles?.name ?? p.guest_name ?? "Unknown",
       avatar: p.profiles?.avatar ?? null,
       position: p.position ?? p.profiles?.position ?? null,
+      teamName: p.team_name ?? null,
       paymentStatus: p.payment_status as PaymentStatus,
       isGuest: !p.player_id,
     }));
@@ -103,10 +106,12 @@ export function AdminEventDetail() {
     setRequests((requestRows ?? []).filter(r => r.kind === "request").map(r => ({
       id: r.profiles?.id ?? r.player_id, name: r.profiles?.name ?? "Unknown", avatar: r.profiles?.avatar ?? null,
       position: r.position ?? r.profiles?.position ?? null,
+      teamName: r.team_name ?? null,
     })));
     setWaitlist((requestRows ?? []).filter(r => r.kind === "waitlist").map(r => ({
       id: r.profiles?.id ?? r.player_id, name: r.profiles?.name ?? "Unknown", avatar: r.profiles?.avatar ?? null,
       position: r.position ?? r.profiles?.position ?? null,
+      teamName: r.team_name ?? null,
     })));
     setLoading(false);
   }
@@ -189,6 +194,7 @@ export function AdminEventDetail() {
         name: r.guest_name ?? name,
         avatar: null,
         position: r.position ?? null,
+        teamName: null,
         paymentStatus: r.payment_status as PaymentStatus,
         isGuest: true,
       })),
@@ -202,10 +208,10 @@ export function AdminEventDetail() {
     if (!player) return;
     await Promise.all([
       supabase.from("event_participants").delete().eq("event_id", event!.id).eq("player_id", playerId),
-      supabase.from("event_requests").insert({ event_id: event!.id, player_id: playerId, kind: "waitlist", status: "pending", position: player.position }),
+      supabase.from("event_requests").insert({ event_id: event!.id, player_id: playerId, kind: "waitlist", status: "pending", position: player.position, team_name: player.teamName }),
     ]);
     setRoster(prev => prev.filter(p => p.id !== playerId));
-    setWaitlist(prev => [...prev, { id: player.id, name: player.name, avatar: player.avatar, position: player.position }]);
+    setWaitlist(prev => [...prev, { id: player.id, name: player.name, avatar: player.avatar, position: player.position, teamName: player.teamName }]);
     setOpenMenu(null);
   }
 
@@ -214,10 +220,10 @@ export function AdminEventDetail() {
     if (!player) return;
     await Promise.all([
       supabase.from("event_requests").delete().eq("event_id", event!.id).eq("player_id", playerId).eq("kind", "waitlist"),
-      supabase.from("event_participants").insert({ event_id: event!.id, player_id: playerId, payment_status: "unpaid", position: player.position }),
+      supabase.from("event_participants").insert({ event_id: event!.id, player_id: playerId, payment_status: "unpaid", position: player.position, team_name: player.teamName }),
     ]);
     setWaitlist(prev => prev.filter(p => p.id !== playerId));
-    setRoster(prev => [...prev, { id: player.id, name: player.name, avatar: player.avatar, position: player.position, paymentStatus: "unpaid" }]);
+    setRoster(prev => [...prev, { id: player.id, name: player.name, avatar: player.avatar, position: player.position, teamName: player.teamName, paymentStatus: "unpaid" }]);
     const { error: notifyErr } = await supabase.from("notifications").insert({
       recipient_id: playerId, type: "waitlist_promoted", title: "You're In!",
       body: `A spot opened up in "${event!.title}" — you've been moved from the waitlist to the roster.`,
@@ -230,6 +236,13 @@ export function AdminEventDetail() {
     setRoster(prev => prev.map(p => p.rowId === rowId ? { ...p, position } : p));
     await supabase.from("event_participants").update({ position }).eq("id", rowId);
     setEditPositionId(null);
+  }
+
+  async function updateTeamName(rowId: string, teamName: string) {
+    const value = teamName.trim() || null;
+    setRoster(prev => prev.map(p => p.rowId === rowId ? { ...p, teamName: value } : p));
+    await supabase.from("event_participants").update({ team_name: value }).eq("id", rowId);
+    setEditTeamNameId(null);
   }
 
   async function removeFromWaitlist(playerId: string) {
@@ -245,10 +258,10 @@ export function AdminEventDetail() {
     if (!player) return;
     await Promise.all([
       supabase.from("event_requests").delete().eq("event_id", event!.id).eq("player_id", playerId).eq("kind", "request"),
-      supabase.from("event_participants").insert({ event_id: event!.id, player_id: playerId, payment_status: "unpaid", position: player.position }),
+      supabase.from("event_participants").insert({ event_id: event!.id, player_id: playerId, payment_status: "unpaid", position: player.position, team_name: player.teamName }),
     ]);
     setRequests(prev => prev.filter(p => p.id !== playerId));
-    setRoster(prev => [...prev, { id: player.id, name: player.name, avatar: player.avatar, position: player.position, paymentStatus: "unpaid" }]);
+    setRoster(prev => [...prev, { id: player.id, name: player.name, avatar: player.avatar, position: player.position, teamName: player.teamName, paymentStatus: "unpaid" }]);
     fireToast("Request Approved!", "success");
   }
 
@@ -325,6 +338,7 @@ export function AdminEventDetail() {
         name: authProfile?.name ?? "Me",
         avatar: authProfile?.avatar ?? null,
         position: data.position ?? null,
+        teamName: null,
         paymentStatus: "unpaid",
         isGuest: false,
       },
@@ -395,6 +409,7 @@ export function AdminEventDetail() {
     setOpenMenu(prev => prev === key ? null : key);
     setConfirmRemoveId(null);
     setEditPositionId(null);
+    setEditTeamNameId(null);
   }
 
   // ── Derived ────────────────────────────────────────────────
@@ -593,35 +608,51 @@ export function AdminEventDetail() {
           {/* Moderator card */}
           <div className="flex items-center justify-between bg-[#17212b] border border-white/5 rounded-xl p-2.5 mb-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="relative">
-                {event.moderator?.avatar ? (
-                  <img
-                    src={event.moderator.avatar}
-                    alt={event.moderator.name}
-                    className="w-11 h-11 rounded-full object-cover border border-white/10"
-                  />
-                ) : (
-                  <div className="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                    <User size={18} className="text-white/30" />
+              {authUser?.id !== event.moderator_id ? (
+                <button
+                  type="button"
+                  onClick={() => { navDir.forward(); navigate(`/admin/player/${event.moderator_id}`); }}
+                  className="relative cursor-pointer"
+                >
+                  {event.moderator?.avatar ? (
+                    <img
+                      src={event.moderator.avatar}
+                      alt={event.moderator.name}
+                      className="w-11 h-11 rounded-full object-cover border border-white/10"
+                    />
+                  ) : (
+                    <div className="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                      <User size={18} className="text-white/30" />
+                    </div>
+                  )}
+                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#3390ec] rounded-full flex items-center justify-center border-2 border-[#17212b]">
+                    <CheckCircle2 size={10} className="text-white" strokeWidth={3} />
                   </div>
-                )}
-                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#3390ec] rounded-full flex items-center justify-center border-2 border-[#17212b]">
-                  <CheckCircle2 size={10} className="text-white" strokeWidth={3} />
+                </button>
+              ) : (
+                <div className="relative">
+                  {event.moderator?.avatar ? (
+                    <img
+                      src={event.moderator.avatar}
+                      alt={event.moderator.name}
+                      className="w-11 h-11 rounded-full object-cover border border-white/10"
+                    />
+                  ) : (
+                    <div className="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                      <User size={18} className="text-white/30" />
+                    </div>
+                  )}
+                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#3390ec] rounded-full flex items-center justify-center border-2 border-[#17212b]">
+                    <CheckCircle2 size={10} className="text-white" strokeWidth={3} />
+                  </div>
                 </div>
-              </div>
+              )}
               <div>
                 <div className="text-[10px] font-bold text-[#79828b] uppercase tracking-widest leading-tight">Moderator</div>
                 <div className="text-white font-bold text-sm">{event.moderator?.name ?? "—"}</div>
               </div>
             </div>
-            {authUser?.id !== event.moderator_id ? (
-              <button
-                onClick={() => { navDir.forward(); navigate(`/admin/player/${event.moderator_id}`); }}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
-              >
-                <User size={16} />
-              </button>
-            ) : pendingSwap ? (
+            {authUser?.id !== event.moderator_id ? null : pendingSwap ? (
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-black uppercase tracking-wider text-[#eab308] px-2 py-1 bg-[#eab308]/10 rounded-full whitespace-nowrap">
                   Swap Pending
@@ -896,13 +927,26 @@ export function AdminEventDetail() {
                 <div className={`flex items-center gap-2 p-3 bg-[#17212b] border transition-colors ${
                   openMenu === player.id ? "rounded-t-xl border-b-0 border-white/10" : "rounded-xl border-white/5"
                 }`}>
-                  {player.avatar
-                    ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
-                    : <div className="w-10 h-10 rounded-full border-2 border-[#0e1621] bg-white/5 flex items-center justify-center shrink-0"><User size={16} className="text-white/30" /></div>
-                  }
+                  {player.isGuest ? (
+                    player.avatar
+                      ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
+                      : <div className="w-10 h-10 rounded-full border-2 border-[#0e1621] bg-white/5 flex items-center justify-center shrink-0"><User size={16} className="text-white/30" /></div>
+                  ) : (
+                    <button type="button" onClick={() => openProfile(player)} className="shrink-0 cursor-pointer">
+                      {player.avatar
+                        ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover" />
+                        : <div className="w-10 h-10 rounded-full border-2 border-[#0e1621] bg-white/5 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
+                      }
+                    </button>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-white text-sm truncate">{player.name}</div>
                     {player.position && <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position}</div>}
+                    {event.category === "TOURNAMENT" && (
+                      <div className={`text-[11px] uppercase tracking-wider truncate ${player.teamName ? "text-[#79828b]" : "text-[#79828b]/50 italic normal-case"}`}>
+                        {player.teamName || "No team name set"}
+                      </div>
+                    )}
                   </div>
                   {event.price > 0 && (
                     <PaymentToggle status={player.paymentStatus} onConfirm={s => confirmPayment(player.rowId, s)} />
@@ -912,7 +956,7 @@ export function AdminEventDetail() {
                     onClick={() => toggleMenu(player.id)}
                     className={`w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition-colors ${openMenu === player.id ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
                   >
-                    <MoreVertical size={15} />
+                    <ChevronDown size={16} className={`transition-transform duration-200 ${openMenu === player.id ? "rotate-180" : ""}`} />
                   </button>
                 </div>
 
@@ -957,10 +1001,34 @@ export function AdminEventDetail() {
                           Cancel
                         </button>
                       </div>
+                    ) : editTeamNameId === player.id ? (
+                      <div className="flex items-center gap-2 px-4 py-3">
+                        <input
+                          autoFocus
+                          value={editTeamNameValue}
+                          onChange={e => setEditTeamNameValue(e.target.value)}
+                          placeholder="Team name"
+                          className="flex-1 h-9 bg-[#17212b] border border-white/10 rounded-lg px-2.5 text-white text-xs font-bold outline-none focus:border-[#3390ec]/50 transition-colors"
+                        />
+                        <button
+                          onClick={() => updateTeamName(player.rowId, editTeamNameValue)}
+                          className="px-3 py-1.5 bg-[#3390ec]/10 border border-[#3390ec]/30 text-[#3390ec] text-[11px] font-black uppercase tracking-wider rounded-lg"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditTeamNameId(null)}
+                          className="px-3 py-1.5 bg-white/5 text-[#79828b] text-[11px] font-black uppercase tracking-wider rounded-lg hover:text-white transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     ) : (
                       <div className="flex flex-col">
-                        {!player.isGuest && <MenuAction icon={<User size={14} />} label="View Profile" onClick={() => openProfile(player)} />}
                         <MenuAction icon={<Pencil size={14} />} label="Edit Position" onClick={() => { setEditPositionValue(player.position && POSITIONS.includes(player.position) ? player.position : POSITIONS[0]); setEditPositionId(player.id); }} />
+                        {event.category === "TOURNAMENT" && (
+                          <MenuAction icon={<Pencil size={14} />} label="Edit Team Name" onClick={() => { setEditTeamNameValue(player.teamName ?? ""); setEditTeamNameId(player.id); }} />
+                        )}
                         {!player.isGuest && <MenuAction icon={<ArrowDownToLine size={14} />} label="Move to Waitlist" onClick={() => moveToWaitlist(player.id)} />}
                         <MenuAction icon={<Trash2 size={14} />} label="Remove from Event" danger onClick={() => setConfirmRemoveId(player.id)} />
                       </div>
@@ -979,10 +1047,12 @@ export function AdminEventDetail() {
             )}
             {requests.map(player => (
               <div key={player.id} className="flex items-center gap-2 p-3 bg-[#17212b] border border-white/5 rounded-xl">
-                {player.avatar
-                  ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
-                  : <div className="w-10 h-10 rounded-full border-2 border-[#0e1621] bg-white/5 flex items-center justify-center shrink-0"><User size={16} className="text-white/30" /></div>
-                }
+                <button type="button" onClick={() => openProfile(player)} className="shrink-0 cursor-pointer">
+                  {player.avatar
+                    ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover" />
+                    : <div className="w-10 h-10 rounded-full border-2 border-[#0e1621] bg-white/5 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
+                  }
+                </button>
                 <button onClick={() => openProfile(player)} className="flex-1 min-w-0 text-left">
                   <div className="font-bold text-white text-sm truncate">{player.name}</div>
                 </button>
@@ -1014,10 +1084,12 @@ export function AdminEventDetail() {
                 <div className={`flex items-center gap-2 p-3 bg-[#17212b] border transition-colors ${
                   openMenu === `w-${player.id}` ? "rounded-t-xl border-b-0 border-white/10" : "rounded-xl border-white/5"
                 }`}>
-                  {player.avatar
-                    ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
-                    : <div className="w-10 h-10 rounded-full border-2 border-[#0e1621] bg-white/5 flex items-center justify-center shrink-0"><User size={16} className="text-white/30" /></div>
-                  }
+                  <button type="button" onClick={() => openProfile(player)} className="shrink-0 cursor-pointer">
+                    {player.avatar
+                      ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover" />
+                      : <div className="w-10 h-10 rounded-full border-2 border-[#0e1621] bg-white/5 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
+                    }
+                  </button>
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-white text-sm truncate">{player.name}</div>
                   </div>
@@ -1057,7 +1129,6 @@ export function AdminEventDetail() {
                       </div>
                     ) : (
                       <div className="flex flex-col">
-                        <MenuAction icon={<User size={14} />} label="View Profile" onClick={() => openProfile(player)} />
                         <MenuAction icon={<Trash2 size={14} />} label="Remove from Waitlist" danger onClick={() => setConfirmWaitlistRemId(player.id)} />
                       </div>
                     )}

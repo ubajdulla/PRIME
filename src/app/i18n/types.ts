@@ -89,7 +89,6 @@ export interface Dict {
     rosterTitle: string;
     capacity: string;
     joined: string;
-    viewProfile: string;
     groupChat: string;
     waitlistCount: (n: number) => string;
     sendRequest: string;
@@ -113,6 +112,8 @@ export interface Dict {
     joinDesc: string;
     requestDesc: string;
     selectPosition: string;
+    teamName: string;
+    teamNamePlaceholder: string;
     keep: string;
   };
   signin: {
