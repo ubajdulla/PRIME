@@ -22,13 +22,13 @@ export function AdminPlayers() {
   const adminCount = profiles.filter(p => p.is_admin).length;
 
   return (
-    <div className="max-w-[900px] mx-auto px-4 py-8">
+    <div className="max-w-[640px] mx-auto px-4 py-8">
       <h1 className="font-black italic text-2xl text-white uppercase tracking-widest mb-6">Players</h1>
 
       <div className="flex flex-col gap-2">
         <button
           onClick={() => navigate("/admin/players/ADMIN")}
-          className="flex items-center gap-3 px-4 py-3.5 bg-[#17212b] rounded-xl border border-white/5 hover:border-white/10 transition-all text-left"
+          className="flex items-center gap-3 px-4 py-3.5 bg-[#212121] rounded-xl border border-white/5 hover:border-white/10 transition-all text-left"
         >
           <ShieldCheck size={13} className="text-[#4dcd5e] shrink-0" />
           <span className="font-black uppercase tracking-widest text-sm flex-1 text-[#4dcd5e]">Admin</span>
@@ -42,7 +42,7 @@ export function AdminPlayers() {
             <button
               key={level}
               onClick={() => navigate(`/admin/players/${level}`)}
-              className="flex items-center gap-3 px-4 py-3.5 bg-[#17212b] rounded-xl border border-white/5 hover:border-white/10 transition-all text-left"
+              className="flex items-center gap-3 px-4 py-3.5 bg-[#212121] rounded-xl border border-white/5 hover:border-white/10 transition-all text-left"
             >
               <div className={`w-2 h-2 rounded-full shrink-0 ${s.dot}`} />
               <span className={`font-black uppercase tracking-widest text-sm flex-1 ${s.text}`}>{level}</span>

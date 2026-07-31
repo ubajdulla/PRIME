@@ -53,8 +53,8 @@ export function SignIn() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0e1621] text-white font-sans flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-[420px] bg-[#17212b] rounded-2xl border border-white/5 shadow-2xl p-6 sm:p-8">
+    <div className="min-h-screen bg-[#181818] text-white font-sans flex items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-[420px] bg-[#212121] rounded-2xl border border-white/5 shadow-2xl p-6 sm:p-8">
 
       {/* Back arrow */}
       <button
@@ -112,7 +112,7 @@ export function SignIn() {
             >
               <div
                 className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${
-                  remember ? "bg-[#3390ec] border-[#3390ec]" : "border-white/20 bg-white/5"
+                  remember ? "bg-[#462ed1] border-[#462ed1]" : "border-white/20 bg-white/5"
                 }`}
               >
                 {remember && (
@@ -125,7 +125,7 @@ export function SignIn() {
             </label>
             <button
               onClick={() => setScreen("forgot")}
-              className="text-sm text-[#3390ec] font-bold hover:text-white transition-colors"
+              className="text-sm text-[#462ed1] font-bold hover:text-white transition-colors"
             >
               {t.signin.forgotLink}
             </button>
@@ -134,14 +134,14 @@ export function SignIn() {
           <button
             onClick={handleLogin}
             disabled={submitting}
-            className="w-full py-3.5 rounded-xl bg-[#3390ec] text-white font-bold text-sm transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)] mb-5 disabled:opacity-50"
+            className="w-full py-3.5 rounded-xl bg-[#462ed1] text-white font-bold text-sm transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)] mb-5 disabled:opacity-50"
           >
             {submitting ? "…" : t.signin.loginBtn}
           </button>
 
           <p className="text-center text-sm text-[#79828b] mb-8">
             {t.signin.noAccount}{" "}
-            <button onClick={() => setScreen("signup")} className="text-[#3390ec] font-bold hover:text-white transition-colors">
+            <button onClick={() => setScreen("signup")} className="text-[#462ed1] font-bold hover:text-white transition-colors">
               {t.signin.signUpLink}
             </button>
           </p>
@@ -187,14 +187,14 @@ export function SignIn() {
           <button
             onClick={handleSignup}
             disabled={submitting}
-            className="w-full py-3.5 rounded-xl bg-[#3390ec] text-white font-bold text-sm transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)] mb-5 disabled:opacity-50"
+            className="w-full py-3.5 rounded-xl bg-[#462ed1] text-white font-bold text-sm transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)] mb-5 disabled:opacity-50"
           >
             {submitting ? "…" : t.signin.createBtn}
           </button>
 
           <p className="text-center text-sm text-[#79828b] mb-8">
             {t.signin.haveAccount}{" "}
-            <button onClick={() => setScreen("signin")} className="text-[#3390ec] font-bold hover:text-white transition-colors">
+            <button onClick={() => setScreen("signin")} className="text-[#462ed1] font-bold hover:text-white transition-colors">
               {t.signin.signInLink}
             </button>
           </p>
@@ -218,7 +218,7 @@ export function SignIn() {
 
           <button
             onClick={() => setScreen("signin")}
-            className="w-full py-3.5 rounded-xl bg-[#3390ec] text-white font-bold text-sm transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)]"
+            className="w-full py-3.5 rounded-xl bg-[#462ed1] text-white font-bold text-sm transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)]"
           >
             {t.signin.continueBtn}
           </button>
@@ -242,7 +242,7 @@ function InputField({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3.5 bg-[#0e1621]/60 border border-white/10 rounded-xl focus-within:border-[#3390ec]/50 transition-colors">
+    <div className="flex items-center gap-3 px-4 py-3.5 bg-[#181818]/60 border border-white/10 rounded-xl focus-within:border-[#462ed1]/50 transition-colors">
       <span className="text-[#79828b] shrink-0">{icon}</span>
       <input
         type={type}
@@ -265,7 +265,7 @@ function PasswordField({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3.5 bg-[#0e1621]/60 border border-white/10 rounded-xl focus-within:border-[#3390ec]/50 transition-colors">
+    <div className="flex items-center gap-3 px-4 py-3.5 bg-[#181818]/60 border border-white/10 rounded-xl focus-within:border-[#462ed1]/50 transition-colors">
       <span className="text-[#79828b] shrink-0"><Lock size={16} /></span>
       <input
         type={show ? "text" : "password"}
@@ -313,7 +313,7 @@ function SocialBtn({ disabled, label, children }: { disabled?: boolean; label: s
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="w-14 h-14 rounded-full bg-[#17212b] border border-white/10 flex items-center justify-center hover:border-white/25 hover:bg-white/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-white/10 disabled:hover:bg-transparent"
+      className="w-14 h-14 rounded-full bg-[#212121] border border-white/10 flex items-center justify-center hover:border-white/25 hover:bg-white/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-white/10 disabled:hover:bg-transparent"
     >
       {children}
     </button>
@@ -341,7 +341,7 @@ function AppleIcon() {
 
 function TelegramIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="#3390ec">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="#462ed1">
       <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/>
     </svg>
   );

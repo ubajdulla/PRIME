@@ -79,6 +79,7 @@ export const ru: Dict = {
     logOut: "Выйти",
     logOutTitle: "Выйти?",
     logOutDesc: "Для доступа к аккаунту нужно будет войти снова.",
+    editDetails: "Изменить данные профиля",
   },
   event: {
     eventDetails: "Детали события",

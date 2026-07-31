@@ -18,7 +18,7 @@ interface TrustDotProps {
 // the visible_trust_label computed column, which the database gates to
 // admins - so a non-admin viewer's data simply never has this set, no
 // separate isAdmin check needed here.
-export function TrustDot({ label, size = 10, ringClassName = "border-[#0e1621]", corner = "top-right" }: TrustDotProps) {
+export function TrustDot({ label, size = 10, ringClassName = "border-[#181818]", corner = "top-right" }: TrustDotProps) {
   const color = label ? COLOR[label] : undefined;
   if (!color) return null;
   const posClass = corner === "bottom-right" ? "-right-0.5 -bottom-0.5" : "-right-0.5 -top-0.5";

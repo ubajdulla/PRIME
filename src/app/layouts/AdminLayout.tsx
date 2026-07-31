@@ -13,10 +13,10 @@ export function AdminLayout() {
   if (!isAdmin) return <Navigate to="/" replace />;
 
   return (
-    <div className="bg-[#0e1621]">
+    <div className="bg-[#181818]">
       {!isSubPage && (
-        <div className="sticky top-0 z-10 bg-[#0e1621] border-b border-white/5 px-4">
-          <div className="max-w-[700px] mx-auto flex">
+        <div className="sticky top-0 z-10 bg-[#181818] border-b border-white/5 px-4">
+          <div className="max-w-[640px] mx-auto flex">
             <AdminTab to="/admin/events" label="Events" icon={<CalendarDays size={15} />} />
             <AdminTab to="/admin/players" label="Players" icon={<Users size={15} />} />
           </div>

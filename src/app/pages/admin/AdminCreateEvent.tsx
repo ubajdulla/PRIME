@@ -3,9 +3,13 @@ import { useNavigate, useParams } from "react-router";
 import { Check, ChevronDown } from "lucide-react";
 import { SKILL_ORDER } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
+import { SelectField } from "../../components/ui/SelectField";
+import { DatePickerField } from "../../components/ui/DatePickerField";
+import { DropdownPanel } from "../../components/ui/DropdownMenu";
 import { useAuth } from "../../lib/AuthContext";
 import { supabase } from "../../lib/supabaseClient";
 import { categoryImage } from "../../lib/eventImages";
+import { useWaterRipple, RippleLayer } from "../../components/ui/useWaterRipple";
 
 const CATEGORIES = ["GAMES", "TOURNAMENT", "TRAININGS", "BEACH", "EVENTS"];
 
@@ -20,14 +24,18 @@ function suggestedTitle(category: string, level: string): string {
   return "";
 }
 
-const SEL = "block w-full h-12 bg-[#222f3e] border border-white/10 rounded-xl px-3 pr-8 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors appearance-none cursor-pointer [color-scheme:dark]";
-const INP = "block w-full h-12 bg-[#222f3e] border border-white/10 rounded-xl px-4 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors";
+// Borderless field styles — used *inside* a FieldGroup card, which already
+// supplies the background/border/rounding. Individual fields stay flush
+// (no nested boxes) to match the grouped-list look used across the app.
+const F_INPUT = "block w-full bg-transparent text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none";
+const F_SEL   = "flex items-center justify-between gap-2 w-full text-white text-sm font-bold focus:outline-none cursor-pointer";
 
 export function AdminCreateEvent() {
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id: string }>();
   const { user: authUser } = useAuth();
   const isEditMode = !!editId;
+  const saveRipple = useWaterRipple();
 
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -134,7 +142,7 @@ export function AdminCreateEvent() {
     setTimeout(() => navigate(`/admin/events/${data.id}`), 1200);
   }
 
-  if (loadingEdit) return <div className="min-h-screen bg-[#0e1621]" />;
+  if (loadingEdit) return <div className="min-h-screen bg-[var(--surface-0)]" />;
 
   if (done) {
     return (
@@ -150,13 +158,13 @@ export function AdminCreateEvent() {
   }
 
   return (
-    <div className="bg-[#0e1621] min-h-screen">
+    <div className="bg-[var(--surface-0)] min-h-screen">
       <BackBar
         label={isEditMode ? "Event" : "Events"}
         to={isEditMode ? `/admin/events/${editId}` : "/admin/events"}
       />
 
-      <div className="max-w-[700px] mx-auto px-4 sm:px-6 py-5 flex flex-col gap-5">
+      <div className="max-w-[640px] mx-auto px-4 py-5 flex flex-col gap-5">
 
         {error && (
           <div className="px-4 py-3 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] text-sm">
@@ -164,160 +172,128 @@ export function AdminCreateEvent() {
           </div>
         )}
 
-        {/* Title */}
-        <Row label="Event Title">
-          <input type="text" value={f.title} onChange={e => { setTitleTouched(true); s("title", e.target.value); }}
-            placeholder="e.g. PRO-AM INVITATIONAL #13" className={INP} />
-        </Row>
-
-        {/* Description */}
-        <Row label="Description">
-          <textarea value={f.description} onChange={e => s("description", e.target.value)}
-            placeholder="Event details, rules, notes..." rows={3}
-            className="block w-full bg-[#222f3e] border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none" />
-        </Row>
+        {/* Title + Description */}
+        <FieldGroup>
+          <Field label="Event Title">
+            <input type="text" value={f.title} onChange={e => { setTitleTouched(true); s("title", e.target.value); }}
+              placeholder="e.g. PRO-AM INVITATIONAL #13" className={F_INPUT} />
+          </Field>
+          <Field label="Description">
+            <textarea value={f.description} onChange={e => s("description", e.target.value)}
+              placeholder="Event details, rules, notes..." rows={2}
+              className={`${F_INPUT} resize-none`} />
+          </Field>
+        </FieldGroup>
 
         {/* Image — auto-picked from category, no upload yet */}
-        <Row label="Event Image">
-          <div className="w-full h-28 rounded-xl overflow-hidden bg-[#222f3e] border border-white/10">
+        <div>
+          <span className="block text-[#79828b] text-[11px] font-black uppercase tracking-widest mb-2">Event Image</span>
+          <div className="w-full h-28 rounded-2xl overflow-hidden bg-[var(--surface-1)] border border-white/10">
             <img src={image} alt="" className="w-full h-full object-cover" />
           </div>
-        </Row>
-
-        {/* Category + Level */}
-        <div className={`grid gap-3 ${showLevel ? "grid-cols-2" : "grid-cols-1"}`}>
-          <Row label="Category">
-            <div className="relative">
-              <select value={f.category} onChange={e => s("category", e.target.value)} className={SEL}>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-            </div>
-          </Row>
-          {showLevel && (
-            <Row label="Level">
-              <div className="relative">
-                <select value={f.level} onChange={e => s("level", e.target.value)} className={SEL}>
-                  {SKILL_ORDER.map(l => <option key={l} value={l}>{l}</option>)}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-              </div>
-            </Row>
-          )}
         </div>
 
-        {/* Date + Location */}
-        <div className="grid grid-cols-2 gap-3">
-          <Row label="Date">
-            <div className="overflow-hidden rounded-xl">
-              <input type="date" value={f.date} onChange={e => s("date", e.target.value)}
-                onClick={e => e.currentTarget.showPicker?.()}
-                className="block w-full h-12 bg-[#222f3e] border border-white/10 rounded-xl px-3 text-white text-sm font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors [color-scheme:dark]" />
-            </div>
-          </Row>
-          <Row label="Location">
-            <div className="relative">
-              <input type="text" value={f.location}
-                onChange={e => { s("location", e.target.value); setLocationOpen(true); }}
-                onFocus={() => setLocationOpen(true)}
-                onBlur={() => setTimeout(() => setLocationOpen(false), 150)}
-                placeholder="Type or select venue..."
-                className={INP + " pr-10"} />
-              <button type="button" onClick={() => setLocationOpen(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79828b] hover:text-white transition-colors">
-                <ChevronDown size={15} className={`transition-transform ${locationOpen ? "rotate-180" : ""}`} />
-              </button>
-              {locationOpen && (
-                <div className="absolute left-0 right-0 top-full mt-1 bg-[#17212b] border border-white/10 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.4)] z-30 overflow-y-auto max-h-64">
+        {/* Category + Level */}
+        <FieldGroup className={`grid ${showLevel ? "grid-cols-2 divide-x divide-white/5" : "grid-cols-1"}`}>
+          <Field label="Category">
+            <SelectField value={f.category} options={CATEGORIES} onChange={v => s("category", v)} triggerClassName={F_SEL} />
+          </Field>
+          {showLevel && (
+            <Field label="Level">
+              <SelectField value={f.level} options={SKILL_ORDER} onChange={v => s("level", v)} triggerClassName={F_SEL} />
+            </Field>
+          )}
+        </FieldGroup>
+
+        {/* Scheduling — date, location, times, fee, capacity all together */}
+        <FieldGroup>
+          <Field label="Date">
+            <DatePickerField value={f.date} onChange={v => s("date", v)} triggerClassName={F_SEL} />
+          </Field>
+
+          <Field label="Location" className="relative">
+            <input type="text" value={f.location}
+              onChange={e => { s("location", e.target.value); setLocationOpen(true); }}
+              onFocus={() => setLocationOpen(true)}
+              onBlur={() => setTimeout(() => setLocationOpen(false), 150)}
+              placeholder="Type or select venue..."
+              className={`${F_INPUT} pr-6`} />
+            <button type="button" onClick={() => setLocationOpen(v => !v)}
+              className="absolute right-4 bottom-3 text-[#79828b] hover:text-white transition-colors focus:outline-none">
+              <ChevronDown size={15} className={`transition-transform ${locationOpen ? "rotate-180" : ""}`} />
+            </button>
+            {locationOpen && (
+              <div className="absolute left-0 right-0 top-full mt-1.5 z-30">
+                <DropdownPanel scrollable>
                   {locations.filter(l => !f.location || l.toLowerCase().includes(f.location.toLowerCase())).map(l => (
                     <button key={l} type="button" onClick={() => { s("location", l); setLocationOpen(false); }}
-                      className="block w-full px-4 py-2.5 text-sm font-bold text-white hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 text-left">
+                      className="block w-full px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--surface-active)] transition-colors text-left focus:outline-none">
                       {l}
                     </button>
                   ))}
-                </div>
-              )}
-            </div>
-          </Row>
-        </div>
+                </DropdownPanel>
+              </div>
+            )}
+          </Field>
 
-        {/* Start Time + End Time — hour : minute selects */}
-        <div className="grid grid-cols-2 gap-3">
-          <Row label="Start Time">
+          <Field label="Start Time">
             <div className="flex items-center gap-1">
-              <div className="relative flex-1">
-                <select value={f.startH} onChange={e => s("startH", e.target.value)} className={SEL}>
-                  {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
-                </select>
-                <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-              </div>
+              <div className="flex-1"><SelectField value={f.startH} options={HOURS} onChange={v => s("startH", v)} triggerClassName={F_SEL} /></div>
               <span className="text-[#79828b] font-bold text-sm shrink-0">:</span>
-              <div className="relative flex-1">
-                <select value={f.startM} onChange={e => s("startM", e.target.value)} className={SEL}>
-                  {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-                <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-              </div>
+              <div className="flex-1"><SelectField value={f.startM} options={MINUTES} onChange={v => s("startM", v)} triggerClassName={F_SEL} /></div>
             </div>
-          </Row>
-          <Row label="End Time">
-            <div className="flex items-center gap-1">
-              <div className="relative flex-1">
-                <select value={f.endH} onChange={e => s("endH", e.target.value)} className={SEL}>
-                  {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
-                </select>
-                <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-              </div>
-              <span className="text-[#79828b] font-bold text-sm shrink-0">:</span>
-              <div className="relative flex-1">
-                <select value={f.endM} onChange={e => s("endM", e.target.value)} className={SEL}>
-                  {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-                <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-              </div>
-            </div>
-          </Row>
-        </div>
+          </Field>
 
-        {/* Entry Fee + Max Players */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Row label="Entry Fee">
-            <div className="relative">
-              <input type="number" min="0" value={f.price} onChange={e => s("price", e.target.value)}
-                placeholder="FREE" className={INP + " pr-14"} />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#79828b]/40 text-sm font-black pointer-events-none select-none">CZK</span>
+          <Field label="End Time">
+            <div className="flex items-center gap-1">
+              <div className="flex-1"><SelectField value={f.endH} options={HOURS} onChange={v => s("endH", v)} triggerClassName={F_SEL} /></div>
+              <span className="text-[#79828b] font-bold text-sm shrink-0">:</span>
+              <div className="flex-1"><SelectField value={f.endM} options={MINUTES} onChange={v => s("endM", v)} triggerClassName={F_SEL} /></div>
             </div>
-          </Row>
-          <Row label="Max Players *">
+          </Field>
+
+          <Field label="Entry Fee" className="relative">
+            <input type="number" min="0" value={f.price} onChange={e => s("price", e.target.value)}
+              placeholder="FREE" className={`${F_INPUT} pr-10`} />
+            <span className="absolute right-4 bottom-3 text-[#79828b]/40 text-sm font-black pointer-events-none select-none">CZK</span>
+          </Field>
+
+          <Field label="Max Players *" required>
             <input type="number" min="2" max="100" required value={f.capacity}
               onChange={e => s("capacity", e.target.value)}
-              placeholder="12" className={INP} />
-          </Row>
-        </div>
+              placeholder="12" className={F_INPUT} />
+          </Field>
+        </FieldGroup>
 
-        {/* Back + Save */}
-        <div className="flex gap-3 pt-1">
-          <button type="button"
-            onClick={() => navigate(isEditMode ? `/admin/events/${editId}` : "/admin/events")}
-            className="flex-1 py-3.5 rounded-xl font-bold text-sm border border-white/10 text-[#79828b] hover:text-white transition-colors">
-            Back
-          </button>
-          <button type="button" onClick={handleSave} disabled={saving}
-            className="flex-1 py-3.5 rounded-xl font-bold text-sm bg-[#3390ec] text-white transition-transform disabled:opacity-50">
-            {saving ? "…" : isEditMode ? "Save Changes" : "Save as Draft"}
-          </button>
-        </div>
+        {/* Save — Back lives in the header (BackBar) already, no need to repeat it here */}
+        <button type="button" onClick={handleSave} disabled={saving} onPointerDown={saveRipple.onPointerDown}
+          className="relative overflow-hidden w-full py-4 rounded-2xl font-bold text-base bg-[#462ed1] text-white focus:outline-none disabled:opacity-50">
+          {saving ? "…" : isEditMode ? "Save Changes" : "Save as Draft"}
+          <RippleLayer ripples={saveRipple.ripples} />
+        </button>
 
       </div>
     </div>
   );
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function FieldGroup({ children, className = "divide-y divide-white/5" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[#79828b] text-[11px] font-black uppercase tracking-widest">{label}</span>
+    <div className={`bg-[var(--surface-1)] rounded-2xl ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+function Field({ label, children, required, className = "" }: { label: string; children: React.ReactNode; required?: boolean; className?: string }) {
+  return (
+    <div className={`group px-4 py-3 ${className}`}>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className={`text-[11px] font-black uppercase tracking-widest transition-colors ${
+          required ? "text-[#462ed1]" : "text-[#79828b] group-focus-within:text-[#462ed1]"
+        }`}>
+          {label}
+        </span>
       </div>
       {children}
     </div>

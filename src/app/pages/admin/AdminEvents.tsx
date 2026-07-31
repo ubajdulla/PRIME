@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { Plus, SlidersHorizontal, ChevronDown, Check } from "lucide-react";
+import { Plus, SlidersHorizontal, Check } from "lucide-react";
+import { useWaterRipple, RippleLayer } from "../../components/ui/useWaterRipple";
 import { type EventStatus } from "../../data/adminData";
 import { AdminEventCard, type AdminEventCardData } from "../../components/AdminEventCard";
+import { DropdownPanel } from "../../components/ui/DropdownMenu";
 import { supabase } from "../../lib/supabaseClient";
 import { relativeDay, shortDate, isPastDate } from "../../lib/eventDate";
 
@@ -31,6 +33,7 @@ type EventRow = {
 
 export function AdminEvents() {
   const navigate = useNavigate();
+  const createRipple = useWaterRipple();
   const [filter, setFilter]         = useState<FilterValue>("active");
   const [showFilter, setShowFilter] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -109,7 +112,7 @@ export function AdminEvents() {
   const activeLabel = FILTER_OPTIONS.find(f => f.value === filter)?.label ?? "Filter";
 
   return (
-    <div className="max-w-[700px] mx-auto px-4 py-8">
+    <div className="max-w-[640px] mx-auto px-4 py-8">
 
       {/* Top bar: Filter (left) + Create (right) */}
       <div className="flex items-center justify-between mb-5">
@@ -118,25 +121,26 @@ export function AdminEvents() {
         <div ref={filterRef} className="relative">
           <button
             onClick={() => setShowFilter(v => !v)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border font-black text-xs uppercase tracking-widest transition-colors bg-[#3390ec]/10 border-[#3390ec]/40 text-[#3390ec]"
+            aria-label={activeLabel}
+            className="flex items-center justify-center w-11 h-11 rounded-full border transition-colors bg-[#462ed1]/10 border-[#462ed1]/40 text-[#462ed1]"
           >
-            <SlidersHorizontal size={13} />
-            {activeLabel}
-            <ChevronDown size={12} className={`transition-transform ${showFilter ? "rotate-180" : ""}`} />
+            <SlidersHorizontal size={16} />
           </button>
 
           {showFilter && (
-            <div className="absolute left-0 top-full mt-2 bg-[#17212b] border border-white/10 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.4)] z-20 overflow-hidden min-w-[160px]">
-              {FILTER_OPTIONS.map(f => (
-                <button
-                  key={f.value}
-                  onClick={() => { setFilter(f.value); setShowFilter(false); }}
-                  className="flex items-center justify-between w-full px-4 py-2.5 text-sm font-bold text-left hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
-                >
-                  <span className={filter === f.value ? "text-[#3390ec]" : "text-white"}>{f.label}</span>
-                  {filter === f.value && <Check size={13} className="text-[#3390ec]" />}
-                </button>
-              ))}
+            <div className="absolute left-0 top-full mt-2 z-20 min-w-[160px]">
+              <DropdownPanel>
+                {FILTER_OPTIONS.map(f => (
+                  <button
+                    key={f.value}
+                    onClick={() => { setFilter(f.value); setShowFilter(false); }}
+                    className="flex items-center justify-between w-full px-4 py-3 text-sm font-semibold text-left hover:bg-white/5 transition-colors"
+                  >
+                    <span className={filter === f.value ? "text-[#462ed1]" : "text-white"}>{f.label}</span>
+                    {filter === f.value && <Check size={13} className="text-[#462ed1]" />}
+                  </button>
+                ))}
+              </DropdownPanel>
             </div>
           )}
         </div>
@@ -144,10 +148,12 @@ export function AdminEvents() {
         {/* Create button */}
         <button
           onClick={() => navigate("/admin/events/create")}
-          className="flex items-center gap-2 bg-[#3390ec] text-white text-xs font-black uppercase tracking-widest px-4 py-2.5 rounded-xl transition-transform shadow-[0_0_16px_rgba(51,144,236,0.25)]"
+          onPointerDown={createRipple.onPointerDown}
+          className="relative overflow-hidden flex items-center gap-2 h-11 bg-[#462ed1] text-white text-xs font-black uppercase tracking-widest px-4 rounded-xl"
         >
           <Plus size={15} />
           Create
+          <RippleLayer ripples={createRipple.ripples} />
         </button>
       </div>
 

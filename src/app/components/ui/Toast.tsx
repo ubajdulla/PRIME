@@ -29,8 +29,8 @@ export function Toast({ message, visible, variant = "success", onHide }: ToastPr
 
   const colorMap: Record<ToastVariant, string> = {
     success: "bg-[#4dcd5e]/15 text-[#4dcd5e]",
-    copied:  "bg-[#3390ec]/15 text-[#3390ec]",
-    publish: "bg-[#3390ec]/15 text-[#3390ec]",
+    copied:  "bg-[#462ed1]/15 text-[#462ed1]",
+    publish: "bg-[#462ed1]/15 text-[#462ed1]",
     error:   "bg-[#ef4444]/15 text-[#ef4444]",
   };
 

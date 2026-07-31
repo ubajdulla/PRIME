@@ -1,5 +1,15 @@
 @custom-variant dark (&:is(.dark *));
 
+/* Telegram dark UI — neutral surface elevation scale (page bg -> card/dropdown -> hover -> active).
+   Each step is a flat color, not a translucent white overlay, so it looks identical regardless of
+   what it's stacked on (e.g. a dropdown panel sitting on a card of the same --surface-1). */
+:root {
+  --surface-0: #181818;
+  --surface-1: #212121;
+  --surface-hover: hsl(0 0% 17%);
+  --surface-active: hsl(0 0% 21%);
+}
+
 :root {
   --font-size: 16px;
   --background: #ffffff;
@@ -125,7 +135,7 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
     overflow-x: hidden;
     overscroll-behavior-x: none; /* disables browser native swipe-back gesture overlay */
     overflow-anchor: none;       /* prevents scroll-anchor from fighting our scroll resets */
@@ -208,4 +218,19 @@
     height: 100%;
     overflow: hidden;
   }
+}
+
+/* Desktop: document itself scrolls (<main> uses overflow-visible there).
+   Hide the native browser scrollbar entirely, same as every other
+   scrollable panel in this app (carousels, dropdowns) — scrolling still
+   works via wheel/trackpad/keys, it's just never drawn, so it can't
+   reserve/release space and shift the layout. */
+html,
+body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
 }

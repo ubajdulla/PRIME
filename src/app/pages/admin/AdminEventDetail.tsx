@@ -4,10 +4,12 @@ import { useNavigate, useParams } from "react-router";
 import {
   ChevronDown, MoreVertical,
   CheckCircle2, CreditCard, Banknote, User, ArrowDownToLine,
-  Trash2, CheckCheck, Share2, Send, Ban, RotateCcw, AlertTriangle, UserPlus, UserMinus,
+  Trash2, CheckCheck, Share2, Send, Ban, RotateCcw, UserPlus, UserMinus,
   MapPin, Calendar, Clock, Ticket, Pencil, X, Check, ArrowLeftRight, Lock, Unlock,
 } from "lucide-react";
 import { BackBar } from "../../components/ui/BackBar";
+import { DropdownPanel, DropdownItem, ConfirmDropdownItem } from "../../components/ui/DropdownMenu";
+import { SelectField } from "../../components/ui/SelectField";
 import { getCategoryStyle, getStatusStyle, type PaymentStatus, type EventStatus } from "../../data/adminData";
 import { navDir } from "../../lib/navDir";
 import { Toast } from "../../components/ui/Toast";
@@ -15,6 +17,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../lib/AuthContext";
 import { shortDate, isPastDate, isRosterLocked } from "../../lib/eventDate";
 import { PublishEventModal } from "../../components/PublishEventModal";
+import { useWaterRipple, RippleLayer } from "../../components/ui/useWaterRipple";
 
 type EventRow = {
   id: string;
@@ -43,6 +46,7 @@ export function AdminEventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user: authUser, profile: authProfile } = useAuth();
+  const statusRipple = useWaterRipple();
 
   const [event, setEvent] = useState<EventRow | null>(null);
   const [roster, setRoster] = useState<RosterEntry[]>([]);
@@ -52,18 +56,13 @@ export function AdminEventDetail() {
   const [notFound, setNotFound] = useState(false);
 
   const [openMenu,             setOpenMenu]             = useState<string | null>(null);
-  const [editPositionId,       setEditPositionId]       = useState<string | null>(null);
-  const [editPositionValue,    setEditPositionValue]    = useState(POSITIONS[0]);
   const [editTeamNameId,       setEditTeamNameId]       = useState<string | null>(null);
   const [editTeamNameValue,    setEditTeamNameValue]    = useState("");
   const [confirmRemoveId,      setConfirmRemoveId]      = useState<string | null>(null);
   const [confirmWaitlistRemId, setConfirmWaitlistRemId] = useState<string | null>(null);
   const [showActionDropdown,   setShowActionDropdown]   = useState(false);
   const [showPublishModal,     setShowPublishModal]     = useState(false);
-  const [showCancelConfirm,    setShowCancelConfirm]    = useState(false);
-  const [showReactivateConfirm, setShowReactivateConfirm] = useState(false);
-  const [showDeleteConfirm,    setShowDeleteConfirm]    = useState(false);
-  const [showLeaveEventConfirm, setShowLeaveEventConfirm] = useState(false);
+  const [armedAction,          setArmedAction]          = useState<"cancel" | "reactivate" | "delete" | "leave" | null>(null);
   const [otherAdmins,          setOtherAdmins]          = useState<{ id: string; name: string; avatar: string | null }[]>([]);
   const [pendingSwap,          setPendingSwap]          = useState<{ id: string; to_admin_name: string } | null>(null);
   const [showSwapMenu,         setShowSwapMenu]         = useState(false);
@@ -124,14 +123,33 @@ export function AdminEventDetail() {
   }, [id]);
 
   useEffect(() => {
+    if (!confirmRemoveId) return;
+    const t = setTimeout(() => setConfirmRemoveId(null), 3000);
+    return () => clearTimeout(t);
+  }, [confirmRemoveId]);
+
+  useEffect(() => {
+    if (!confirmWaitlistRemId) return;
+    const t = setTimeout(() => setConfirmWaitlistRemId(null), 3000);
+    return () => clearTimeout(t);
+  }, [confirmWaitlistRemId]);
+
+  useEffect(() => {
     function close() {
       setShowActionDropdown(false);
+      setArmedAction(null);
       setOpenMenu(null);
       setShowSwapMenu(false);
     }
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, []);
+
+  useEffect(() => {
+    if (!armedAction) return;
+    const t = setTimeout(() => setArmedAction(null), 3000);
+    return () => clearTimeout(t);
+  }, [armedAction]);
 
   useEffect(() => {
     if (!event || !authUser || authUser.id !== event.moderator_id) return;
@@ -148,7 +166,7 @@ export function AdminEventDetail() {
     })();
   }, [event?.id, event?.moderator_id, authUser?.id]);
 
-  if (loading) return <div className="min-h-screen bg-[#0e1621]" />;
+  if (loading) return <div className="min-h-screen bg-[#181818]" />;
 
   if (notFound || !event) {
     return (
@@ -235,7 +253,6 @@ export function AdminEventDetail() {
   async function updatePosition(rowId: string, position: string) {
     setRoster(prev => prev.map(p => p.rowId === rowId ? { ...p, position } : p));
     await supabase.from("event_participants").update({ position }).eq("id", rowId);
-    setEditPositionId(null);
   }
 
   async function updateTeamName(rowId: string, teamName: string) {
@@ -297,14 +314,16 @@ export function AdminEventDetail() {
       );
       if (notifyErr) console.error("Failed to send cancellation notifications:", notifyErr);
     }
-    setShowCancelConfirm(false);
+    setArmedAction(null);
+    setShowActionDropdown(false);
     fireToast("Event Canceled!", "success");
   }
 
   async function reactivateEvent() {
     await supabase.from("events").update({ status: "upcoming" }).eq("id", event!.id);
     setEvent(prev => prev ? { ...prev, status: "upcoming" } : prev);
-    setShowReactivateConfirm(false);
+    setArmedAction(null);
+    setShowActionDropdown(false);
     fireToast("Event Reactivated!", "success");
   }
 
@@ -318,7 +337,8 @@ export function AdminEventDetail() {
 
   async function deleteEvent() {
     await supabase.from("events").delete().eq("id", event!.id);
-    setShowDeleteConfirm(false);
+    setArmedAction(null);
+    setShowActionDropdown(false);
     fireToast("Event Deleted!", "success");
     setTimeout(() => navigate("/admin/events"), 1200);
   }
@@ -351,7 +371,8 @@ export function AdminEventDetail() {
     if (!authUser || !event) return;
     await supabase.from("event_participants").delete().eq("event_id", event.id).eq("player_id", authUser.id);
     setRoster(prev => prev.filter(p => p.id !== authUser.id));
-    setShowLeaveEventConfirm(false);
+    setArmedAction(null);
+    setShowActionDropdown(false);
     fireToast("Left Event!", "success");
   }
 
@@ -408,7 +429,6 @@ export function AdminEventDetail() {
   function toggleMenu(key: string) {
     setOpenMenu(prev => prev === key ? null : key);
     setConfirmRemoveId(null);
-    setEditPositionId(null);
     setEditTeamNameId(null);
   }
 
@@ -431,7 +451,7 @@ export function AdminEventDetail() {
   const showLockToggle = !isDraft && !isCanceled && !isScheduled;
 
   return (
-    <div className="min-h-screen bg-[#0e1621] text-white font-sans">
+    <div className="min-h-screen bg-[#181818] text-white font-sans">
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={hideToast} />
 
       {/* ── Publish / Schedule modal ─────────────────────────── */}
@@ -441,126 +461,6 @@ export function AdminEventDetail() {
           onClose={() => setShowPublishModal(false)}
           onConfirm={publishEvent}
         />
-      )}
-
-      {/* ── Cancel confirm ───────────────────────────────────── */}
-      {showCancelConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-[#eab308]/10 border border-[#eab308]/20 flex items-center justify-center shrink-0">
-                <Ban size={18} className="text-[#eab308]" />
-              </div>
-              <div>
-                <h3 className="font-black italic uppercase tracking-widest text-white text-base">Cancel Event?</h3>
-                <p className="text-[#79828b] text-xs">Players will see the event as canceled.</p>
-              </div>
-            </div>
-            <p className="text-[#79828b] text-sm mb-5">
-              <span className="text-white font-bold">{event.title}</span> will be marked as canceled and remain visible to players.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setShowCancelConfirm(false)}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">
-                Back
-              </button>
-              <button onClick={cancelEvent}
-                className="flex-1 py-2.5 rounded-xl bg-[#eab308]/10 border border-[#eab308]/30 text-[#eab308] font-bold text-sm transition-transform">
-                Cancel Event
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Reactivate confirm ───────────────────────────────── */}
-      {showReactivateConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-[#eab308]/10 border border-[#eab308]/20 flex items-center justify-center shrink-0">
-                <RotateCcw size={18} className="text-[#eab308]" />
-              </div>
-              <div>
-                <h3 className="font-black italic uppercase tracking-widest text-white text-base">Reactivate Event?</h3>
-                <p className="text-[#79828b] text-xs">Players will be able to join again.</p>
-              </div>
-            </div>
-            <p className="text-[#79828b] text-sm mb-5">
-              <span className="text-white font-bold">{event.title}</span> will go back to Published.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setShowReactivateConfirm(false)}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">
-                Back
-              </button>
-              <button onClick={reactivateEvent}
-                className="flex-1 py-2.5 rounded-xl bg-[#eab308]/10 border border-[#eab308]/30 text-[#eab308] font-bold text-sm transition-transform">
-                Reactivate
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Leave event confirm ──────────────────────────────── */}
-      {showLeaveEventConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0">
-                <UserMinus size={18} className="text-white" />
-              </div>
-              <div>
-                <h3 className="font-black italic uppercase tracking-widest text-white text-base">Leave Event?</h3>
-                <p className="text-[#79828b] text-xs">You'll be removed from the roster.</p>
-              </div>
-            </div>
-            <p className="text-[#79828b] text-sm mb-5">
-              You'll no longer be a participant in <span className="text-white font-bold">{event.title}</span>. You can rejoin later from here.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setShowLeaveEventConfirm(false)}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">
-                Back
-              </button>
-              <button onClick={leaveAsModerator}
-                className="flex-1 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-bold text-sm transition-transform">
-                Leave Event
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Delete confirm ───────────────────────────────────── */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/20 flex items-center justify-center shrink-0">
-                <AlertTriangle size={18} className="text-[#ef4444]" />
-              </div>
-              <div>
-                <h3 className="font-black italic uppercase tracking-widest text-white text-base">Delete Event?</h3>
-                <p className="text-[#79828b] text-xs">This cannot be undone.</p>
-              </div>
-            </div>
-            <p className="text-[#79828b] text-sm mb-5">
-              All roster, waitlist, and request data for <span className="text-white font-bold">{event.title}</span> will be permanently removed.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">
-                Back
-              </button>
-              <button onClick={deleteEvent}
-                className="flex-1 py-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-bold text-sm transition-transform">
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* BackBar with share button */}
@@ -581,7 +481,7 @@ export function AdminEventDetail() {
         </button>
       </BackBar>
 
-      <div className="px-4 pb-12 max-w-[600px] mx-auto pt-4">
+      <div className="px-4 pb-12 max-w-[640px] mx-auto pt-4">
 
         {/* ── TOP SECTION ─────────────────────────────────────── */}
         <div className="mb-6">
@@ -606,7 +506,7 @@ export function AdminEventDetail() {
           </h1>
 
           {/* Moderator card */}
-          <div className="flex items-center justify-between bg-[#17212b] border border-white/5 rounded-xl p-2.5 mb-4 shadow-sm">
+          <div className="flex items-center justify-between bg-[#212121] border border-white/5 rounded-xl p-2.5 mb-4 shadow-sm">
             <div className="flex items-center gap-3">
               {authUser?.id !== event.moderator_id ? (
                 <button
@@ -625,7 +525,7 @@ export function AdminEventDetail() {
                       <User size={18} className="text-white/30" />
                     </div>
                   )}
-                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#3390ec] rounded-full flex items-center justify-center border-2 border-[#17212b]">
+                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#462ed1] rounded-full flex items-center justify-center border-2 border-[#212121]">
                     <CheckCircle2 size={10} className="text-white" strokeWidth={3} />
                   </div>
                 </button>
@@ -642,7 +542,7 @@ export function AdminEventDetail() {
                       <User size={18} className="text-white/30" />
                     </div>
                   )}
-                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#3390ec] rounded-full flex items-center justify-center border-2 border-[#17212b]">
+                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#462ed1] rounded-full flex items-center justify-center border-2 border-[#212121]">
                     <CheckCircle2 size={10} className="text-white" strokeWidth={3} />
                   </div>
                 </div>
@@ -678,7 +578,7 @@ export function AdminEventDetail() {
               <div
                 onMouseDown={e => e.stopPropagation()}
                 style={{ position: "fixed", top: swapMenuPos.top, right: swapMenuPos.right, zIndex: 40 }}
-                className="bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] overflow-hidden w-64 max-h-80 overflow-y-auto"
+                className="bg-[#212121] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] w-64 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
               >
                 {otherAdmins.length === 0 && (
                   <p className="text-[#79828b] text-xs text-center py-6 px-4">No other admins available</p>
@@ -706,25 +606,25 @@ export function AdminEventDetail() {
           </div>
 
           {/* Info panel */}
-          <div className="bg-[#17212b] border border-white/5 rounded-xl flex flex-col">
+          <div className="bg-[#212121] border border-white/5 rounded-xl flex flex-col">
             <div className="flex justify-between items-center p-3 border-b border-white/5 flex-wrap gap-2">
               <div className="flex items-center gap-2.5">
-                <Calendar size={16} className="text-[#3390ec]" />
+                <Calendar size={16} className="text-[#462ed1]" />
                 <span className="text-sm font-semibold text-white/90">{shortDate(event.event_date, true)}</span>
               </div>
               <div className="hidden sm:block w-[1px] h-4 bg-white/10" />
               <div className="flex items-center gap-2.5">
-                <Clock size={16} className="text-[#3390ec]" />
+                <Clock size={16} className="text-[#462ed1]" />
                 <span className="text-sm font-semibold text-white/90">{event.event_time}</span>
               </div>
               <div className="hidden sm:block w-[1px] h-4 bg-white/10" />
               <div className="flex items-center gap-2.5">
-                <Ticket size={16} className="text-[#3390ec]" />
+                <Ticket size={16} className="text-[#462ed1]" />
                 <span className="text-sm font-semibold text-white/90">{event.price_label ?? "FREE"}</span>
               </div>
             </div>
             <div className="flex items-center gap-2.5 p-3 rounded-b-xl">
-              <MapPin size={16} className="text-[#3390ec]" />
+              <MapPin size={16} className="text-[#462ed1]" />
               <span className="text-sm font-semibold text-white/90 truncate">{event.location}</span>
             </div>
           </div>
@@ -738,7 +638,7 @@ export function AdminEventDetail() {
 
         {/* ── PAYMENTS (first) ─────────────────────────────────── */}
         {event.price > 0 && (
-          <div className="bg-[#17212b] rounded-xl p-4 border border-white/5 mb-5">
+          <div className="bg-[#212121] rounded-xl p-4 border border-white/5 mb-5">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[#79828b] text-[11px] font-black uppercase tracking-widest">Payments</span>
               <span className="text-white font-black text-sm">
@@ -747,11 +647,11 @@ export function AdminEventDetail() {
             </div>
             <div className="h-2 bg-white/5 rounded-full overflow-hidden mb-3 flex">
               <div className="h-full bg-[#4dcd5e] transition-all" style={{ width: event.capacity > 0 ? `${(cashPaid / event.capacity) * 100}%` : "0%" }} />
-              <div className="h-full bg-[#3390ec] transition-all" style={{ width: event.capacity > 0 ? `${(onlinePaid / event.capacity) * 100}%` : "0%" }} />
+              <div className="h-full bg-[#462ed1] transition-all" style={{ width: event.capacity > 0 ? `${(onlinePaid / event.capacity) * 100}%` : "0%" }} />
             </div>
             <div className="flex gap-4 flex-wrap">
               <LegendDot color="#4dcd5e" label={`${cashPaid} cash`} />
-              <LegendDot color="#3390ec" label={`${onlinePaid} online`} />
+              <LegendDot color="#462ed1" label={`${onlinePaid} online`} />
               <LegendDot color="#ffffff30" label={`${unpaid} unpaid`} textColor="text-[#79828b]" />
             </div>
           </div>
@@ -770,96 +670,64 @@ export function AdminEventDetail() {
             <div className="relative" onMouseDown={e => e.stopPropagation()}>
               <button
                 onClick={() => setShowActionDropdown(v => !v)}
-                className={`w-36 py-2 px-3 flex items-center justify-between rounded-lg font-bold text-sm transition-all ${
-                  isDraft || isScheduled ? "bg-[#3390ec] text-white shadow-sm" : getStatusStyle(badgeStatus)
+                onPointerDown={statusRipple.onPointerDown}
+                className={`relative overflow-hidden w-48 py-3 px-4 flex items-center justify-between rounded-xl font-bold text-sm tracking-wide transition-colors ${
+                  isDraft || isScheduled
+                    ? "bg-[#462ed1] text-white shadow-sm hover:brightness-110"
+                    : `border border-[currentColor]/30 hover:bg-[currentColor]/20 ${getStatusStyle(badgeStatus)}`
                 }`}
               >
                 <span>{isDraft ? "Publish" : isScheduled ? "Scheduled" : badgeLabel}</span>
-                <ChevronDown size={13} className={`transition-transform duration-200 shrink-0 ${showActionDropdown ? "rotate-180" : ""}`} />
+                <ChevronDown size={14} className={`transition-transform duration-200 shrink-0 ${showActionDropdown ? "rotate-180" : ""}`} />
+                <RippleLayer ripples={statusRipple.ripples} />
               </button>
 
               {showActionDropdown && (
-                <div className="absolute right-0 top-full mt-1.5 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.6)] z-20 overflow-hidden w-44">
-                  {isDraft && (
-                    <button
-                      onClick={() => { setShowPublishModal(true); setShowActionDropdown(false); }}
-                      className="flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#3390ec] hover:bg-[#3390ec]/5 transition-colors text-left"
-                    >
-                      <Send size={14} />
-                      Publish…
-                    </button>
-                  )}
-                  {isScheduled && (
-                    <>
-                      <button
-                        onClick={publishNow}
-                        className="flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#3390ec] hover:bg-[#3390ec]/5 transition-colors text-left"
-                      >
-                        <Send size={14} />
-                        Publish Now
-                      </button>
-                      <button
-                        onClick={() => { setShowPublishModal(true); setShowActionDropdown(false); }}
-                        className="flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#3390ec] hover:bg-[#3390ec]/5 transition-colors text-left border-t border-white/5"
-                      >
-                        <Calendar size={14} />
-                        Reschedule…
-                      </button>
-                    </>
-                  )}
-                  {canJoinEvent && (
-                    <button
-                      onClick={() => { joinAsModerator(); setShowActionDropdown(false); }}
-                      className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left ${(isDraft || isScheduled) ? "border-t border-white/5" : ""}`}
-                    >
-                      <UserPlus size={14} />
-                      Join Event
-                    </button>
-                  )}
-                  {showLockToggle && (
-                    <button
-                      onClick={toggleRosterLock}
-                      className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left ${canJoinEvent ? "border-t border-white/5" : ""}`}
-                    >
-                      {rosterLocked ? <Unlock size={14} /> : <Lock size={14} />}
-                      {rosterLocked ? "Unlock Roster" : "Lock Roster"}
-                    </button>
-                  )}
-                  {canLeaveEvent && (
-                    <button
-                      onClick={() => { setShowLeaveEventConfirm(true); setShowActionDropdown(false); }}
-                      className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-white hover:bg-white/5 transition-colors text-left ${(isDraft || isScheduled || canJoinEvent || showLockToggle) ? "border-t border-white/5" : ""}`}
-                    >
-                      <UserMinus size={14} />
-                      Leave Event
-                    </button>
-                  )}
-                  {!isDraft && (
-                    isCanceled ? (
-                      <button
-                        onClick={() => { setShowReactivateConfirm(true); setShowActionDropdown(false); }}
-                        className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#eab308] hover:bg-[#eab308]/5 transition-colors text-left ${(isScheduled || canJoinEvent || canLeaveEvent || showLockToggle) ? "border-t border-white/5" : ""}`}
-                      >
-                        <RotateCcw size={14} />
-                        Reactivate Event
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => { setShowCancelConfirm(true); setShowActionDropdown(false); }}
-                        className={`flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#eab308] hover:bg-[#eab308]/5 transition-colors text-left ${(isScheduled || canJoinEvent || canLeaveEvent || showLockToggle) ? "border-t border-white/5" : ""}`}
-                      >
-                        <Ban size={14} />
-                        Cancel Event
-                      </button>
-                    )
-                  )}
-                  <button
-                    onClick={() => { setShowDeleteConfirm(true); setShowActionDropdown(false); }}
-                    className="flex items-center gap-2.5 w-full px-4 py-3 text-sm font-bold text-[#ef4444] hover:bg-[#ef4444]/5 transition-colors text-left border-t border-white/5"
-                  >
-                    <Trash2 size={14} />
-                    Delete Event
-                  </button>
+                <div className="absolute right-0 top-full mt-1.5 z-20 w-48">
+                  <DropdownPanel>
+                    {isDraft && (
+                      <DropdownItem icon={<Send size={14} />} label="Publish…" onClick={() => { setShowPublishModal(true); setShowActionDropdown(false); }} />
+                    )}
+                    {isScheduled && (
+                      <>
+                        <DropdownItem icon={<Send size={14} />} label="Publish Now" onClick={publishNow} />
+                        <DropdownItem icon={<Calendar size={14} />} label="Reschedule…" onClick={() => { setShowPublishModal(true); setShowActionDropdown(false); }} />
+                      </>
+                    )}
+                    {canJoinEvent && (
+                      <DropdownItem icon={<UserPlus size={14} />} label="Join Event" onClick={() => { joinAsModerator(); setShowActionDropdown(false); }} />
+                    )}
+                    {showLockToggle && (
+                      <DropdownItem
+                        icon={rosterLocked ? <Unlock size={14} /> : <Lock size={14} />}
+                        label={rosterLocked ? "Unlock Roster" : "Lock Roster"}
+                        onClick={toggleRosterLock}
+                      />
+                    )}
+                    {canLeaveEvent && (
+                      <ConfirmDropdownItem
+                        icon={<UserMinus size={14} />} label="Leave Event"
+                        armed={armedAction === "leave"} onArm={() => setArmedAction("leave")} onConfirm={leaveAsModerator}
+                      />
+                    )}
+                    {!isDraft && (
+                      isCanceled ? (
+                        <ConfirmDropdownItem
+                          variant="warning" icon={<RotateCcw size={14} />} label="Reactivate Event"
+                          armed={armedAction === "reactivate"} onArm={() => setArmedAction("reactivate")} onConfirm={reactivateEvent}
+                        />
+                      ) : (
+                        <ConfirmDropdownItem
+                          variant="warning" icon={<Ban size={14} />} label="Cancel Event"
+                          armed={armedAction === "cancel"} onArm={() => setArmedAction("cancel")} onConfirm={cancelEvent}
+                        />
+                      )
+                    )}
+                    <ConfirmDropdownItem
+                      variant="destructive" icon={<Trash2 size={14} />} label="Delete Event"
+                      armed={armedAction === "delete"} onArm={() => setArmedAction("delete")} onConfirm={deleteEvent}
+                    />
+                  </DropdownPanel>
                 </div>
               )}
             </div>
@@ -868,15 +736,15 @@ export function AdminEventDetail() {
           {/* Capacity bar */}
           <div className="w-full h-1.5 bg-white/5 rounded-full mb-5 overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${isCanceled ? "bg-[#ef4444]" : "bg-[#3390ec]"}`}
+              className={`h-full rounded-full transition-all duration-500 ${isCanceled ? "bg-[#ef4444]" : "bg-[#462ed1]"}`}
               style={{ width: `${event.capacity > 0 ? Math.min((totalPlayers / event.capacity) * 100, 100) : 0}%` }}
             />
           </div>
 
           {/* Anonymous player card */}
           <div className="mx-0 mb-7">
-            <div className="bg-[#17212b] border border-dashed border-white/[0.12] rounded-xl p-3 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full border-2 border-[#0e1621] bg-white/5 flex items-center justify-center shrink-0">
+            <div className="bg-[#212121] border border-dashed border-white/[0.12] rounded-xl p-3 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full border-2 border-[#181818] bg-white/5 flex items-center justify-center shrink-0">
                 <User size={16} className="text-white/30" />
               </div>
               <div className="flex-1 min-w-0">
@@ -918,34 +786,66 @@ export function AdminEventDetail() {
           </div>
 
           {/* Roster list */}
-          <div className="flex flex-col gap-2 mb-8">
+          <div className="bg-[#212121] border border-white/5 rounded-2xl mb-8">
             {roster.length === 0 && (
               <p className="text-[#79828b] text-sm text-center py-6">No players on roster yet</p>
             )}
-            {roster.map(player => (
-              <div key={player.id} className="flex flex-col">
-                <div className={`flex items-center gap-2 p-3 bg-[#17212b] border transition-colors ${
-                  openMenu === player.id ? "rounded-t-xl border-b-0 border-white/10" : "rounded-xl border-white/5"
-                }`}>
+            {roster.map((player, i) => (
+              <div key={player.id} className="relative">
+                <div className={`flex items-center gap-2 p-3 transition-colors hover:bg-white/[0.07] ${i > 0 ? "border-t border-white/[0.05]" : ""} ${i === 0 ? "rounded-t-2xl" : ""} ${i === roster.length - 1 ? "rounded-b-2xl" : ""}`}>
                   {player.isGuest ? (
                     player.avatar
-                      ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover shrink-0" />
-                      : <div className="w-10 h-10 rounded-full border-2 border-[#0e1621] bg-white/5 flex items-center justify-center shrink-0"><User size={16} className="text-white/30" /></div>
+                      ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#181818] object-cover shrink-0" />
+                      : <div className="w-10 h-10 rounded-full border-2 border-[#181818] bg-white/5 flex items-center justify-center shrink-0"><User size={16} className="text-white/30" /></div>
                   ) : (
                     <button type="button" onClick={() => openProfile(player)} className="shrink-0 cursor-pointer">
                       {player.avatar
-                        ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover" />
-                        : <div className="w-10 h-10 rounded-full border-2 border-[#0e1621] bg-white/5 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
+                        ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#181818] object-cover" />
+                        : <div className="w-10 h-10 rounded-full border-2 border-[#181818] bg-white/5 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
                       }
                     </button>
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="font-bold text-white text-sm truncate">{player.name}</div>
-                    {player.position && <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position}</div>}
-                    {event.category === "TOURNAMENT" && (
-                      <div className={`text-[11px] uppercase tracking-wider truncate ${player.teamName ? "text-[#79828b]" : "text-[#79828b]/50 italic normal-case"}`}>
-                        {player.teamName || "No team name set"}
-                      </div>
+                    {event.category === "TOURNAMENT" ? (
+                      editTeamNameId === player.id ? (
+                        <div className="relative max-w-[220px]" onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
+                          <label className="absolute -top-2 left-2.5 px-1 bg-[#212121] text-[9px] font-bold uppercase tracking-widest text-[#462ed1]">
+                            Team Name
+                          </label>
+                          <input
+                            autoFocus
+                            value={editTeamNameValue}
+                            onChange={e => setEditTeamNameValue(e.target.value)}
+                            onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                            onBlur={() => updateTeamName(player.rowId, editTeamNameValue)}
+                            placeholder="e.g. QAZAQ Volleyball"
+                            className="w-full h-9 bg-transparent border border-[#462ed1]/60 rounded-lg px-2.5 text-white text-xs font-bold outline-none focus:border-[#462ed1] transition-colors"
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <div className={`font-bold text-sm truncate ${player.teamName ? "text-white" : "text-[#79828b]/50 italic font-normal"}`}>
+                            {player.teamName || "No team name set"}
+                          </div>
+                          <div className="text-[11px] text-[#79828b] uppercase tracking-wider truncate">
+                            Captain: {player.name}
+                          </div>
+                        </>
+                      )
+                    ) : (
+                      <>
+                        <div className="font-bold text-white text-sm truncate">{player.name}</div>
+                        <div onMouseDown={e => e.stopPropagation()}>
+                          <SelectField
+                            value={player.position ?? POSITIONS[0]}
+                            options={POSITIONS}
+                            onChange={v => updatePosition(player.rowId, v)}
+                            triggerClassName="flex items-center gap-1 text-[#79828b] text-[11px] uppercase tracking-wider hover:text-white transition-colors focus:outline-none -ml-0.5"
+                            panelClassName="absolute left-0 top-full mt-1.5 z-30"
+                            panelWidthClassName="w-40"
+                          />
+                        </div>
+                      </>
                     )}
                   </div>
                   {event.price > 0 && (
@@ -956,83 +856,43 @@ export function AdminEventDetail() {
                     onClick={() => toggleMenu(player.id)}
                     className={`w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition-colors ${openMenu === player.id ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
                   >
-                    <ChevronDown size={16} className={`transition-transform duration-200 ${openMenu === player.id ? "rotate-180" : ""}`} />
+                    <MoreVertical size={16} />
                   </button>
                 </div>
 
                 {openMenu === player.id && (
-                  <div onMouseDown={e => e.stopPropagation()} className="bg-[#222f3e] rounded-b-xl border border-t-0 border-white/10 overflow-hidden relative z-20">
-                    {confirmRemoveId === player.id ? (
-                      <div className="flex items-center gap-3 px-4 py-3">
-                        <span className="text-white text-xs font-bold flex-1">Remove {player.name}?</span>
-                        <button
-                          onClick={() => removeFromEvent(player.rowId)}
-                          className="px-3 py-1.5 bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] text-[11px] font-black uppercase tracking-wider rounded-lg"
-                        >
-                          Confirm
-                        </button>
-                        <button
-                          onClick={() => setConfirmRemoveId(null)}
-                          className="px-3 py-1.5 bg-white/5 text-[#79828b] text-[11px] font-black uppercase tracking-wider rounded-lg hover:text-white transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : editPositionId === player.id ? (
-                      <div className="flex items-center gap-2 px-4 py-3">
-                        <div className="relative flex-1">
-                          <select value={editPositionValue} onChange={e => setEditPositionValue(e.target.value)}
-                            style={{ colorScheme: "dark" }}
-                            className="w-full h-9 bg-[#17212b] border border-white/10 rounded-lg pl-2 pr-7 text-white text-xs font-bold focus:outline-none focus:border-[#3390ec]/50 transition-colors appearance-none">
-                            {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                          </select>
-                          <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
-                        </div>
-                        <button
-                          onClick={() => updatePosition(player.rowId, editPositionValue)}
-                          className="px-3 py-1.5 bg-[#3390ec]/10 border border-[#3390ec]/30 text-[#3390ec] text-[11px] font-black uppercase tracking-wider rounded-lg"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditPositionId(null)}
-                          className="px-3 py-1.5 bg-white/5 text-[#79828b] text-[11px] font-black uppercase tracking-wider rounded-lg hover:text-white transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : editTeamNameId === player.id ? (
-                      <div className="flex items-center gap-2 px-4 py-3">
-                        <input
-                          autoFocus
-                          value={editTeamNameValue}
-                          onChange={e => setEditTeamNameValue(e.target.value)}
-                          placeholder="Team name"
-                          className="flex-1 h-9 bg-[#17212b] border border-white/10 rounded-lg px-2.5 text-white text-xs font-bold outline-none focus:border-[#3390ec]/50 transition-colors"
-                        />
-                        <button
-                          onClick={() => updateTeamName(player.rowId, editTeamNameValue)}
-                          className="px-3 py-1.5 bg-[#3390ec]/10 border border-[#3390ec]/30 text-[#3390ec] text-[11px] font-black uppercase tracking-wider rounded-lg"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditTeamNameId(null)}
-                          className="px-3 py-1.5 bg-white/5 text-[#79828b] text-[11px] font-black uppercase tracking-wider rounded-lg hover:text-white transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
+                  <div onMouseDown={e => e.stopPropagation()} className="absolute right-0 top-full mt-1.5 z-20 w-64">
+                  <DropdownPanel>
                       <div className="flex flex-col">
-                        <MenuAction icon={<Pencil size={14} />} label="Edit Position" onClick={() => { setEditPositionValue(player.position && POSITIONS.includes(player.position) ? player.position : POSITIONS[0]); setEditPositionId(player.id); }} />
                         {event.category === "TOURNAMENT" && (
-                          <MenuAction icon={<Pencil size={14} />} label="Edit Team Name" onClick={() => { setEditTeamNameValue(player.teamName ?? ""); setEditTeamNameId(player.id); }} />
+                          <MenuAction icon={<Pencil size={14} />} label="Edit Team Name" onClick={() => { setEditTeamNameValue(player.teamName ?? ""); setEditTeamNameId(player.id); setOpenMenu(null); }} />
                         )}
                         {!player.isGuest && <MenuAction icon={<ArrowDownToLine size={14} />} label="Move to Waitlist" onClick={() => moveToWaitlist(player.id)} />}
-                        <MenuAction icon={<Trash2 size={14} />} label="Remove from Event" danger onClick={() => setConfirmRemoveId(player.id)} />
+                        <button
+                          onClick={() => confirmRemoveId === player.id ? removeFromEvent(player.rowId) : setConfirmRemoveId(player.id)}
+                          className={`relative flex items-center justify-between gap-3 w-full h-11 px-4 text-sm font-semibold text-left overflow-hidden focus:outline-none transition-colors ${
+                            confirmRemoveId === player.id ? "" : "hover:bg-[#ef4444]/10"
+                          }`}
+                        >
+                          <span
+                            aria-hidden
+                            className={`absolute inset-0 bg-[#ef4444] transition-transform duration-300 ease-out ${
+                              confirmRemoveId === player.id ? "translate-x-0" : "translate-x-full"
+                            }`}
+                          />
+                          <span className={`relative z-10 transition-colors duration-200 ${
+                            confirmRemoveId === player.id ? "text-white" : "text-[#ef4444]"
+                          }`}>
+                            {confirmRemoveId === player.id ? "Tap to Confirm" : "Remove Player"}
+                          </span>
+                          <span className={`relative z-10 shrink-0 flex items-center justify-center [&>svg]:w-[18px] [&>svg]:h-[18px] transition-transform duration-300 ${
+                            confirmRemoveId === player.id ? "text-white rotate-12" : "text-[#ef4444]"
+                          }`}>
+                            <Trash2 size={14} />
+                          </span>
+                        </button>
                       </div>
-                    )}
+                  </DropdownPanel>
                   </div>
                 )}
               </div>
@@ -1046,11 +906,11 @@ export function AdminEventDetail() {
               <p className="text-[#79828b] text-sm text-center py-6">No pending requests</p>
             )}
             {requests.map(player => (
-              <div key={player.id} className="flex items-center gap-2 p-3 bg-[#17212b] border border-white/5 rounded-xl">
+              <div key={player.id} className="flex items-center gap-2 p-3 bg-[#212121] border border-white/5 rounded-xl">
                 <button type="button" onClick={() => openProfile(player)} className="shrink-0 cursor-pointer">
                   {player.avatar
-                    ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover" />
-                    : <div className="w-10 h-10 rounded-full border-2 border-[#0e1621] bg-white/5 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
+                    ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#181818] object-cover" />
+                    : <div className="w-10 h-10 rounded-full border-2 border-[#181818] bg-white/5 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
                   }
                 </button>
                 <button onClick={() => openProfile(player)} className="flex-1 min-w-0 text-left">
@@ -1080,14 +940,12 @@ export function AdminEventDetail() {
               <p className="text-[#79828b] text-sm text-center py-6">No players on waitlist</p>
             )}
             {waitlist.map(player => (
-              <div key={player.id} className="flex flex-col">
-                <div className={`flex items-center gap-2 p-3 bg-[#17212b] border transition-colors ${
-                  openMenu === `w-${player.id}` ? "rounded-t-xl border-b-0 border-white/10" : "rounded-xl border-white/5"
-                }`}>
+              <div key={player.id} className="relative">
+                <div className="flex items-center gap-2 p-3 bg-[#212121] border border-white/5 rounded-xl transition-colors">
                   <button type="button" onClick={() => openProfile(player)} className="shrink-0 cursor-pointer">
                     {player.avatar
-                      ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#0e1621] object-cover" />
-                      : <div className="w-10 h-10 rounded-full border-2 border-[#0e1621] bg-white/5 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
+                      ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#181818] object-cover" />
+                      : <div className="w-10 h-10 rounded-full border-2 border-[#181818] bg-white/5 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
                     }
                   </button>
                   <div className="flex-1 min-w-0">
@@ -1095,7 +953,7 @@ export function AdminEventDetail() {
                   </div>
                   <button
                     onClick={() => addToRosterFromWaitlist(player.id)}
-                    className="w-[76px] h-8 flex items-center justify-center gap-1 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-[#3390ec]/10 border-[#3390ec]/30 text-[#3390ec] hover:bg-[#3390ec]/20"
+                    className="w-[76px] h-8 flex items-center justify-center gap-1 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-[#462ed1]/10 border-[#462ed1]/30 text-[#462ed1] hover:bg-[#462ed1]/20"
                   >
                     <CheckCheck size={12} />
                     Add
@@ -1110,28 +968,34 @@ export function AdminEventDetail() {
                 </div>
 
                 {openMenu === `w-${player.id}` && (
-                  <div onMouseDown={e => e.stopPropagation()} className="bg-[#222f3e] rounded-b-xl border border-t-0 border-white/10 overflow-hidden relative z-20">
-                    {confirmWaitlistRemId === player.id ? (
-                      <div className="flex items-center gap-3 px-4 py-3">
-                        <span className="text-white text-xs font-bold flex-1">Remove {player.name}?</span>
-                        <button
-                          onClick={() => removeFromWaitlist(player.id)}
-                          className="px-3 py-1.5 bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] text-[11px] font-black uppercase tracking-wider rounded-lg"
-                        >
-                          Confirm
-                        </button>
-                        <button
-                          onClick={() => setConfirmWaitlistRemId(null)}
-                          className="px-3 py-1.5 bg-white/5 text-[#79828b] text-[11px] font-black uppercase tracking-wider rounded-lg hover:text-white transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
+                  <div onMouseDown={e => e.stopPropagation()} className="absolute right-0 top-full mt-1.5 z-20 w-64">
+                    <DropdownPanel>
                       <div className="flex flex-col">
-                        <MenuAction icon={<Trash2 size={14} />} label="Remove from Waitlist" danger onClick={() => setConfirmWaitlistRemId(player.id)} />
+                        <button
+                          onClick={() => confirmWaitlistRemId === player.id ? removeFromWaitlist(player.id) : setConfirmWaitlistRemId(player.id)}
+                          className={`relative flex items-center justify-between gap-3 w-full h-11 px-4 text-sm font-semibold text-left overflow-hidden focus:outline-none transition-colors ${
+                            confirmWaitlistRemId === player.id ? "" : "hover:bg-[#ef4444]/10"
+                          }`}
+                        >
+                          <span
+                            aria-hidden
+                            className={`absolute inset-0 bg-[#ef4444] transition-transform duration-300 ease-out ${
+                              confirmWaitlistRemId === player.id ? "translate-x-0" : "translate-x-full"
+                            }`}
+                          />
+                          <span className={`relative z-10 transition-colors duration-200 ${
+                            confirmWaitlistRemId === player.id ? "text-white" : "text-[#ef4444]"
+                          }`}>
+                            {confirmWaitlistRemId === player.id ? "Tap to Confirm" : "Remove from Waitlist"}
+                          </span>
+                          <span className={`relative z-10 shrink-0 flex items-center justify-center [&>svg]:w-[18px] [&>svg]:h-[18px] transition-transform duration-300 ${
+                            confirmWaitlistRemId === player.id ? "text-white rotate-12" : "text-[#ef4444]"
+                          }`}>
+                            <Trash2 size={14} />
+                          </span>
+                        </button>
                       </div>
-                    )}
+                    </DropdownPanel>
                   </div>
                 )}
               </div>
@@ -1158,16 +1022,16 @@ function SectionHeader({ label, count, accent }: { label: string; count: string;
   );
 }
 
-function MenuAction({ icon, label, onClick, danger }: { icon: React.ReactNode; label: string; onClick: () => void; danger?: boolean }) {
+function MenuAction({ icon, label, onClick, danger, iconRight }: { icon: React.ReactNode; label: string; onClick: () => void; danger?: boolean; iconRight?: boolean }) {
+  const iconEl = <span className="shrink-0 flex items-center justify-center [&>svg]:w-[18px] [&>svg]:h-[18px]">{icon}</span>;
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 w-full px-4 py-3 text-sm font-bold text-left border-b border-white/5 last:border-0 transition-colors ${
-        danger ? "text-[#ef4444] hover:bg-[#ef4444]/5" : "text-white hover:bg-white/5"
-      }`}
+      className={`flex items-center gap-3 w-full h-11 px-4 text-sm font-semibold text-left transition-colors focus:outline-none ${
+        iconRight ? "justify-between" : ""
+      } ${danger ? "text-[#ef4444] hover:bg-[#ef4444]/10" : "text-white hover:bg-white/5"}`}
     >
-      {icon}
-      {label}
+      {iconRight ? <>{label}{iconEl}</> : <>{iconEl}{label}</>}
     </button>
   );
 }
@@ -1218,9 +1082,9 @@ function PaymentToggle({ status, onConfirm }: { status: PaymentStatus; onConfirm
   const confirmedAndSet = isConfirmed && status !== "unpaid";
 
   const label = pending === "cash" ? "Cash" : pending === "online" ? "Online" : "Unpaid";
-  const fillColor = pending === "online" ? "bg-[#3390ec]" : "bg-[#4dcd5e]";
-  const confirmedBg = status === "online" ? "bg-[#3390ec]/10 border-[#3390ec]/25" : "bg-[#4dcd5e]/10 border-[#4dcd5e]/25";
-  const confirmedText = status === "online" ? "text-[#3390ec]" : "text-[#4dcd5e]";
+  const fillColor = pending === "online" ? "bg-[#462ed1]" : "bg-[#4dcd5e]";
+  const confirmedBg = status === "online" ? "bg-[#462ed1]/10 border-[#462ed1]/25" : "bg-[#4dcd5e]/10 border-[#4dcd5e]/25";
+  const confirmedText = status === "online" ? "text-[#462ed1]" : "text-[#4dcd5e]";
   const ConfirmedIcon = status === "online" ? CreditCard : Banknote;
 
   return (
