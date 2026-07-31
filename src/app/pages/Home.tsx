@@ -230,17 +230,19 @@ export function Home() {
                 </span>
               </div>
             </div>
-            {profile.avatar ? (
-              <img
-                src={profile.avatar}
-                alt=""
-                className="w-16 h-16 rounded-full object-cover bg-[#212121] shrink-0 ring-2 ring-white/15"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-[#212121] shrink-0 ring-2 ring-white/15 flex items-center justify-center">
-                <UserCircle size={32} className="text-[#79828b]" />
-              </div>
-            )}
+            <Link to="/profile" className="shrink-0 hover:opacity-80 transition-opacity">
+              {profile.avatar ? (
+                <img
+                  src={profile.avatar}
+                  alt=""
+                  className="w-16 h-16 rounded-full object-cover bg-[#212121] ring-2 ring-white/15"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-[#212121] ring-2 ring-white/15 flex items-center justify-center">
+                  <UserCircle size={32} className="text-[#79828b]" />
+                </div>
+              )}
+            </Link>
           </div>
         )}
 
