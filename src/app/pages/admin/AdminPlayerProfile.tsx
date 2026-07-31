@@ -9,6 +9,7 @@ import {
 import { SKILL_ORDER, type SkillLevel } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
 import { Toast } from "../../components/ui/Toast";
+import { SelectField } from "../../components/ui/SelectField";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../lib/AuthContext";
 import { isPastDate } from "../../lib/eventDate";
@@ -17,7 +18,7 @@ const SUPERADMIN_EMAIL = "ubajdulla@seznam.cz";
 
 const SKILL_COLOR: Record<string, string> = {
   PRIME:        "text-[#ccff00]",
-  Pro:          "text-[#3390ec]",
+  Pro:          "text-[#462ed1]",
   Advanced:     "text-[#a855f7]",
   Intermediate: "text-[#eab308]",
   Beginner:     "text-[#f97316]",
@@ -152,7 +153,7 @@ export function AdminPlayerProfile() {
     return { ok: true, error: undefined as string | undefined };
   }
 
-  if (loading) return <div className="min-h-screen bg-[#0e1621]" />;
+  if (loading) return <div className="min-h-screen bg-[#181818]" />;
 
   if (!profile) {
     return (
@@ -264,16 +265,16 @@ export function AdminPlayerProfile() {
   }
 
   return (
-    <div className="min-h-full bg-[#0e1621] pb-8 font-sans">
+    <div className="min-h-full bg-[#181818] pb-8 font-sans">
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={() => setToast(p => ({ ...p, visible: false }))} />
 
       {/* ── Modals ─────────────────────────────────────────── */}
       {showVerifyConfirm && (
-        <Modal icon={<BadgeCheck size={18} className="text-[#3390ec]" />} iconBg="bg-[#3390ec]/10 border-[#3390ec]/20"
+        <Modal icon={<BadgeCheck size={18} className="text-[#462ed1]" />} iconBg="bg-[#462ed1]/10 border-[#462ed1]/20"
           title="Verify Player?" sub="A badge will appear on their profile."
           body={<><span className="text-white font-bold">{player.name}</span> will receive a verified badge visible to all users.</>}
           cancelLabel="Cancel" onCancel={() => setShowVerifyConfirm(false)}
-          confirmLabel="Verify" confirmCls="bg-[#3390ec] text-white"
+          confirmLabel="Verify" confirmCls="bg-[#462ed1] text-white"
           onConfirm={async () => { await patchProfile({ is_verified: true }); setShowVerifyConfirm(false); fireToast("Player verified"); }} />
       )}
       {showRevokeConfirm && (
@@ -309,7 +310,7 @@ export function AdminPlayerProfile() {
       {/* Suspend modal */}
       {showSuspendModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-4 shadow-2xl">
+          <div className="w-full max-w-sm bg-[#212121] border border-white/10 rounded-2xl p-4 shadow-2xl">
             <div className="flex items-center gap-2.5 mb-3">
               <div className="w-8 h-8 rounded-xl bg-[#eab308]/10 border border-[#eab308]/20 flex items-center justify-center shrink-0">
                 <Clock size={15} className="text-[#eab308]" />
@@ -324,14 +325,14 @@ export function AdminPlayerProfile() {
                 <label className="text-[10px] font-black uppercase tracking-widest text-[#79828b] block mb-1">Suspended until</label>
                 <input type="date" min={today} value={suspendDate} onChange={e => setSuspendDate(e.target.value)}
                   style={{ colorScheme: "dark" }}
-                  className="w-full h-10 bg-[#222f3e] border border-white/10 rounded-xl px-3 text-white text-sm font-bold focus:outline-none focus:border-[#eab308]/50 transition-colors appearance-none" />
+                  className="w-full h-10 bg-[#212121] border border-white/10 rounded-xl px-3 text-white text-sm font-bold focus:outline-none focus:border-[#eab308]/50 transition-colors appearance-none" />
               </div>
               <div>
                 <label className="text-[10px] font-black uppercase tracking-widest text-[#79828b] block mb-1">
                   Reason <span className="normal-case font-normal tracking-normal">(optional)</span>
                 </label>
                 <input type="text" value={suspendReason} onChange={e => setSuspendReason(e.target.value)} placeholder="e.g. repeated no-show"
-                  className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#eab308]/50 transition-colors" />
+                  className="w-full bg-[#212121] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#eab308]/50 transition-colors" />
               </div>
             </div>
             <div className="flex gap-2">
@@ -349,7 +350,7 @@ export function AdminPlayerProfile() {
       {/* Ban modal */}
       {showBanConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
+          <div className="w-full max-w-sm bg-[#212121] border border-white/10 rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/20 flex items-center justify-center shrink-0">
                 <OctagonX size={18} className="text-[#ef4444]" />
@@ -364,7 +365,7 @@ export function AdminPlayerProfile() {
                 Reason <span className="normal-case font-normal tracking-normal">(optional)</span>
               </label>
               <input type="text" value={banReason} onChange={e => setBanReason(e.target.value)} placeholder="e.g. harassment"
-                className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#ef4444]/50 transition-colors" />
+                className="w-full bg-[#212121] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#ef4444]/50 transition-colors" />
             </div>
             <div className="flex gap-3">
               <button onClick={() => { setShowBanConfirm(false); setBanReason(""); }}
@@ -385,23 +386,23 @@ export function AdminPlayerProfile() {
         <div className="relative mb-4">
           {player.avatar ? (
             <img src={player.avatar} alt={player.name}
-              className="w-28 h-28 rounded-full object-cover bg-[#17212b]"
+              className="w-28 h-28 rounded-full object-cover bg-[#212121]"
               style={{ boxShadow: `0 0 0 3px ${ringColor}` }} />
           ) : (
-            <div className="w-28 h-28 rounded-full bg-[#17212b] flex items-center justify-center"
+            <div className="w-28 h-28 rounded-full bg-[#212121] flex items-center justify-center"
               style={{ boxShadow: `0 0 0 3px ${ringColor}` }}>
               <User size={36} className="text-white/20" />
             </div>
           )}
           {player.is_verified && (
-            <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#3390ec] rounded-full flex items-center justify-center border-[3px] border-[#0e1621]">
+            <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#462ed1] rounded-full flex items-center justify-center border-[3px] border-[#181818]">
               <CheckCircle2 size={14} className="text-white" strokeWidth={2.5} />
             </div>
           )}
         </div>
         <div className="flex items-center gap-2 mb-1">
           <h1 className="text-xl font-semibold text-white">{player.name}</h1>
-          {player.is_verified && <BadgeCheck size={18} className="text-[#3390ec] shrink-0" />}
+          {player.is_verified && <BadgeCheck size={18} className="text-[#462ed1] shrink-0" />}
         </div>
         <span className={`text-sm font-medium mb-2 ${SKILL_COLOR[displaySkill] ?? "text-white"}`}>{displaySkill}</span>
         <div className="flex items-center gap-2 flex-wrap justify-center">
@@ -425,7 +426,7 @@ export function AdminPlayerProfile() {
         </div>
       </div>
 
-      <div className="max-w-[600px] mx-auto px-4 flex flex-col gap-6">
+      <div className="max-w-[640px] mx-auto px-4 flex flex-col gap-6">
 
         {/* ── Info ─────────────────────────────────────────── */}
         <section>
@@ -440,26 +441,26 @@ export function AdminPlayerProfile() {
                   await patchProfile(patch);
                   setEditingInfo(false); fireToast("Info updated");
                 }}
-                  className="text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">Save</button>
+                  className="text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors">Save</button>
               </div>
             ) : (
               <button onClick={() => { setInfoDraft({ name: player.name, birthDate: player.birth_date ?? "" }); setEditingInfo(true); }}
-                className="flex items-center gap-1 text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">
+                className="flex items-center gap-1 text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors">
                 <Pencil size={11} /> Edit
               </button>
             )}
           </div>
-          <div className="bg-[#17212b] rounded-xl overflow-hidden divide-y divide-white/[0.06]">
+          <div className="bg-[#212121] rounded-xl overflow-hidden divide-y divide-white/[0.06]">
             {/* First Name row */}
             <div className="flex items-center gap-3 px-4 py-3">
-              <div className="w-8 h-8 rounded-lg bg-[#3390ec]/15 flex items-center justify-center shrink-0">
-                <User size={15} className="text-[#3390ec]" />
+              <div className="w-8 h-8 rounded-lg bg-[#462ed1]/15 flex items-center justify-center shrink-0">
+                <User size={15} className="text-[#462ed1]" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[11px] text-[#aaa] mb-0.5">First Name</div>
                 {editingInfo ? (
                   <input type="text" value={infoDraft.name} onChange={e => setInfoDraft(d => ({ ...d, name: e.target.value }))}
-                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#3390ec]/60 transition-colors" />
+                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#462ed1]/60 transition-colors" />
                 ) : (
                   <div className="text-sm text-white">{player.name}</div>
                 )}
@@ -467,15 +468,15 @@ export function AdminPlayerProfile() {
             </div>
             {/* Date of Birth row */}
             <div className="flex items-center gap-3 px-4 py-3">
-              <div className="w-8 h-8 rounded-lg bg-[#3390ec]/15 flex items-center justify-center shrink-0">
-                <Calendar size={15} className="text-[#3390ec]" />
+              <div className="w-8 h-8 rounded-lg bg-[#462ed1]/15 flex items-center justify-center shrink-0">
+                <Calendar size={15} className="text-[#462ed1]" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[11px] text-[#aaa] mb-0.5">Date of Birth</div>
                 {editingInfo ? (
                   <input type="date" value={infoDraft.birthDate} onChange={e => setInfoDraft(d => ({ ...d, birthDate: e.target.value }))}
                     style={{ colorScheme: "dark" }}
-                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#3390ec]/60 transition-colors appearance-none" />
+                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#462ed1]/60 transition-colors appearance-none" />
                 ) : player.birth_date ? (
                   <div className="text-sm text-white">
                     {formatDate(player.birth_date)}
@@ -505,27 +506,27 @@ export function AdminPlayerProfile() {
                   });
                   setEditingContact(false); fireToast("Contact updated");
                 }}
-                  className="text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">Save</button>
+                  className="text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors">Save</button>
               </div>
             ) : (
               <button onClick={() => { setContactDraft({ phone: player.phone ?? "", email: player.email ?? "", telegram: player.telegram ?? "", instagram: player.instagram ?? "" }); setEditingContact(true); }}
-                className="flex items-center gap-1 text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">
+                className="flex items-center gap-1 text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors">
                 <Pencil size={11} /> Edit
               </button>
             )}
           </div>
-          <div className="bg-[#17212b] rounded-xl overflow-hidden divide-y divide-white/[0.06]">
+          <div className="bg-[#212121] rounded-xl overflow-hidden divide-y divide-white/[0.06]">
 
             {/* Phone */}
             <div className="flex items-center gap-3 px-4 py-3">
-              <div className="w-8 h-8 rounded-lg bg-[#3390ec]/15 flex items-center justify-center shrink-0">
-                <Phone size={15} className="text-[#3390ec]" />
+              <div className="w-8 h-8 rounded-lg bg-[#462ed1]/15 flex items-center justify-center shrink-0">
+                <Phone size={15} className="text-[#462ed1]" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[11px] text-[#aaa] mb-0.5">Phone</div>
                 {editingContact ? (
                   <input type="tel" value={contactDraft.phone} onChange={e => setContactDraft(d => ({ ...d, phone: e.target.value }))}
-                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#3390ec]/60 transition-colors" />
+                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#462ed1]/60 transition-colors" />
                 ) : player.phone ? (
                   <a href={`tel:${player.phone.replace(/\s/g, "")}`} className="text-sm text-white">{player.phone}</a>
                 ) : <div className="text-sm text-[#79828b]">—</div>}
@@ -534,14 +535,14 @@ export function AdminPlayerProfile() {
 
             {/* Email */}
             <div className="flex items-center gap-3 px-4 py-3">
-              <div className="w-8 h-8 rounded-lg bg-[#3390ec]/15 flex items-center justify-center shrink-0">
-                <Mail size={15} className="text-[#3390ec]" />
+              <div className="w-8 h-8 rounded-lg bg-[#462ed1]/15 flex items-center justify-center shrink-0">
+                <Mail size={15} className="text-[#462ed1]" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[11px] text-[#aaa] mb-0.5">Email</div>
                 {editingContact ? (
                   <input type="email" value={contactDraft.email} onChange={e => setContactDraft(d => ({ ...d, email: e.target.value }))}
-                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#3390ec]/60 transition-colors" />
+                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#462ed1]/60 transition-colors" />
                 ) : player.email ? (
                   <a href={`mailto:${player.email}`} className="text-sm text-white">{player.email}</a>
                 ) : <div className="text-sm text-[#79828b]">—</div>}
@@ -550,7 +551,7 @@ export function AdminPlayerProfile() {
 
             {/* Telegram */}
             <div className="flex items-center gap-3 px-4 py-3">
-              <div className="w-8 h-8 rounded-lg bg-[#3390ec] flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-[#462ed1] flex items-center justify-center shrink-0">
                 <Send size={14} className="text-white -ml-0.5" />
               </div>
               <div className="flex-1 min-w-0">
@@ -558,7 +559,7 @@ export function AdminPlayerProfile() {
                 {editingContact ? (
                   <input type="text" value={contactDraft.telegram} onChange={e => setContactDraft(d => ({ ...d, telegram: e.target.value }))}
                     placeholder="@username"
-                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#3390ec]/60 transition-colors" />
+                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/60 transition-colors" />
                 ) : player.telegram ? (
                   <a href={`https://t.me/${player.telegram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-sm text-white">{player.telegram}</a>
                 ) : <span className="text-sm text-[#79828b]">—</span>}
@@ -575,7 +576,7 @@ export function AdminPlayerProfile() {
                 {editingContact ? (
                   <input type="text" value={contactDraft.instagram} onChange={e => setContactDraft(d => ({ ...d, instagram: e.target.value }))}
                     placeholder="@username"
-                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#3390ec]/60 transition-colors" />
+                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/60 transition-colors" />
                 ) : player.instagram ? (
                   <a href={`https://instagram.com/${player.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-sm text-white">@{player.instagram.replace("@", "")}</a>
                 ) : <span className="text-sm text-[#79828b]">—</span>}
@@ -594,23 +595,23 @@ export function AdminPlayerProfile() {
                 <button type="button" onClick={() => { setAddingNote(false); setNoteDraft(""); }}
                   className="text-[11px] font-bold text-[#79828b] hover:text-white transition-colors">Cancel</button>
                 <button type="button" onClick={addNote} disabled={!noteDraft.trim() || savingNote}
-                  className="text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Save</button>
+                  className="text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Save</button>
               </div>
             ) : (
               <button type="button" onClick={() => setAddingNote(true)}
-                className="flex items-center gap-1 text-[11px] font-bold text-[#3390ec] hover:text-white transition-colors">
+                className="flex items-center gap-1 text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors">
                 <Plus size={11} /> Add Note
               </button>
             )}
           </div>
           {addingNote && (
-            <div className="bg-[#17212b] rounded-xl overflow-hidden p-3 flex flex-col gap-2 mb-2">
+            <div className="bg-[#212121] rounded-xl overflow-hidden p-3 flex flex-col gap-2 mb-2">
               <textarea ref={noteTextareaRef} value={noteDraft} onChange={e => setNoteDraft(e.target.value)}
                 onKeyDown={handleNoteKeyDown} autoFocus
                 onFocus={() => noteTextareaRef.current?.scrollIntoView({ block: "center", behavior: "smooth" })}
                 placeholder="Add a note about this player… (Enter to save, Shift+Enter for new line)" rows={2}
                 enterKeyHint="send"
-                className="w-full bg-[#222f3e] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#3390ec]/50 transition-colors resize-none" />
+                className="w-full bg-[#212121] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none" />
               <div className="flex items-center gap-1.5">
                 <button type="button" onClick={() => setNoteVisibility("admin")} title="Admins only"
                   className={`p-1.5 rounded-lg border transition-colors ${noteVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
@@ -628,13 +629,13 @@ export function AdminPlayerProfile() {
           )}
 
           {notes.length === 0 ? (
-            <div className="mt-2 py-5 flex items-center justify-center bg-[#17212b] rounded-xl">
+            <div className="mt-2 py-5 flex items-center justify-center bg-[#212121] rounded-xl">
               <span className="text-sm text-[#79828b]">No notes yet</span>
             </div>
           ) : (
             <div className="mt-2 flex flex-col gap-2">
               {notes.map(n => (
-                <div key={n.id} className="bg-[#17212b] rounded-xl px-3 py-3">
+                <div key={n.id} className="bg-[#212121] rounded-xl px-3 py-3">
                   <div className="flex items-center gap-2 mb-1">
                     {n.is_legacy ? (
                       <span className="text-[10px] font-bold uppercase tracking-wider text-[#79828b]">Legacy note</span>
@@ -656,7 +657,7 @@ export function AdminPlayerProfile() {
         {/* ── Admin Actions ─────────────────────────────────── */}
         <section>
           <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2 px-1">Admin</h2>
-          <div className="bg-[#17212b] rounded-xl overflow-hidden divide-y divide-white/[0.06]">
+          <div className="bg-[#212121] rounded-xl overflow-hidden divide-y divide-white/[0.06]">
 
             {/* Skill Level */}
             <div className="flex items-center gap-3 px-4 py-3.5">
@@ -669,12 +670,16 @@ export function AdminPlayerProfile() {
                 <div className="text-sm font-bold text-white">Skill Level</div>
                 <div className="text-[11px] text-[#79828b]">Current: {displaySkill}</div>
               </div>
-              <div className="relative shrink-0">
-                <select value={displaySkill} onChange={e => openSkillPicker(e.target.value)} disabled={hierarchyLocked}
-                  className="appearance-none bg-[#222f3e] border border-white/10 rounded-lg pl-3 pr-7 py-1.5 text-white text-[11px] font-black uppercase tracking-wider focus:outline-none focus:border-[#a855f7]/50 transition-colors [color-scheme:dark] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
-                  {skillOptions.map(lvl => <option key={lvl} value={lvl}>{lvl}</option>)}
-                </select>
-                <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#79828b] pointer-events-none" />
+              <div className="shrink-0">
+                <SelectField
+                  value={displaySkill}
+                  options={skillOptions}
+                  onChange={openSkillPicker}
+                  disabled={hierarchyLocked}
+                  triggerClassName="flex items-center gap-1.5 bg-[#212121] border border-white/10 rounded-lg pl-3 pr-2.5 py-1.5 text-white text-[11px] font-black uppercase tracking-wider transition-colors focus:outline-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  panelClassName="absolute right-0 top-full mt-1.5 z-30"
+                  panelWidthClassName="w-36"
+                />
               </div>
             </div>
             {hierarchyLocked && (
@@ -685,7 +690,7 @@ export function AdminPlayerProfile() {
 
             {/* Verification */}
             <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${player.is_verified ? "bg-[#3390ec]" : "bg-white/5"}`}>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${player.is_verified ? "bg-[#462ed1]" : "bg-white/5"}`}>
                 <BadgeCheck size={16} className={player.is_verified ? "text-white" : "text-[#79828b]"} />
               </div>
               <div className="flex-1 min-w-0">
@@ -699,7 +704,7 @@ export function AdminPlayerProfile() {
                 </button>
               ) : (
                 <button onClick={() => setShowVerifyConfirm(true)}
-                  className="px-3 py-1.5 rounded-lg border border-[#3390ec]/30 text-[#3390ec] text-[11px] font-black uppercase tracking-wider hover:bg-[#3390ec]/5 transition-colors shrink-0">
+                  className="px-3 py-1.5 rounded-lg border border-[#462ed1]/30 text-[#462ed1] text-[11px] font-black uppercase tracking-wider hover:bg-[#462ed1]/5 transition-colors shrink-0">
                   Verify
                 </button>
               )}
@@ -782,17 +787,17 @@ export function AdminPlayerProfile() {
         <section>
           <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2">Upcoming Events</h2>
           {upcomingEvents.length === 0 ? (
-            <div className="bg-[#17212b] rounded-xl py-6 flex items-center justify-center">
+            <div className="bg-[#212121] rounded-xl py-6 flex items-center justify-center">
               <span className="text-sm text-[#aaa]">Nothing here yet</span>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
               {upcomingEvents.map(e => (
-                <Link key={e.id} to={`/admin/events/${e.id}`} className="block bg-[#17212b] rounded-xl px-4 py-3.5 hover:bg-[#1c2a36] transition-colors">
+                <Link key={e.id} to={`/admin/events/${e.id}`} className="block bg-[#212121] rounded-xl px-4 py-3.5 hover:bg-[#1c2a36] transition-colors">
                   <span className="text-sm font-bold text-white uppercase tracking-wide block mb-1.5">{e.title}</span>
                   <div className="flex flex-wrap gap-3 text-xs text-[#aaa]">
-                    <span className="flex items-center gap-1"><Calendar size={11} className="text-[#3390ec]" />{formatDate(e.event_date)}</span>
-                    <span className="flex items-center gap-1"><MapPin size={11} className="text-[#3390ec]" />{e.location}</span>
+                    <span className="flex items-center gap-1"><Calendar size={11} className="text-[#462ed1]" />{formatDate(e.event_date)}</span>
+                    <span className="flex items-center gap-1"><MapPin size={11} className="text-[#462ed1]" />{e.location}</span>
                   </div>
                 </Link>
               ))}
@@ -804,11 +809,11 @@ export function AdminPlayerProfile() {
         <section>
           <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2">Past Events</h2>
           {pastEvents.length === 0 ? (
-            <div className="bg-[#17212b] rounded-xl py-6 flex items-center justify-center">
+            <div className="bg-[#212121] rounded-xl py-6 flex items-center justify-center">
               <span className="text-sm text-[#aaa]">Nothing here yet</span>
             </div>
           ) : (
-            <div className="bg-[#17212b] rounded-xl overflow-hidden">
+            <div className="bg-[#212121] rounded-xl overflow-hidden">
               {pastEvents.map((e, i) => (
                 <Link key={e.id} to={`/admin/events/${e.id}`} className={`flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors ${i > 0 ? "border-t border-white/[0.06]" : ""}`}>
                   <span className="text-sm text-white/75 truncate">{e.title}</span>
@@ -830,7 +835,7 @@ function Modal({ icon, iconBg, title, sub, body, cancelLabel, onCancel, confirmL
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl">
+      <div className="w-full max-w-sm bg-[#212121] border border-white/10 rounded-2xl p-6 shadow-2xl">
         <div className="flex items-center gap-3 mb-3">
           <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${iconBg}`}>{icon}</div>
           <div>
@@ -850,8 +855,8 @@ function Modal({ icon, iconBg, title, sub, body, cancelLabel, onCancel, confirmL
 
 function dotColor(skillLevel: string): string {
   const map: Record<string, string> = {
-    PRIME: "#ccff00", Pro: "#3390ec", Advanced: "#a855f7",
+    PRIME: "#ccff00", Pro: "#462ed1", Advanced: "#a855f7",
     Intermediate: "#eab308", Beginner: "#f97316", Rookie: "#79828b",
   };
-  return map[skillLevel] ?? "#3390ec";
+  return map[skillLevel] ?? "#462ed1";
 }

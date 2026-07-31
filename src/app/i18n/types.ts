@@ -77,6 +77,7 @@ export interface Dict {
     logOut: string;
     logOutTitle: string;
     logOutDesc: string;
+    editDetails: string;
   };
   event: {
     eventDetails: string;

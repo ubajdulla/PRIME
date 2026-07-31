@@ -79,6 +79,7 @@ export const en: Dict = {
     logOut: "Log Out",
     logOutTitle: "Log Out?",
     logOutDesc: "You'll need to sign in again to access your account.",
+    editDetails: "Edit Profile Details",
   },
   event: {
     eventDetails: "Event Details",

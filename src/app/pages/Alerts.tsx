@@ -13,6 +13,7 @@ import { useLang } from "../i18n";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { Toast } from "../components/ui/Toast";
+import { FilterPill } from "../components/ui/FilterPill";
 
 type AlertType =
   | "moderator_swap_request" | "moderator_swap_accepted" | "moderator_swap_declined"
@@ -44,7 +45,7 @@ const TYPE_CONFIG: Record<
   AlertType,
   { icon: React.ComponentType<{ size?: number; className?: string }>; bg: string; color: string; linkPrefix: "/admin/events/" | "/events/" }
 > = {
-  moderator_swap_request:   { icon: ArrowLeftRight, bg: "bg-[#3390ec]/15", color: "text-[#3390ec]", linkPrefix: "/admin/events/" },
+  moderator_swap_request:   { icon: ArrowLeftRight, bg: "bg-[#462ed1]/15", color: "text-[#462ed1]", linkPrefix: "/admin/events/" },
   moderator_swap_accepted:  { icon: CheckCircle2,   bg: "bg-[#22c55e]/15", color: "text-[#22c55e]", linkPrefix: "/admin/events/" },
   moderator_swap_declined:  { icon: XCircle,        bg: "bg-[#ef4444]/15", color: "text-[#ef4444]", linkPrefix: "/admin/events/" },
   event_canceled:           { icon: Ban,            bg: "bg-[#ef4444]/15", color: "text-[#ef4444]", linkPrefix: "/events/" },
@@ -226,7 +227,7 @@ export function Alerts() {
   const isEmpty = filteredGroups.length === 0;
 
   return (
-    <div className="flex flex-col min-h-full bg-[#0e1621] w-full">
+    <div className="flex flex-col min-h-full bg-[#181818] w-full">
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
       <div className="w-full max-w-[640px] mx-auto flex flex-col pt-8 pb-10 px-4">
 
@@ -235,7 +236,7 @@ export function Alerts() {
           <h2 className="font-black italic text-white tracking-widest uppercase text-2xl">
             {t.alerts.title}
             {totalUnread > 0 && (
-              <span className="ml-2 inline-flex items-center justify-center text-[11px] font-bold bg-[#3390ec] text-white rounded-full w-5 h-5 not-italic tracking-normal align-middle">
+              <span className="ml-2 inline-flex items-center justify-center text-[11px] font-bold bg-[#462ed1] text-white rounded-full w-5 h-5 not-italic tracking-normal align-middle">
                 {totalUnread}
               </span>
             )}
@@ -245,25 +246,20 @@ export function Alerts() {
         {/* Filter tabs */}
         <div className="flex gap-2 mb-6">
           {(["all", "unread"] as Filter[]).map(f => (
-            <button
+            <FilterPill
               key={f}
+              active={filter === f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-1.5 rounded-full font-bold text-[11px] uppercase tracking-wider transition-all border ${
-                filter === f
-                  ? "bg-[#3390ec] text-white border-[#3390ec]"
-                  : "bg-[#222f3e] text-[#79828b] border-white/5 hover:border-[#3390ec]/30"
-              }`}
-            >
-              {f === "unread" && totalUnread > 0 ? t.alerts.unreadCount(totalUnread) : f === "unread" ? t.alerts.filterUnread : t.alerts.filterAll}
-            </button>
+              label={f === "unread" && totalUnread > 0 ? t.alerts.unreadCount(totalUnread) : f === "unread" ? t.alerts.filterUnread : t.alerts.filterAll}
+            />
           ))}
         </div>
 
         {/* Empty state */}
         {isEmpty && (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <div className="w-16 h-16 rounded-full bg-[#17212b] flex items-center justify-center">
-              <Bell size={32} className="text-[#3390ec]" />
+            <div className="w-16 h-16 rounded-full bg-[#212121] flex items-center justify-center">
+              <Bell size={32} className="text-[#462ed1]" />
             </div>
             <h3 className="text-xl font-bold text-white">
               {filter === "unread" ? t.alerts.allCaughtUp : t.alerts.noAlerts}
@@ -285,13 +281,13 @@ export function Alerts() {
                 {idx === 0 && totalUnread > 0 && (
                   <button
                     onClick={markAllRead}
-                    className="text-[#3390ec] text-[11px] font-bold hover:text-white transition-colors"
+                    className="text-[#462ed1] text-[11px] font-bold hover:text-white transition-colors"
                   >
                     {t.alerts.markAllRead}
                   </button>
                 )}
               </div>
-              <div className="flex flex-col rounded-2xl bg-[#17212b] overflow-hidden divide-y divide-white/5">
+              <div className="flex flex-col rounded-2xl bg-[#212121] overflow-hidden divide-y divide-white/5">
                 {items.map(alert => (
                   <AlertRow
                     key={alert.id}
@@ -336,7 +332,7 @@ function AlertRow({
 
   const inner = (
     <div className={`w-full flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03] ${
-      alert.unread ? "bg-[#3390ec]/5" : ""
+      alert.unread ? "bg-[#462ed1]/5" : ""
     }`}>
       {/* Icon */}
       <div className={`mt-0.5 shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${cfg.bg}`}>
@@ -375,7 +371,7 @@ function AlertRow({
           alert.unread && (
             <button
               onClick={e => { e.preventDefault(); e.stopPropagation(); onRead(alert.id); }}
-              className="mt-2 text-[#3390ec] text-[11px] font-bold hover:text-white transition-colors"
+              className="mt-2 text-[#462ed1] text-[11px] font-bold hover:text-white transition-colors"
             >
               {markReadLabel}
             </button>
@@ -387,7 +383,7 @@ function AlertRow({
       <div className="shrink-0 flex flex-col items-end gap-1.5 ml-1">
         <span className="text-[#79828b] text-[10px] font-medium whitespace-nowrap">{alert.time}</span>
         {alert.unread ? (
-          <span className="w-2 h-2 rounded-full bg-[#3390ec]" />
+          <span className="w-2 h-2 rounded-full bg-[#462ed1]" />
         ) : (
           <ChevronRight size={14} className="text-white/20" />
         )}

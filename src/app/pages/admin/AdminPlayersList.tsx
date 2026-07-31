@@ -52,7 +52,7 @@ export function AdminPlayersList() {
     <div>
       <BackBar label="Players" to="/admin/players" />
 
-      <div className="max-w-[900px] mx-auto px-4 py-6">
+      <div className="max-w-[640px] mx-auto px-4 py-6">
 
       <div className="flex items-center gap-3 mb-6">
         {isAdminGroup ? (
@@ -74,7 +74,7 @@ export function AdminPlayersList() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by name..."
-          className="w-full bg-[#17212b] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white text-sm font-bold placeholder:text-[#79828b]/60 focus:outline-none focus:border-[#3390ec]/50 transition-colors"
+          className="w-full bg-[#212121] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white text-sm font-bold placeholder:text-[#79828b]/60 focus:outline-none focus:border-[#462ed1]/50 transition-colors"
         />
       </div>
 
@@ -96,28 +96,26 @@ export function AdminPlayersList() {
       </div>
 
       {/* Player list */}
-      <div className="bg-[#17212b] rounded-2xl border border-white/5">
+      <div className="bg-[#212121] rounded-2xl border border-white/5">
         {!loading && filtered.length === 0 && (
           <p className="text-[#79828b] text-sm text-center py-10">No players found</p>
         )}
         {filtered.map((player, i) => {
           return (
-            <div
+            <button
               key={player.id}
-              className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-white/[0.05]" : ""} ${i === 0 ? "rounded-t-2xl" : ""} ${i === filtered.length - 1 ? "rounded-b-2xl" : ""}`}
+              type="button"
+              onClick={() => { navDir.forward(); navigate(`/admin/player/${player.id}`); }}
+              className={`flex items-center gap-3 px-4 py-3 w-full text-left transition-colors hover:bg-white/[0.07] focus:outline-none ${i > 0 ? "border-t border-white/[0.05]" : ""} ${i === 0 ? "rounded-t-2xl" : ""} ${i === filtered.length - 1 ? "rounded-b-2xl" : ""}`}
             >
-              <button
-                type="button"
-                onClick={() => { navDir.forward(); navigate(`/admin/player/${player.id}`); }}
-                className="relative shrink-0 cursor-pointer"
-              >
+              <div className="relative shrink-0">
                 {player.avatar
-                  ? <img src={player.avatar} alt={player.name} className="w-11 h-11 rounded-full border-2 border-[#0e1621] object-cover" />
-                  : <div className="w-11 h-11 rounded-full border-2 border-[#0e1621] bg-white/5" />
+                  ? <img src={player.avatar} alt={player.name} className="w-11 h-11 rounded-full border-2 border-[#181818] object-cover" />
+                  : <div className="w-11 h-11 rounded-full border-2 border-[#181818] bg-white/5" />
                 }
-                <VerifiedBadge verified={player.is_verified} size={14} ringClassName="border-[#0e1621]" />
-                <TrustDot label={player.visible_trust_label} size={11} ringClassName="border-[#0e1621]" />
-              </button>
+                <VerifiedBadge verified={player.is_verified} size={14} ringClassName="border-[#181818]" />
+                <TrustDot label={player.visible_trust_label} size={11} ringClassName="border-[#181818]" />
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-white text-sm truncate">{player.name}</div>
                 <div className="text-[#79828b] text-[11px] uppercase tracking-wider">{player.position ?? "—"}</div>
@@ -126,7 +124,7 @@ export function AdminPlayersList() {
                 <div className="text-white text-sm font-black">{player.eventsJoined}</div>
                 <div className="text-[#79828b] text-[10px]">events</div>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>

@@ -12,7 +12,7 @@ import { shortDate, isPastDate } from "../lib/eventDate";
 
 const SKILL_COLOR: Record<string, string> = {
   PRIME:        "text-[#ccff00]",
-  Pro:          "text-[#3390ec]",
+  Pro:          "text-[#462ed1]",
   Advanced:     "text-[#a855f7]",
   Intermediate: "text-[#eab308]",
   Beginner:     "text-[#f97316]",
@@ -75,7 +75,7 @@ export function PlayerProfile() {
   const pastEvents = events.filter(e => isPastDate(e.event_date));
 
   return (
-    <div className="min-h-full bg-[#0e1621] pb-4 font-sans">
+    <div className="min-h-full bg-[#181818] pb-4 font-sans">
       <BackBar label="Back" />
 
       {/* Avatar + identity */}
@@ -85,16 +85,16 @@ export function PlayerProfile() {
             <img
               src={player.avatar}
               alt={player.name}
-              className="w-28 h-28 rounded-full object-cover bg-[#17212b]"
+              className="w-28 h-28 rounded-full object-cover bg-[#212121]"
               style={{ boxShadow: `0 0 0 3px ${ringColor}` }}
             />
           ) : (
-            <div className="w-28 h-28 rounded-full bg-[#17212b] flex items-center justify-center" style={{ boxShadow: `0 0 0 3px ${ringColor}` }}>
+            <div className="w-28 h-28 rounded-full bg-[#212121] flex items-center justify-center" style={{ boxShadow: `0 0 0 3px ${ringColor}` }}>
               <User size={36} className="text-white/20" />
             </div>
           )}
-          <VerifiedBadge verified={player.is_verified} size={28} ringClassName="border-[#0e1621]" />
-          <TrustDot label={player.visible_trust_label} size={20} ringClassName="border-[#0e1621]" />
+          <VerifiedBadge verified={player.is_verified} size={28} ringClassName="border-[#181818]" />
+          <TrustDot label={player.visible_trust_label} size={20} ringClassName="border-[#181818]" />
         </div>
         <h1 className="text-xl font-semibold text-white mb-1">{player.name}</h1>
         <span className={`text-sm font-medium ${SKILL_COLOR[player.skill_level] ?? "text-white"}`}>
@@ -102,10 +102,10 @@ export function PlayerProfile() {
         </span>
       </div>
 
-      <div className="max-w-[600px] mx-auto px-4 flex flex-col gap-6">
+      <div className="max-w-[640px] mx-auto px-4 flex flex-col gap-6">
 
         {/* Position */}
-        <div className="bg-[#17212b] rounded-xl">
+        <div className="bg-[#212121] rounded-xl">
           <div className="flex items-center justify-between px-4 py-3.5">
             <span className="text-sm text-[#aaa]">Position</span>
             <span className="text-white text-sm font-bold">{player.position ?? "—"}</span>
@@ -116,7 +116,7 @@ export function PlayerProfile() {
         {notes.length > 0 && (
           <div className="flex flex-col gap-2">
             {notes.map(n => (
-              <div key={n.id} className="bg-[#17212b] rounded-xl px-4 py-3.5">
+              <div key={n.id} className="bg-[#212121] rounded-xl px-4 py-3.5">
                 <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap">{n.body}</p>
               </div>
             ))}
@@ -129,11 +129,11 @@ export function PlayerProfile() {
             <div className="flex items-center justify-between mb-2 px-1">
               <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Contact</h2>
             </div>
-            <div className="bg-[#17212b] rounded-xl overflow-hidden">
+            <div className="bg-[#212121] rounded-xl overflow-hidden">
               {player.telegram && player.show_telegram !== false && (
                 <a href={`https://t.me/${player.telegram.replace("@", "")}`} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] active:bg-white/5 transition-colors">
-                  <div className="w-8 h-8 rounded-lg bg-[#3390ec] flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-[#462ed1] flex items-center justify-center shrink-0">
                     <Send size={14} className="text-white -ml-0.5" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -162,23 +162,23 @@ export function PlayerProfile() {
         <section>
           <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2">Upcoming Events</h2>
           {upcomingEvents.length === 0 ? (
-            <div className="bg-[#17212b] rounded-xl py-6 flex items-center justify-center">
+            <div className="bg-[#212121] rounded-xl py-6 flex items-center justify-center">
               <span className="text-sm text-[#aaa]">Nothing here yet</span>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
               {upcomingEvents.map(e => (
-                <Link key={e.id} to={`/events/${e.id}`} className="block bg-[#17212b] rounded-xl px-4 py-3.5 hover:bg-[#1c2a36] transition-colors">
+                <Link key={e.id} to={`/events/${e.id}`} className="block bg-[#212121] rounded-xl px-4 py-3.5 hover:bg-[#1c2a36] transition-colors">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="text-sm font-bold text-white uppercase tracking-wide">{e.title}</span>
                   </div>
                   <div className="flex flex-wrap gap-3 text-xs text-[#aaa]">
                     <span className="flex items-center gap-1">
-                      <Calendar size={11} className="text-[#3390ec]" />
+                      <Calendar size={11} className="text-[#462ed1]" />
                       {shortDate(e.event_date, true)}
                     </span>
                     <span className="flex items-center gap-1">
-                      <MapPin size={11} className="text-[#3390ec]" />
+                      <MapPin size={11} className="text-[#462ed1]" />
                       {e.location}
                     </span>
                   </div>
@@ -192,11 +192,11 @@ export function PlayerProfile() {
         <section>
           <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2">Past Events</h2>
           {pastEvents.length === 0 ? (
-            <div className="bg-[#17212b] rounded-xl py-6 flex items-center justify-center">
+            <div className="bg-[#212121] rounded-xl py-6 flex items-center justify-center">
               <span className="text-sm text-[#aaa]">Nothing here yet</span>
             </div>
           ) : (
-            <div className="bg-[#17212b] rounded-xl overflow-hidden">
+            <div className="bg-[#212121] rounded-xl overflow-hidden">
               {pastEvents.map((e, i) => (
                 <Link
                   key={e.id}
@@ -219,11 +219,11 @@ export function PlayerProfile() {
 function dotColor(skillLevel: string): string {
   const map: Record<string, string> = {
     PRIME:        "#ccff00",
-    Pro:          "#3390ec",
+    Pro:          "#462ed1",
     Advanced:     "#a855f7",
     Intermediate: "#eab308",
     Beginner:     "#f97316",
     Rookie:       "#79828b",
   };
-  return map[skillLevel] ?? "#3390ec";
+  return map[skillLevel] ?? "#462ed1";
 }

@@ -1,14 +1,34 @@
-import { Calendar, Clock, MapPin, ChevronRight, User } from "lucide-react";
-import { getCategoryStyle, type EventStatus } from "../data/adminData";
+import { Calendar, Clock, MapPin, ChevronRight, User, Volleyball, Trophy, Dumbbell, Palmtree, PartyPopper, PenLine } from "lucide-react";
+import { getCategoryIconName, type EventStatus } from "../data/adminData";
+import { useWaterRipple, RippleLayer } from "./ui/useWaterRipple";
 
 type DisplayStatus = EventStatus | "scheduled";
 
-const STATUS_CONFIG: Record<DisplayStatus, { label: string; chip: string; dot: string }> = {
-  upcoming:  { label: "Published", chip: "bg-[#4dcd5e]/10 text-[#4dcd5e]",  dot: "bg-[#4dcd5e]"  },
-  scheduled: { label: "Scheduled", chip: "bg-[#a855f7]/10 text-[#a855f7]",  dot: "bg-[#a855f7]"  },
-  past:      { label: "Past",      chip: "bg-white/5 text-[#79828b]",        dot: "bg-[#79828b]"  },
-  draft:     { label: "Draft",     chip: "bg-[#eab308]/10 text-[#eab308]",   dot: "bg-[#eab308]"  },
-  canceled:  { label: "Canceled",  chip: "bg-[#ef4444]/10 text-[#ef4444]",   dot: "bg-[#ef4444]"  },
+const CATEGORY_ICON = {
+  volleyball: Volleyball,
+  trophy: Trophy,
+  dumbbell: Dumbbell,
+  palmtree: Palmtree,
+  party: PartyPopper,
+};
+
+// The card's own styling (border, opacity, title treatment) carries most of the
+// status signal now — a colored word is only shown for the two states an admin
+// actually needs to notice (draft, canceled). Published/past/scheduled speak
+// for themselves through the card treatment below, no label needed.
+const STATUS_TREATMENT: Record<DisplayStatus, {
+  label: string | null;
+  labelColor: string;
+  icon?: typeof PenLine;
+  border: string;
+  opacity: string;
+  strikethrough?: boolean;
+}> = {
+  upcoming:  { label: null,          labelColor: "",              border: "border border-white/5",                opacity: "opacity-100" },
+  scheduled: { label: "Scheduled",   labelColor: "text-[#a855f7]", border: "border border-dashed border-[#a855f7]/25", opacity: "opacity-100" },
+  draft:     { label: null,          labelColor: "text-white",     icon: PenLine, border: "border border-dashed border-white/15", opacity: "opacity-90" },
+  past:      { label: null,          labelColor: "",              border: "border border-white/5",                opacity: "opacity-60" },
+  canceled:  { label: "Canceled",    labelColor: "text-[#ef4444]", border: "border border-white/5",                opacity: "opacity-55", strikethrough: true },
 };
 
 const czk = (n: number) => n.toLocaleString("cs-CZ") + " CZK";
@@ -46,46 +66,51 @@ export function AdminEventCard({
   const displayStatus: DisplayStatus = event.status === "draft" || event.status === "canceled"
     ? event.status
     : event.isPast ? "past" : isScheduled ? "scheduled" : "upcoming";
-  const status      = STATUS_CONFIG[displayStatus];
+  const treatment    = STATUS_TREATMENT[displayStatus];
+  const CategoryIcon = CATEGORY_ICON[getCategoryIconName(event.category)];
   const collected    = event.paidCount * event.price;
   const unpaidAmount = event.unpaidCount * event.price;
   const expected     = event.capacity * event.price;
-  const allPaid      = event.price > 0 && event.unpaidCount === 0 && event.rosterCount > 0;
+  const cardRipple   = useWaterRipple();
 
   return (
     <div
-      className="group bg-[#17212b] rounded-xl border border-white/5 hover:border-white/10 transition-colors overflow-hidden cursor-pointer"
+      className={`group relative bg-[#212121] rounded-xl transition-colors overflow-hidden cursor-pointer hover:border-white/10 ${treatment.border} ${treatment.opacity}`}
       onClick={() => onNavigate(`/admin/events/${event.id}`)}
+      onPointerDown={cardRipple.onPointerDown}
     >
-      {/* Badges */}
-      <div className="flex items-center justify-between px-4 pt-3 pb-2">
-        <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${getCategoryStyle(event.category)}`}>
-          {event.category}
-        </span>
-        <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md ${status.chip}`}>
-          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${status.dot}`} />
-          <span className="text-[10px] font-black uppercase tracking-widest">{status.label}</span>
-        </div>
-      </div>
+      <RippleLayer ripples={cardRipple.ripples} />
 
       {/* Content: info left, revenue right */}
-      <div className="flex items-stretch gap-0 px-4 pb-3">
+      <div className="flex items-stretch gap-0 px-4 pt-4 pb-3">
 
         {/* Left: main info */}
         <div className="flex-1 min-w-0 flex flex-col">
-          <div className="font-black text-white text-base tracking-wide leading-tight mb-2.5">
-            {event.title}
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className={`font-black text-white text-base tracking-wide leading-tight truncate ${treatment.strikethrough ? "line-through decoration-2 decoration-white/40" : ""}`}>
+                {event.title}
+              </span>
+              <CategoryIcon size={15} className="text-[#79828b] shrink-0 -translate-y-px" />
+            </div>
+            {treatment.icon ? (
+              <treatment.icon size={15} className={`shrink-0 -translate-y-px ${treatment.labelColor}`} />
+            ) : treatment.label && (
+              <span className={`text-[10px] font-black uppercase tracking-widest shrink-0 ${treatment.labelColor}`}>
+                {treatment.label}
+              </span>
+            )}
           </div>
 
           {/* Date + Time */}
           <div className="flex items-center gap-2 text-xs mb-1.5 flex-wrap">
             <span className="flex items-center gap-1.5 shrink-0">
-              <Calendar size={12} className="text-[#3390ec]" />
+              <Calendar size={12} className="text-[#462ed1]" />
               <span className="text-white/90 font-medium">{event.date}</span>
             </span>
             <span className="text-[#79828b]">·</span>
             <span className="flex items-center gap-1.5 shrink-0">
-              <Clock size={12} className="text-[#3390ec]" />
+              <Clock size={12} className="text-[#462ed1]" />
               <span className="text-white/90 font-medium">{event.time}</span>
             </span>
           </div>
@@ -93,10 +118,10 @@ export function AdminEventCard({
           {/* Location + Price */}
           <div className="flex items-center gap-x-2 gap-y-1 text-xs mb-3 flex-wrap">
             <span className="flex items-center gap-1.5">
-              <MapPin size={12} className="text-[#3390ec] shrink-0" />
+              <MapPin size={12} className="text-[#462ed1] shrink-0" />
               <span className="text-[#79828b]">{event.location}</span>
             </span>
-            <span className="text-[#3390ec] font-black shrink-0">{event.priceLabel}</span>
+            <span className="text-[#462ed1] font-black shrink-0">{event.priceLabel}</span>
           </div>
 
           {/* Capacity — pinned to bottom of left column */}
@@ -109,38 +134,24 @@ export function AdminEventCard({
             </div>
             <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full ${isFull ? "bg-[#4dcd5e]" : "bg-[#3390ec]"}`}
+                className={`h-full rounded-full ${isFull ? "bg-[#4dcd5e]" : "bg-[#462ed1]"}`}
                 style={{ width: `${fillPct}%` }}
               />
             </div>
+
+            {/* Money — one quiet line; red only shows up when there's something to chase */}
+            {event.price > 0 && (
+              <div className="flex items-center justify-between text-[11px] font-bold mt-2">
+                <span className="text-[#79828b]">
+                  {czk(collected)} <span className="text-[#79828b]/60">/ {czk(expected)}</span> collected
+                </span>
+                {unpaidAmount > 0 && (
+                  <span className="text-[#ef4444]">{czk(unpaidAmount)} unpaid</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Right: revenue — only for paid events */}
-        {event.price > 0 && (
-          <div className="shrink-0 w-28 flex flex-col items-end justify-center gap-1.5 pl-4 ml-4 border-l border-white/5 text-right">
-            <div>
-              <div className="text-[9px] font-black uppercase tracking-widest text-[#79828b] mb-0.5">Collected</div>
-              <div className={`text-sm font-black ${allPaid ? "text-[#4dcd5e]" : "text-white"}`}>
-                {czk(collected)}
-              </div>
-            </div>
-            {event.unpaidCount > 0 && (
-              <>
-                <div className="w-full h-px bg-white/5" />
-                <div>
-                  <div className="text-[9px] font-black uppercase tracking-widest text-[#79828b] mb-0.5">Unpaid</div>
-                  <div className="text-sm font-black text-[#ef4444]">{czk(unpaidAmount)}</div>
-                </div>
-              </>
-            )}
-            <div className="w-full h-px bg-white/5" />
-            <div>
-              <div className="text-[9px] font-black uppercase tracking-widest text-[#79828b] mb-0.5">Expected</div>
-              <div className="text-sm font-black text-[#79828b]">{czk(expected)}</div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Footer: moderator + arrow */}
@@ -150,17 +161,17 @@ export function AdminEventCard({
             <img
               src={event.moderatorAvatar}
               alt={event.moderatorName}
-              className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-white/10"
+              className="w-9 h-9 rounded-full object-cover shrink-0 ring-1 ring-white/10"
             />
           ) : (
-            <div className="w-6 h-6 rounded-full bg-white/5 shrink-0 ring-1 ring-white/10 flex items-center justify-center">
-              <User size={11} className="text-white/30" />
+            <div className="w-9 h-9 rounded-full bg-white/5 shrink-0 ring-1 ring-white/10 flex items-center justify-center">
+              <User size={14} className="text-white/30" />
             </div>
           )}
           <span className="text-[#79828b] text-[11px] font-bold truncate">{event.moderatorName}</span>
         </div>
 
-        <div className="w-8 h-8 rounded-full bg-[#242f3d] flex items-center justify-center text-white/50 group-hover:text-white group-hover:bg-[#3390ec] transition-colors shrink-0">
+        <div className="w-8 h-8 rounded-full bg-[#242f3d] flex items-center justify-center text-white/50 group-hover:text-white group-hover:bg-[#462ed1] transition-colors shrink-0">
           <ChevronRight size={18} />
         </div>
       </div>

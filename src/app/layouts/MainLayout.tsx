@@ -4,6 +4,7 @@ import { Calendar, User, Bell, ShieldCheck, ChevronDown, Check } from "lucide-re
 import logo from "../../imports/Prime_logo_nobg_white_border.png";
 import { useLang, LANG_CYCLE, type Lang } from "../i18n";
 import { navDir } from "../lib/navDir";
+import { DropdownPanel } from "../components/ui/DropdownMenu";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 
@@ -88,11 +89,11 @@ export function MainLayout() {
   }
 
   return (
-    <div className="h-full md:min-h-screen bg-[#0e1621] text-white font-sans flex flex-col md:block">
+    <div className="h-full md:min-h-screen bg-[#181818] text-white font-sans flex flex-col md:block">
       <NavigationGuard />
 
       {/* ── Desktop Sidebar ─────────────────────────────────── */}
-      <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen z-50 w-[72px] bg-[#17212b] border-r border-[#101923] shadow-2xl">
+      <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen z-50 w-[72px] bg-[#212121] border-r border-[#101923] shadow-2xl">
         <div className="flex items-center h-[72px] shrink-0 px-3">
           <a
             href="/"
@@ -121,21 +122,23 @@ export function MainLayout() {
             </button>
 
             {showLangDropdown && (
-              <div className="absolute left-full bottom-0 ml-3 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.6)] overflow-hidden z-50 w-[148px]">
-                {LANG_OPTIONS.map(opt => (
-                  <button
-                    key={opt.code}
-                    onClick={() => { setLang(opt.code); setShowLangDropdown(false); }}
-                    className={`flex items-center justify-between w-full px-4 py-3 text-sm font-bold text-left transition-colors border-b border-white/5 last:border-0 ${
-                      lang === opt.code
-                        ? "text-white bg-white/5"
-                        : "text-[#79828b] hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    <span>{opt.label}</span>
-                    {lang === opt.code && <Check size={13} className="text-[#3390ec] shrink-0" />}
-                  </button>
-                ))}
+              <div className="absolute left-full bottom-0 ml-3 z-50 w-[148px]">
+                <DropdownPanel>
+                  {LANG_OPTIONS.map(opt => (
+                    <button
+                      key={opt.code}
+                      onClick={() => { setLang(opt.code); setShowLangDropdown(false); }}
+                      className={`flex items-center justify-between w-full px-4 py-3 text-sm font-semibold text-left transition-colors ${
+                        lang === opt.code
+                          ? "text-white bg-white/5"
+                          : "text-[#79828b] hover:text-white hover:bg-white/5"
+                      }`}
+                    >
+                      <span>{opt.label}</span>
+                      {lang === opt.code && <Check size={13} className="text-[#462ed1] shrink-0" />}
+                    </button>
+                  ))}
+                </DropdownPanel>
               </div>
             )}
           </div>
@@ -143,7 +146,7 @@ export function MainLayout() {
       </aside>
 
       {/* ── Mobile Top Header ──────────────────────────────── */}
-      <div className="md:hidden relative shrink-0 w-full flex items-center justify-center px-4 py-3 bg-[#17212b] shadow-sm border-b border-[#101923]">
+      <div className="md:hidden relative shrink-0 w-full flex items-center justify-center px-4 py-3 bg-[#212121] shadow-sm border-b border-[#101923]">
         {/* Logo stays centered */}
         <div className="flex items-center gap-2">
           <img src={logo} alt="Prime Logo" className="h-7 object-contain" />
@@ -165,34 +168,35 @@ export function MainLayout() {
 
           {/* Dropdown anchored to header bottom — never clipped by the button wrapper */}
           {showLangDropdown && (
-            <div className="absolute right-0 top-full mt-1.5 bg-[#222f3e] border border-white/10 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.6)] overflow-hidden z-50 w-[148px]">
-
-              {LANG_OPTIONS.map(opt => (
-                <button
-                  key={opt.code}
-                  onClick={() => { setLang(opt.code); setShowLangDropdown(false); }}
-                  className={`flex items-center justify-between w-full px-4 py-3 text-sm font-bold text-left transition-colors border-b border-white/5 last:border-0 ${
-                    lang === opt.code
-                      ? "text-white bg-white/5"
-                      : "text-[#79828b] hover:text-white hover:bg-white/5"
-                  }`}
-                >
-                  <span>{opt.label}</span>
-                  {lang === opt.code && <Check size={13} className="text-[#3390ec] shrink-0" />}
-                </button>
-              ))}
+            <div className="absolute right-0 top-full mt-1.5 z-50 w-[148px]">
+              <DropdownPanel>
+                {LANG_OPTIONS.map(opt => (
+                  <button
+                    key={opt.code}
+                    onClick={() => { setLang(opt.code); setShowLangDropdown(false); }}
+                    className={`flex items-center justify-between w-full px-4 py-3 text-sm font-semibold text-left transition-colors ${
+                      lang === opt.code
+                        ? "text-white bg-white/5"
+                        : "text-[#79828b] hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <span>{opt.label}</span>
+                    {lang === opt.code && <Check size={13} className="text-[#462ed1] shrink-0" />}
+                  </button>
+                ))}
+              </DropdownPanel>
             </div>
           )}
         </div>
       </div>
 
       {/* Main scroll container */}
-      <main ref={mainRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-none md:overflow-visible md:overscroll-auto md:flex-none md:ml-[72px] md:min-h-screen">
+      <main ref={mainRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-none md:overflow-visible md:overscroll-auto md:flex-none md:ml-[72px] md:min-h-screen [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <Outlet />
       </main>
 
       {/* ── Mobile Bottom Nav ─────────────────────────────── */}
-      <nav className="md:hidden shrink-0 w-full bg-[#17212b] border-t border-[#101923] flex justify-around items-center p-2 z-50 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[0_-4px_20px_rgba(0,0,0,0.2)]">
+      <nav className="md:hidden shrink-0 w-full bg-[#212121] border-t border-[#101923] flex justify-around items-center p-2 z-50 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[0_-4px_20px_rgba(0,0,0,0.2)]">
         <MobileNavItem to="/" end icon={<Calendar size={24} />} label={t.nav.events} />
         <MobileNavItem to="/alerts"  icon={<Bell size={24} />}  label={t.nav.alerts}  badge={unreadAlerts} />
         <MobileNavItem to="/profile" icon={<User size={24} />}  label={t.nav.profile} />
@@ -217,7 +221,7 @@ function NavItem({ to, icon, label, end, badge }: { to: string; icon: React.Reac
     >
       {icon}
       {!!badge && (
-        <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-[#3390ec] text-white text-[10px] font-bold flex items-center justify-center">
+        <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-[#462ed1] text-white text-[10px] font-bold flex items-center justify-center">
           {badge > 9 ? "9+" : badge}
         </span>
       )}
@@ -234,14 +238,14 @@ function MobileNavItem({ to, icon, label, end, badge }: { to: string; icon: Reac
       onClick={() => navDir.none()}
       className={({ isActive }) =>
         `relative flex flex-col items-center gap-1 p-2 min-w-[56px] transition-colors ${
-          isActive ? "text-[#3390ec]" : "text-[#79828b]"
+          isActive ? "text-[#462ed1]" : "text-[#79828b]"
         }`
       }
     >
       <div className="relative">
         {icon}
         {!!badge && (
-          <span className="absolute -top-1 -right-1.5 min-w-[14px] h-3.5 px-1 rounded-full bg-[#3390ec] text-white text-[9px] font-bold flex items-center justify-center">
+          <span className="absolute -top-1 -right-1.5 min-w-[14px] h-3.5 px-1 rounded-full bg-[#462ed1] text-white text-[9px] font-bold flex items-center justify-center">
             {badge > 9 ? "9+" : badge}
           </span>
         )}

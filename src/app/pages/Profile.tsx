@@ -7,8 +7,10 @@ import { SKILL_STYLE } from "../data/adminData";
 import { shortDate, isPastDate } from "../lib/eventDate";
 import {
   Phone, Mail, Instagram, Send, MapPin, Calendar, Clock,
-  Pencil, Camera, LogOut, User, Eye, EyeOff,
+  Pencil, Camera, LogOut, User, Eye, EyeOff, MoreVertical,
 } from "lucide-react";
+import { SelectField } from "../components/ui/SelectField";
+import { DropdownPanel, DropdownItem } from "../components/ui/DropdownMenu";
 
 const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
 
@@ -28,6 +30,7 @@ export function Profile() {
   const { user: authUser, profile, isLoggedIn, loading, signOut, refreshProfile } = useAuth();
 
   const [editingContact, setEditingContact] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -59,6 +62,13 @@ export function Profile() {
       );
     })();
   }, [authUser]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = () => setMenuOpen(false);
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [menuOpen]);
 
   const openContactEdit = () => {
     if (!profile) return;
@@ -121,12 +131,12 @@ export function Profile() {
   const skillStyle = SKILL_STYLE[profile.skill_level] ?? SKILL_STYLE.Rookie;
 
   return (
-    <div className="min-h-full bg-[#0e1621] pb-4 font-sans">
+    <div className="min-h-full bg-[#181818] pb-4 font-sans">
 
       {/* Logout confirmation modal */}
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)}>
-          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-sm bg-[#212121] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">{t.profile.logOutTitle}</h3>
             <p className="text-[#79828b] text-sm mb-6">{t.profile.logOutDesc}</p>
             <div className="flex gap-3">
@@ -156,14 +166,14 @@ export function Profile() {
             <img
               src={profile.avatar}
               alt=""
-              className={`w-28 h-28 rounded-full object-cover bg-[#17212b] ${uploadingAvatar ? "opacity-50" : ""}`}
+              className={`w-28 h-28 rounded-full object-cover bg-[#212121] ${uploadingAvatar ? "opacity-50" : ""}`}
             />
           ) : (
-            <div className={`w-28 h-28 rounded-full bg-[#17212b] flex items-center justify-center ${uploadingAvatar ? "opacity-50" : ""}`}>
+            <div className={`w-28 h-28 rounded-full bg-[#212121] flex items-center justify-center ${uploadingAvatar ? "opacity-50" : ""}`}>
               <User size={44} className="text-[#79828b]" />
             </div>
           )}
-          <span className="absolute bottom-0.5 right-0.5 w-7 h-7 rounded-full bg-[#3390ec] border-2 border-[#0e1621] flex items-center justify-center pointer-events-none">
+          <span className="absolute bottom-0.5 right-0.5 w-7 h-7 rounded-full bg-[#462ed1] border-2 border-[#181818] flex items-center justify-center pointer-events-none">
             <Camera size={13} className="text-white" />
           </span>
           <input type="file" accept="image/*" className="hidden" disabled={uploadingAvatar} onChange={handleAvatar} />
@@ -177,35 +187,33 @@ export function Profile() {
       </div>
 
       {error && (
-        <div className="max-w-[600px] mx-auto px-4 mb-4">
+        <div className="max-w-[640px] mx-auto px-4 mb-4">
           <div className="px-4 py-3 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] text-sm">
             {error}
           </div>
         </div>
       )}
 
-      <div className="max-w-[600px] mx-auto px-4 flex flex-col gap-6">
+      <div className="max-w-[640px] mx-auto px-4 flex flex-col gap-6">
 
         {/* Position — always-editable dropdown, no edit button needed */}
-        <div className="bg-[#17212b] rounded-xl">
+        <div className="bg-[#212121] rounded-xl">
           <div className="flex items-center justify-between px-4 py-3.5">
             <span className="text-sm text-[#aaa]">{t.profile.position}</span>
-            <select
+            <SelectField
               value={profile.position ?? POSITIONS[0]}
-              onChange={e => updateProfile({ position: e.target.value })}
-              className="bg-transparent text-white text-sm focus:outline-none text-right"
-              style={{ colorScheme: "dark" }}
-            >
-              {POSITIONS.map(p => (
-                <option key={p} value={p} style={{ background: "#17212b" }}>{p}</option>
-              ))}
-            </select>
+              options={POSITIONS}
+              onChange={v => updateProfile({ position: v })}
+              triggerClassName="flex items-center gap-1.5 text-white text-sm hover:opacity-80 transition-opacity focus:outline-none"
+              panelClassName="absolute right-0 top-full mt-1.5 z-30"
+              panelWidthClassName="w-40"
+            />
           </div>
         </div>
 
         {/* Contact — edit button lives here */}
         <section>
-          <div className="flex items-center justify-between mb-2 px-1">
+          <div className="flex items-center justify-between h-8 mb-2">
             <SectionLabel>{t.profile.contact}</SectionLabel>
             {editingContact ? (
               <div className="flex items-center gap-3">
@@ -218,29 +226,49 @@ export function Profile() {
                 <button
                   onClick={saveContact}
                   disabled={saving}
-                  className="text-sm text-[#3390ec] font-medium active:opacity-70 transition-opacity disabled:opacity-50"
+                  className="text-sm text-[#462ed1] font-medium active:opacity-70 transition-opacity disabled:opacity-50"
                 >
                   {saving ? "…" : t.common.save}
                 </button>
               </div>
             ) : (
-              <button
-                onClick={openContactEdit}
-                className="flex items-center gap-1 text-sm text-[#3390ec] font-medium active:opacity-70 transition-opacity"
-              >
-                <Pencil size={13} />
-                {t.common.edit}
-              </button>
+              <div className="relative">
+                <button
+                  onMouseDown={e => e.stopPropagation()}
+                  onClick={() => setMenuOpen(v => !v)}
+                  className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${menuOpen ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
+                >
+                  <MoreVertical size={16} />
+                </button>
+                {menuOpen && (
+                  <div onMouseDown={e => e.stopPropagation()} className="absolute right-0 top-full mt-1.5 z-20 w-56">
+                    <DropdownPanel>
+                      <div className="flex flex-col">
+                        <DropdownItem
+                          icon={<Pencil size={14} />}
+                          label={t.profile.editDetails}
+                          onClick={() => { openContactEdit(); setMenuOpen(false); }}
+                        />
+                        <DropdownItem
+                          icon={<LogOut size={14} />}
+                          label={t.profile.logOut}
+                          onClick={() => { setShowLogoutConfirm(true); setMenuOpen(false); }}
+                        />
+                      </div>
+                    </DropdownPanel>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
-          <div className="bg-[#17212b] rounded-xl overflow-hidden">
+          <div className="bg-[#212121] rounded-xl overflow-hidden">
 
             {/* Name row */}
             <ContactRow
               editing={editingContact}
-              icon={<User size={15} className="text-[#3390ec]" />}
-              iconBg="bg-[#3390ec]/15"
+              icon={<User size={15} className="text-[#462ed1]" />}
+              iconBg="bg-[#462ed1]/15"
               label={t.profile.name}
               displayValue={profile.name}
               editValue={draft.name}
@@ -250,8 +278,8 @@ export function Profile() {
             <ContactRow
               editing={editingContact}
               href={`tel:${(profile.phone ?? "").replace(/\s/g, "")}`}
-              icon={<Phone size={15} className="text-[#3390ec]" />}
-              iconBg="bg-[#3390ec]/15"
+              icon={<Phone size={15} className="text-[#462ed1]" />}
+              iconBg="bg-[#462ed1]/15"
               label={t.profile.phone}
               displayValue={profile.phone ?? ""}
               editValue={draft.phone}
@@ -260,8 +288,8 @@ export function Profile() {
             <ContactRow
               editing={editingContact}
               href={`mailto:${profile.email ?? ""}`}
-              icon={<Mail size={15} className="text-[#3390ec]" />}
-              iconBg="bg-[#3390ec]/15"
+              icon={<Mail size={15} className="text-[#462ed1]" />}
+              iconBg="bg-[#462ed1]/15"
               label={t.profile.email}
               displayValue={profile.email ?? ""}
               editValue={draft.email}
@@ -272,7 +300,7 @@ export function Profile() {
               href={`https://t.me/${profile.telegram ?? ""}`}
               external
               icon={<Send size={14} className="text-white -ml-0.5" />}
-              iconBg="bg-[#3390ec]"
+              iconBg="bg-[#462ed1]"
               label={t.profile.telegram}
               displayValue={`@${profile.telegram ?? ""}`}
               editValue={draft.telegram}
@@ -306,7 +334,7 @@ export function Profile() {
           ) : (
             <div className="flex flex-col gap-2">
               {upcomingEvents.map(({ event: e, pending }) => (
-                <Link key={e.id} to={`/events/${e.id}`} className="block bg-[#17212b] rounded-xl px-4 py-3.5 hover:bg-[#1c2a36] transition-colors">
+                <Link key={e.id} to={`/events/${e.id}`} className="block bg-[#212121] rounded-xl px-4 py-3.5 hover:bg-[#1c2a36] transition-colors">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="text-sm font-bold text-white uppercase tracking-wide">{e.title}</span>
                     {pending && (
@@ -316,9 +344,9 @@ export function Profile() {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-3 text-xs text-[#aaa]">
-                    <span className="flex items-center gap-1"><Calendar size={11} className="text-[#3390ec]" />{shortDate(e.event_date, true)}</span>
-                    <span className="flex items-center gap-1"><Clock    size={11} className="text-[#3390ec]" />{e.event_time}</span>
-                    <span className="flex items-center gap-1"><MapPin   size={11} className="text-[#3390ec]" />{e.location}</span>
+                    <span className="flex items-center gap-1"><Calendar size={11} className="text-[#462ed1]" />{shortDate(e.event_date, true)}</span>
+                    <span className="flex items-center gap-1"><Clock    size={11} className="text-[#462ed1]" />{e.event_time}</span>
+                    <span className="flex items-center gap-1"><MapPin   size={11} className="text-[#462ed1]" />{e.location}</span>
                   </div>
                 </Link>
               ))}
@@ -332,7 +360,7 @@ export function Profile() {
           {pastEvents.length === 0 ? (
             <Empty />
           ) : (
-            <div className="bg-[#17212b] rounded-xl overflow-hidden">
+            <div className="bg-[#212121] rounded-xl overflow-hidden">
               {pastEvents.map((e, i) => (
                 <Link
                   key={e.id}
@@ -346,15 +374,6 @@ export function Profile() {
             </div>
           )}
         </section>
-
-        {/* Log Out */}
-        <button
-          onClick={() => setShowLogoutConfirm(true)}
-          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-[#ef4444]/20 bg-[#ef4444]/5 text-[#ef4444] text-sm font-bold hover:bg-[#ef4444]/10 transition-all mt-2"
-        >
-          <LogOut size={15} />
-          {t.profile.logOut}
-        </button>
 
       </div>
     </div>
@@ -399,7 +418,7 @@ function ContactRow({
                 value={editValue}
                 onChange={e => onChange(e.target.value)}
                 onClick={e => e.preventDefault()}
-                className="flex-1 bg-transparent text-white text-sm leading-5 focus:outline-none border-b border-white/15 focus:border-[#3390ec] transition-colors min-w-0"
+                className="flex-1 bg-transparent text-white text-sm leading-5 focus:outline-none shadow-[0_1px_0_0_rgba(255,255,255,0.15)] focus:shadow-[0_1px_0_0_#462ed1] transition-shadow min-w-0"
               />
             </>
           ) : href && !isHidden ? (
@@ -412,8 +431,12 @@ function ContactRow({
           )}
         </div>
       </div>
-      {!editing && showToOthers !== undefined && onToggleShowToOthers && (
-        <button onClick={onToggleShowToOthers} className="text-[#79828b] hover:text-white transition-colors shrink-0">
+      {showToOthers !== undefined && onToggleShowToOthers && (
+        <button
+          onClick={onToggleShowToOthers}
+          disabled={editing}
+          className={`text-[#79828b] hover:text-white transition-colors shrink-0 ${editing ? "opacity-0 pointer-events-none" : ""}`}
+        >
           {showToOthers ? <Eye size={14} /> : <EyeOff size={14} />}
         </button>
       )}
@@ -434,7 +457,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 function Empty() {
   const { t } = useLang();
   return (
-    <div className="bg-[#17212b] rounded-xl py-6 flex items-center justify-center">
+    <div className="bg-[#212121] rounded-xl py-6 flex items-center justify-center">
       <span className="text-sm text-[#aaa]">{t.common.nothingHere}</span>
     </div>
   );

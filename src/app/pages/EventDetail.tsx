@@ -13,6 +13,7 @@ import {
   Share2,
 } from "lucide-react";
 import { Toast } from "../components/ui/Toast";
+import { useWaterRipple, RippleLayer } from "../components/ui/useWaterRipple";
 import { BackBar } from "../components/ui/BackBar";
 import { TrustDot } from "../components/ui/TrustDot";
 import { VerifiedBadge } from "../components/ui/VerifiedBadge";
@@ -61,6 +62,7 @@ export function EventDetail() {
   const { id } = useParams();
   const { t } = useLang();
   const { user: authUser, profile, isLoggedIn, isAdmin } = useAuth();
+  const joinRipple = useWaterRipple();
 
   function playerProfilePath(playerId: string) {
     return isAdmin ? `/admin/player/${playerId}` : `/players/${playerId}`;
@@ -205,9 +207,9 @@ export function EventDetail() {
   const title = event?.title ?? "";
 
   const theme = {
-    primary: isRequestOnly ? "text-[#eab308]" : "text-[#3390ec]",
-    bg: isRequestOnly ? "bg-[#eab308]" : "bg-[#3390ec]",
-    button: isRequestOnly ? "bg-[#eab308] text-black" : "bg-[#3390ec] text-white",
+    primary: isRequestOnly ? "text-[#eab308]" : "text-[#462ed1]",
+    bg: isRequestOnly ? "bg-[#eab308]" : "bg-[#462ed1]",
+    button: isRequestOnly ? "bg-[#eab308] text-black" : "bg-[#462ed1] text-white",
   };
 
   function handleJoinClick() {
@@ -253,11 +255,11 @@ export function EventDetail() {
     return isRequestOnly ? t.event.sendRequest : t.event.joinDirectly;
   };
 
-  if (loading) return <div className="min-h-full bg-[#0e1621]" />;
+  if (loading) return <div className="min-h-full bg-[#181818]" />;
 
   if (notFound || !event) {
     return (
-      <div className="min-h-full bg-[#0e1621] text-white">
+      <div className="min-h-full bg-[#181818] text-white">
         <BackBar label="Events" to="/" />
         <div className="px-4 py-16 text-center text-[#79828b] text-sm">{t.common.nothingHere}</div>
       </div>
@@ -265,13 +267,13 @@ export function EventDetail() {
   }
 
 return (
-    <div className="min-h-full bg-[#0e1621] text-white font-sans">
+    <div className="min-h-full bg-[#181818] text-white font-sans">
       <Toast message={toast.message} visible={toast.visible} variant="copied" onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
 
       {/* Join confirmation modal */}
       {showJoinModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowJoinModal(false)}>
-          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-sm bg-[#212121] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">
               {isRequestOnly ? t.event.sendRequest : isFull ? "Join Waitlist" : t.event.joinTitle}
             </h3>
@@ -295,7 +297,7 @@ return (
                         selectedPosition === pos
                           ? isRequestOnly
                             ? "bg-[#eab308] border-[#eab308] text-black"
-                            : "bg-[#3390ec] border-[#3390ec] text-white"
+                            : "bg-[#462ed1] border-[#462ed1] text-white"
                           : "bg-white/5 border-white/10 text-[#79828b] hover:text-white hover:border-white/25"
                       }`}
                     >
@@ -341,7 +343,7 @@ return (
       {/* Leave confirmation modal */}
       {showLeaveConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLeaveConfirm(false)}>
-          <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-sm bg-[#212121] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">
               {myStatus === "pending" ? t.event.cancelRequestTitle : t.event.leaveTitle}
             </h3>
@@ -384,7 +386,7 @@ return (
         </button>
       </BackBar>
 
-<div className="px-4 pb-12 max-w-[600px] mx-auto pt-4">
+<div className="px-4 pb-12 max-w-[640px] mx-auto pt-4">
 
         {/* COMPACT UPPER SECTION */}
         <div className="mb-6">
@@ -393,7 +395,7 @@ return (
           </h1>
 
           {/* Organizer */}
-          <div className="flex items-center justify-between bg-[#17212b] border border-white/5 rounded-xl p-2.5 mb-4 shadow-sm">
+          <div className="flex items-center justify-between bg-[#212121] border border-white/5 rounded-xl p-2.5 mb-4 shadow-sm">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -412,7 +414,7 @@ return (
                     <User size={18} className="text-white/30" />
                   </div>
                 )}
-                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#3390ec] rounded-full flex items-center justify-center border-2 border-[#17212b]">
+                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#462ed1] rounded-full flex items-center justify-center border-2 border-[#212121]">
                   <CheckCircle2 size={10} className="text-white" strokeWidth={3} />
                 </div>
               </button>
@@ -424,7 +426,7 @@ return (
           </div>
 
           {/* Info Panel */}
-          <div className="bg-[#17212b] border border-white/5 rounded-xl flex flex-col">
+          <div className="bg-[#212121] border border-white/5 rounded-xl flex flex-col">
             <div className="flex justify-between items-center p-3 border-b border-white/5 flex-wrap gap-2">
               <div className="flex items-center gap-2.5">
                 <Calendar size={16} className={theme.primary} />
@@ -470,19 +472,23 @@ return (
             </h2>
 
             {isCanceled ? (
-              <span className="w-36 py-2 flex items-center justify-center rounded-lg font-bold text-sm bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] cursor-default">
+              <span className="w-48 py-3 flex items-center justify-center rounded-xl font-bold text-sm tracking-wide bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] cursor-default">
                 {t.event.canceled.toUpperCase()}
               </span>
             ) : myStatus === "joined" && rosterLocked ? null : (
               <button
                 onClick={handleJoinClick}
-                className={`w-36 py-2 justify-center rounded-lg font-bold text-sm transition-all ${
+                onPointerDown={joinRipple.onPointerDown}
+                className={`relative overflow-hidden w-48 py-3 flex items-center justify-center rounded-xl font-bold text-sm tracking-wide transition-colors ${
                   myStatus
-                    ? `bg-transparent ${isRequestOnly ? "shadow-[inset_0_0_0_1.5px_#eab308] text-[#eab308]" : "shadow-[inset_0_0_0_1.5px_#3390ec] text-[#3390ec]"}`
-                    : `shadow-sm ${theme.button}`
+                    ? isRequestOnly
+                      ? "bg-[#eab308]/10 hover:bg-[#eab308]/20 border border-[#eab308]/30 text-[#eab308]"
+                      : "bg-[#462ed1]/10 hover:bg-[#462ed1]/20 border border-[#462ed1]/30 text-[#462ed1]"
+                    : `hover:brightness-110 ${theme.button}`
                 }`}
               >
                 {myStatus === "joined" ? t.event.leaveBtn.toUpperCase() : myStatus === "pending" ? t.event.cancelRequestBtn.toUpperCase() : joinButtonLabel()}
+                <RippleLayer ripples={joinRipple.ripples} />
               </button>
             )}
           </div>
@@ -495,69 +501,74 @@ return (
             />
           </div>
 
-          {/* Player List — visible to guests too; only the "View Profile" action requires login */}
-          <div className="flex flex-col gap-2">
-            {roster.length === 0 && (
-              <p className="text-[#79828b] text-sm py-4 text-center">No one has joined yet — be the first!</p>
-            )}
-            {roster.map((player, i) => (
-              <div
-                key={player.id}
-                className="flex items-center gap-3 bg-[#17212b] border border-white/5 rounded-xl p-2.5"
-              >
-                {isLoggedIn && !player.isGuest ? (
-                  <button
-                    type="button"
-                    onClick={() => { navDir.forward(); navigate(playerProfilePath(player.id)); }}
-                    className="relative shrink-0 cursor-pointer"
+          {/* Player List — visible to guests too; only the "View Profile" action requires login.
+              One shared panel with dividers between rows (matches the Waitlist panel below),
+              not separate floating cards. */}
+          {roster.length === 0 ? (
+            <p className="text-[#79828b] text-sm py-4 text-center">No one has joined yet — be the first!</p>
+          ) : (
+            <div className="bg-[#212121] border border-white/5 rounded-2xl divide-y divide-white/5 overflow-hidden">
+              {roster.map((player) => {
+                const clickable = isLoggedIn && !player.isGuest;
+                const isMe = player.id === authUser?.id;
+                const isOrganizer = player.id === event.moderator_id;
+                const Row = clickable ? "button" : "div";
+                return (
+                  <Row
+                    key={player.id}
+                    {...(clickable
+                      ? { type: "button" as const, onClick: () => { navDir.forward(); navigate(playerProfilePath(player.id)); } }
+                      : {})}
+                    className={`flex items-center gap-3 p-2.5 w-full text-left transition-colors focus:outline-none ${
+                      clickable ? "hover:bg-white/[0.07] cursor-pointer" : ""
+                    }`}
                   >
-                    {player.avatar ? (
-                      <img
-                        src={player.avatar}
-                        alt={player.name}
-                        className="w-10 h-10 rounded-full object-cover border border-white/10"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                        <User size={16} className="text-white/30" />
-                      </div>
+                    <div className="relative shrink-0">
+                      {player.avatar ? (
+                        <img
+                          src={player.avatar}
+                          alt={player.name}
+                          className="w-10 h-10 rounded-full object-cover border border-white/10"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                          <User size={16} className="text-white/30" />
+                        </div>
+                      )}
+                      <VerifiedBadge verified={player.verified} size={13} ringClassName="border-[#212121]" />
+                      <TrustDot label={player.trustLabel} size={10} ringClassName="border-[#212121]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {requiresTeamName ? (
+                        <>
+                          <span className={`font-bold text-sm block truncate ${player.teamName ? "text-white" : "text-[#79828b]/50 italic font-normal"}`}>
+                            {player.teamName || "No team name set"}
+                          </span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-[#79828b] block truncate">
+                            Captain: {player.name}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-bold text-sm block text-white truncate">{player.name}</span>
+                          {requiresPosition && player.position && (
+                            <span className={`text-[10px] font-bold uppercase tracking-widest ${theme.primary}`}>
+                              {player.position}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    {(isOrganizer || isMe) && (
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#79828b] shrink-0">
+                        {isOrganizer ? "Organizer" : "You"}
+                      </span>
                     )}
-                    <VerifiedBadge verified={player.verified} size={13} ringClassName="border-[#17212b]" />
-                    <TrustDot label={player.trustLabel} size={10} ringClassName="border-[#17212b]" />
-                  </button>
-                ) : (
-                  <div className="relative shrink-0">
-                    {player.avatar ? (
-                      <img
-                        src={player.avatar}
-                        alt={player.name}
-                        className="w-10 h-10 rounded-full object-cover border border-white/10"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                        <User size={16} className="text-white/30" />
-                      </div>
-                    )}
-                    <VerifiedBadge verified={player.verified} size={13} ringClassName="border-[#17212b]" />
-                    <TrustDot label={player.trustLabel} size={10} ringClassName="border-[#17212b]" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <span className="font-bold text-sm block text-white">{player.name}</span>
-                  {requiresPosition && player.position && (
-                    <span className={`text-[10px] font-bold uppercase tracking-widest ${theme.primary}`}>
-                      {player.position}
-                    </span>
-                  )}
-                  {requiresTeamName && player.teamName && (
-                    <span className={`text-[10px] font-bold uppercase tracking-widest ${theme.primary}`}>
-                      {player.teamName}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+                  </Row>
+                );
+              })}
+            </div>
+          )}
 
           {/* Waitlist */}
           {isLoggedIn && waitlist.length > 0 && (() => {
@@ -577,8 +588,8 @@ return (
                         <User size={12} className="text-white/30" />
                       </div>
                     )}
-                    <VerifiedBadge verified={player.verified} size={10} ringClassName="border-[#17212b]" />
-                    <TrustDot label={player.trustLabel} size={8} ringClassName="border-[#17212b]" />
+                    <VerifiedBadge verified={player.verified} size={10} ringClassName="border-[#212121]" />
+                    <TrustDot label={player.trustLabel} size={8} ringClassName="border-[#212121]" />
                   </button>
                   <span className={`font-bold text-sm flex-1 ${isMe ? theme.primary : "text-white"}`}>
                     {player.name}
@@ -592,7 +603,7 @@ return (
               return (
                 <div className="mt-4 mb-4">
                   <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">{t.event.waitlist}</p>
-                  <div className="bg-[#17212b] border border-white/5 rounded-xl overflow-hidden">
+                  <div className="bg-[#212121] border border-white/5 rounded-xl overflow-hidden">
                     {renderRow(waitlist[0], false)}
                   </div>
                 </div>
@@ -601,7 +612,7 @@ return (
 
             return (
               <div className="mt-4 mb-4">
-                <div ref={waitlistBoxRef} className="bg-[#17212b] border border-white/5 rounded-xl overflow-hidden">
+                <div ref={waitlistBoxRef} className="bg-[#212121] border border-white/5 rounded-xl overflow-hidden">
                   {/* Avatar stack + count stays put whether collapsed or expanded - only
                       the chevron and the rows below react to waitlistOpen. */}
                   <button onClick={() => setWaitlistOpen(v => !v)} className="w-full flex items-center gap-3 px-3 py-2.5">
@@ -612,19 +623,19 @@ return (
                             <img
                               src={p.avatar}
                               alt={p.name}
-                              className="w-8 h-8 rounded-full border-2 border-[#17212b] object-cover"
+                              className="w-8 h-8 rounded-full border-2 border-[#212121] object-cover"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-full border-2 border-[#17212b] bg-white/5 flex items-center justify-center">
+                            <div className="w-8 h-8 rounded-full border-2 border-[#212121] bg-white/5 flex items-center justify-center">
                               <User size={12} className="text-white/30" />
                             </div>
                           )}
-                          <VerifiedBadge verified={p.verified} size={10} ringClassName="border-[#17212b]" />
-                          <TrustDot label={p.trustLabel} size={8} ringClassName="border-[#17212b]" />
+                          <VerifiedBadge verified={p.verified} size={10} ringClassName="border-[#212121]" />
+                          <TrustDot label={p.trustLabel} size={8} ringClassName="border-[#212121]" />
                         </div>
                       ))}
                       {waitlist.length > 3 && (
-                        <div className="w-8 h-8 rounded-full border-2 border-[#17212b] bg-white/10 flex items-center justify-center text-[9px] font-bold text-white/50" style={{ zIndex: 0 }}>
+                        <div className="w-8 h-8 rounded-full border-2 border-[#212121] bg-white/10 flex items-center justify-center text-[9px] font-bold text-white/50" style={{ zIndex: 0 }}>
                           +{waitlist.length - 3}
                         </div>
                       )}

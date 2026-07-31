@@ -66,7 +66,7 @@ export function PublishEventModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-sm bg-[#17212b] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="w-full max-w-sm bg-[#212121] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/5">
@@ -111,9 +111,9 @@ export function PublishEventModal({
                             onClick={() => pickDay(d)}
                             className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
                               selected
-                                ? "bg-[#3390ec] text-white"
+                                ? "bg-[#462ed1] text-white"
                                 : isTodayDate
-                                  ? "border border-[#3390ec]/50 text-white"
+                                  ? "border border-[#462ed1]/50 text-white"
                                   : weekend
                                     ? "text-[#ef4444]/80 hover:bg-white/5"
                                     : "text-white hover:bg-white/5"
@@ -140,7 +140,7 @@ export function PublishEventModal({
           {/* Confirm */}
           <button
             onClick={() => onConfirm(isNow ? null : target.toISOString())}
-            className="w-full mt-5 py-3.5 rounded-xl bg-[#3390ec] text-white font-black text-sm uppercase tracking-wider transition-transform"
+            className="w-full mt-5 py-3.5 rounded-xl bg-[#462ed1] text-white font-black text-sm uppercase tracking-wider transition-transform"
           >
             {label}
           </button>
@@ -158,7 +158,7 @@ function TimeBox({ value, onChange }: { value: string; onChange: (v: string) => 
       pattern="[0-9]*"
       value={value}
       onChange={e => onChange(e.target.value.replace(/[^0-9]/g, "") || "0")}
-      className="w-16 h-12 bg-[#222f3e] border border-white/10 rounded-xl text-white text-lg font-black text-center outline-none focus:border-[#3390ec]/50 transition-colors"
+      className="w-16 h-12 bg-[#212121] border border-white/10 rounded-xl text-white text-lg font-black text-center outline-none focus:border-[#462ed1]/50 transition-colors"
     />
   );
 }
