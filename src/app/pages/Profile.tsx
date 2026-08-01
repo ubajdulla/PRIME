@@ -7,10 +7,11 @@ import { SKILL_STYLE } from "../data/adminData";
 import { shortDate, isPastDate } from "../lib/eventDate";
 import {
   Phone, Mail, Instagram, Send, MapPin, Calendar, Clock,
-  Pencil, Camera, LogOut, User, Eye, EyeOff, MoreVertical,
+  Pencil, Camera, LogOut, User, MoreVertical,
 } from "lucide-react";
 import { SelectField } from "../components/ui/SelectField";
-import { DropdownPanel, DropdownItem } from "../components/ui/DropdownMenu";
+import { DropdownPanel, DropdownItem, ConfirmDropdownItem } from "../components/ui/DropdownMenu";
+import { ContactRow } from "../components/ui/ContactRow";
 
 const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
 
@@ -31,7 +32,7 @@ export function Profile() {
 
   const [editingContact, setEditingContact] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [logoutArmed, setLogoutArmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +70,18 @@ export function Profile() {
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, [menuOpen]);
+
+  // Menu closing (click elsewhere, or picking another item) disarms the
+  // logout confirm so it never reopens still-armed next time.
+  useEffect(() => {
+    if (!menuOpen) setLogoutArmed(false);
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!logoutArmed) return;
+    const timer = setTimeout(() => setLogoutArmed(false), 3000);
+    return () => clearTimeout(timer);
+  }, [logoutArmed]);
 
   const openContactEdit = () => {
     if (!profile) return;
@@ -132,30 +145,6 @@ export function Profile() {
 
   return (
     <div className="min-h-full bg-[#181818] pb-4 font-sans">
-
-      {/* Logout confirmation modal */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)}>
-          <div className="w-full max-w-sm bg-[#212121] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">{t.profile.logOutTitle}</h3>
-            <p className="text-[#79828b] text-sm mb-6">{t.profile.logOutDesc}</p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowLogoutConfirm(false)}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
-              >
-                {t.common.cancel}
-              </button>
-              <button
-                onClick={async () => { await signOut(); navigate("/signin"); }}
-                className="flex-1 py-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-bold text-sm transition-transform"
-              >
-                {t.profile.logOut}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Profile identity ── */}
       <div className="flex flex-col items-center pt-8 pb-6 px-4">
@@ -236,7 +225,7 @@ export function Profile() {
                 <button
                   onMouseDown={e => e.stopPropagation()}
                   onClick={() => setMenuOpen(v => !v)}
-                  className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${menuOpen ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
+                  className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${menuOpen ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
                 >
                   <MoreVertical size={16} />
                 </button>
@@ -249,10 +238,14 @@ export function Profile() {
                           label={t.profile.editDetails}
                           onClick={() => { openContactEdit(); setMenuOpen(false); }}
                         />
-                        <DropdownItem
+                        <ConfirmDropdownItem
                           icon={<LogOut size={14} />}
                           label={t.profile.logOut}
-                          onClick={() => { setShowLogoutConfirm(true); setMenuOpen(false); }}
+                          variant="destructive"
+                          armed={logoutArmed}
+                          onArm={() => setLogoutArmed(true)}
+                          onConfirm={async () => { await signOut(); navigate("/signin"); }}
+                          onDisarm={() => setLogoutArmed(false)}
                         />
                       </div>
                     </DropdownPanel>
@@ -334,7 +327,7 @@ export function Profile() {
           ) : (
             <div className="flex flex-col gap-2">
               {upcomingEvents.map(({ event: e, pending }) => (
-                <Link key={e.id} to={`/events/${e.id}`} className="block bg-[#212121] rounded-xl px-4 py-3.5 hover:bg-[#1c2a36] transition-colors">
+                <Link key={e.id} to={`/events/${e.id}`} state={{ hub: "profile" }} className="block bg-[#212121] rounded-xl px-4 py-3.5 hover:bg-[#1c2a36] transition-colors">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="text-sm font-bold text-white uppercase tracking-wide">{e.title}</span>
                     {pending && (
@@ -365,6 +358,7 @@ export function Profile() {
                 <Link
                   key={e.id}
                   to={`/events/${e.id}`}
+                  state={{ hub: "profile" }}
                   className={`flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors ${i > 0 ? "border-t border-white/[0.06]" : ""}`}
                 >
                   <span className="text-sm text-white/75 truncate">{e.title}</span>
@@ -380,69 +374,6 @@ export function Profile() {
   );
 }
 
-// ─── Contact row ──────────────────────────────────────────────────────────────
-
-const HIDDEN_MASK = "----------";
-
-function ContactRow({
-  editing, href, external, icon, iconBg, label, displayValue, editValue, prefix, onChange,
-  showToOthers, onToggleShowToOthers,
-}: {
-  editing: boolean;
-  href?: string;
-  external?: boolean;
-  icon: React.ReactNode;
-  iconBg: string;
-  label: string;
-  displayValue: string;
-  editValue: string;
-  prefix?: string;
-  onChange: (v: string) => void;
-  showToOthers?: boolean;
-  onToggleShowToOthers?: () => void;
-}) {
-  const isHidden = showToOthers === false;
-  const shownValue = isHidden ? HIDDEN_MASK : (displayValue || "—");
-  return (
-    <div className="flex items-center gap-3 px-4 h-[56px] shrink-0 border-t border-white/[0.06] first:border-t-0">
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}>
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-[11px] text-[#aaa] mb-0.5 h-[13px]">{label}</div>
-        <div className="flex items-center gap-0.5 h-5">
-          {editing ? (
-            <>
-              {prefix && <span className="text-[#aaa] text-sm shrink-0">{prefix}</span>}
-              <input
-                value={editValue}
-                onChange={e => onChange(e.target.value)}
-                onClick={e => e.preventDefault()}
-                className="flex-1 bg-transparent text-white text-sm leading-5 focus:outline-none shadow-[0_1px_0_0_rgba(255,255,255,0.15)] focus:shadow-[0_1px_0_0_#462ed1] transition-shadow min-w-0"
-              />
-            </>
-          ) : href && !isHidden ? (
-            <a href={href} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              className="text-sm leading-5 truncate block text-white">
-              {shownValue}
-            </a>
-          ) : (
-            <div className={`text-sm leading-5 truncate ${isHidden ? "text-white/40" : "text-white"}`}>{shownValue}</div>
-          )}
-        </div>
-      </div>
-      {showToOthers !== undefined && onToggleShowToOthers && (
-        <button
-          onClick={onToggleShowToOthers}
-          disabled={editing}
-          className={`text-[#79828b] hover:text-white transition-colors shrink-0 ${editing ? "opacity-0 pointer-events-none" : ""}`}
-        >
-          {showToOthers ? <Eye size={14} /> : <EyeOff size={14} />}
-        </button>
-      )}
-    </div>
-  );
-}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

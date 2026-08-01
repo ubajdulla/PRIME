@@ -1,16 +1,25 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { ChevronLeft, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { ChevronLeft, ChevronDown, Mail, Lock, User, Eye, EyeOff, Phone } from "lucide-react";
 import { useLang } from "../i18n";
 import { useAuth } from "../lib/AuthContext";
+import { COUNTRIES, type Country } from "../data/countries";
+import { DropdownPanel } from "../components/ui/DropdownMenu";
+import { BirthDateField } from "../components/ui/BirthDateField";
 
-type Screen = "signin" | "signup" | "forgot";
+type Screen = "signin" | "signup" | "forgot" | "confirmEmail";
+type Direction = "forward" | "back";
+const SIGNUP_STEPS = 2;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function SignIn() {
   const navigate = useNavigate();
   const { t } = useLang();
   const { signIn, signUp } = useAuth();
   const [screen, setScreen] = useState<Screen>("signin");
+  const [signupStep, setSignupStep] = useState(1);
+  const [direction, setDirection] = useState<Direction>("forward");
+  const [country, setCountry] = useState<Country>(COUNTRIES[0]);
   const [showPass, setShowPass]       = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [remember, setRemember]       = useState(false);
@@ -18,7 +27,7 @@ export function SignIn() {
   const [error, setError]             = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    name: "", email: "", password: "", confirm: "",
+    name: "", email: "", password: "", confirm: "", birthDate: "", phone: "",
   });
 
   function set(k: keyof typeof form, v: string) {
@@ -26,8 +35,11 @@ export function SignIn() {
   }
 
   function handleBack() {
-    if (screen === "signin") navigate("/");
-    else setScreen("signin");
+    setError(null);
+    if (screen === "confirmEmail") { setScreen("signin"); return; }
+    if (screen === "signin") { navigate("/"); return; }
+    if (screen === "signup" && signupStep > 1) { setDirection("back"); setSignupStep(s => s - 1); return; }
+    setScreen("signin");
   }
 
   async function handleLogin() {
@@ -39,17 +51,51 @@ export function SignIn() {
     navigate("/");
   }
 
+  function handleNextFromAccount() {
+    setError(null);
+    if (!form.name || !form.email || !form.password || !form.confirm) {
+      setError(t.signin.fillFieldsError);
+      return;
+    }
+    if (!EMAIL_RE.test(form.email)) {
+      setError(t.signin.invalidEmailError);
+      return;
+    }
+    if (form.password.length < 6) {
+      setError(t.signin.passwordTooShortError);
+      return;
+    }
+    if (form.password !== form.confirm) {
+      setError(t.signin.passwordMismatchError);
+      return;
+    }
+    if (!form.birthDate) {
+      setError(t.signin.birthDateRequiredError);
+      return;
+    }
+    setDirection("forward");
+    setSignupStep(2);
+  }
+
   async function handleSignup() {
     setError(null);
-    if (form.password !== form.confirm) {
-      setError("Passwords don't match");
+    const digits = form.phone.replace(/\D/g, "");
+    if (!digits) {
+      setError(t.signin.phoneRequiredError);
       return;
     }
     setSubmitting(true);
-    const { error } = await signUp(form.name, form.email, form.password);
+    const { error, needsConfirmation } = await signUp({
+      name: form.name,
+      email: form.email,
+      password: form.password,
+      birthDate: form.birthDate,
+      phone: `${country.dial} ${digits}`,
+    });
     setSubmitting(false);
     if (error) { setError(error); return; }
-    navigate("/");
+    if (needsConfirmation) setScreen("confirmEmail");
+    else navigate("/");
   }
 
   return (
@@ -64,24 +110,45 @@ export function SignIn() {
         <ChevronLeft size={20} />
       </button>
 
+      {/* Step indicator (signup only) */}
+      {screen === "signup" && (
+        <div className="flex items-center gap-1.5 mb-4">
+          {Array.from({ length: SIGNUP_STEPS }, (_, i) => (
+            <div
+              key={i}
+              className={`h-1 flex-1 rounded-full transition-colors ${
+                i < signupStep ? "bg-[#462ed1]" : "bg-white/10"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+      {screen === "signup" && (
+        <p className="text-[#79828b] text-xs font-bold uppercase tracking-widest mb-2">
+          {t.signin.stepLabel(signupStep, SIGNUP_STEPS)}
+        </p>
+      )}
+
       {/* Heading */}
       <div className="mb-8">
         <h1 className="text-3xl font-black text-white mb-2">
-          {screen === "signin"  && t.signin.logIn}
-          {screen === "signup"  && t.signin.createAccount}
-          {screen === "forgot"  && t.signin.forgotPassword}
+          {screen === "signin" && t.signin.logIn}
+          {screen === "signup" && signupStep === 1 && t.signin.createAccount}
+          {screen === "signup" && signupStep === 2 && t.signin.phoneStepTitle}
+          {screen === "forgot" && t.signin.forgotPassword}
+          {screen === "confirmEmail" && t.signin.confirmEmailTitle}
         </h1>
         <p className="text-[#79828b] text-sm leading-relaxed">
-          {screen === "signin"  && t.signin.logInDesc}
-          {screen === "signup"  && t.signin.createAccountDesc}
-          {screen === "forgot"  && t.signin.forgotPasswordDesc}
+          {screen === "signin" && t.signin.logInDesc}
+          {screen === "signup" && signupStep === 1 && t.signin.createAccountDesc}
+          {screen === "signup" && signupStep === 2 && t.signin.phoneStepDesc}
+          {screen === "forgot" && t.signin.forgotPasswordDesc}
+          {screen === "confirmEmail" && t.signin.confirmEmailDesc(form.email)}
         </p>
       </div>
 
       {error && (
-        <div className="mb-4 px-4 py-3 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] text-sm">
-          {error}
-        </div>
+        <p className="text-[#ef4444] text-xs font-semibold mb-4 -mt-4">{error}</p>
       )}
 
       {/* ── SIGN IN ── */}
@@ -134,14 +201,14 @@ export function SignIn() {
           <button
             onClick={handleLogin}
             disabled={submitting}
-            className="w-full py-3.5 rounded-xl bg-[#462ed1] text-white font-bold text-sm transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)] mb-5 disabled:opacity-50"
+            className="w-full py-3.5 rounded-xl bg-[#462ed1] text-white font-bold text-sm mb-5 disabled:opacity-50"
           >
             {submitting ? "…" : t.signin.loginBtn}
           </button>
 
           <p className="text-center text-sm text-[#79828b] mb-8">
             {t.signin.noAccount}{" "}
-            <button onClick={() => setScreen("signup")} className="text-[#462ed1] font-bold hover:text-white transition-colors">
+            <button onClick={() => { setScreen("signup"); setSignupStep(1); setDirection("forward"); }} className="text-[#462ed1] font-bold hover:text-white transition-colors">
               {t.signin.signUpLink}
             </button>
           </p>
@@ -150,9 +217,9 @@ export function SignIn() {
         </>
       )}
 
-      {/* ── SIGN UP ── */}
-      {screen === "signup" && (
-        <>
+      {/* ── SIGN UP: step 1 — account + birth date ── */}
+      {screen === "signup" && signupStep === 1 && (
+        <div className={direction === "forward" ? "animate-slide-in-right" : "animate-slide-in-left"}>
           <div className="flex flex-col gap-3 mb-6">
             <InputField
               icon={<User size={16} />}
@@ -182,14 +249,24 @@ export function SignIn() {
               onToggle={() => setShowConfirm(v => !v)}
               onChange={v => set("confirm", v)}
             />
+
+            <div>
+              <p className="text-[#79828b] text-xs font-bold uppercase tracking-widest mb-2">
+                {t.signin.birthDateLabel}
+              </p>
+              <BirthDateField
+                value={form.birthDate}
+                onChange={v => set("birthDate", v)}
+                placeholder={t.signin.birthDatePlaceholder}
+              />
+            </div>
           </div>
 
           <button
-            onClick={handleSignup}
-            disabled={submitting}
-            className="w-full py-3.5 rounded-xl bg-[#462ed1] text-white font-bold text-sm transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)] mb-5 disabled:opacity-50"
+            onClick={handleNextFromAccount}
+            className="w-full py-3.5 rounded-xl bg-[#462ed1] text-white font-bold text-sm mb-5"
           >
-            {submitting ? "…" : t.signin.createBtn}
+            {t.signin.nextBtn}
           </button>
 
           <p className="text-center text-sm text-[#79828b] mb-8">
@@ -200,7 +277,37 @@ export function SignIn() {
           </p>
 
           <SocialSection />
-        </>
+        </div>
+      )}
+
+      {/* ── SIGN UP: step 2 — phone number ── */}
+      {screen === "signup" && signupStep === 2 && (
+        <div className={direction === "forward" ? "animate-slide-in-right" : "animate-slide-in-left"}>
+          <div className="flex flex-col gap-3 mb-6">
+            <CountrySelect country={country} onSelect={setCountry} />
+
+            <div className="flex items-center gap-3 px-4 py-3.5 bg-[#181818]/60 border border-white/10 rounded-xl focus-within:border-[#462ed1]/50 transition-colors">
+              <span className="text-[#79828b] shrink-0"><Phone size={16} /></span>
+              <span className="text-white font-bold text-sm shrink-0">{country.dial}</span>
+              <input
+                type="tel"
+                inputMode="numeric"
+                placeholder={t.signin.phonePlaceholder}
+                value={form.phone}
+                onChange={e => set("phone", e.target.value.replace(/[^\d ]/g, ""))}
+                className="flex-1 bg-transparent text-white text-sm placeholder:text-[#79828b]/60 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={handleSignup}
+            disabled={submitting}
+            className="w-full py-3.5 rounded-xl bg-[#462ed1] text-white font-bold text-sm disabled:opacity-50"
+          >
+            {submitting ? "…" : t.signin.createBtn}
+          </button>
+        </div>
       )}
 
       {/* ── FORGOT PASSWORD ── */}
@@ -218,11 +325,21 @@ export function SignIn() {
 
           <button
             onClick={() => setScreen("signin")}
-            className="w-full py-3.5 rounded-xl bg-[#462ed1] text-white font-bold text-sm transition-transform shadow-[0_0_20px_rgba(51,144,236,0.25)]"
+            className="w-full py-3.5 rounded-xl bg-[#462ed1] text-white font-bold text-sm"
           >
             {t.signin.continueBtn}
           </button>
         </>
+      )}
+
+      {/* ── CONFIRM EMAIL ── */}
+      {screen === "confirmEmail" && (
+        <button
+          onClick={() => setScreen("signin")}
+          className="w-full py-3.5 rounded-xl bg-[#462ed1] text-white font-bold text-sm"
+        >
+          {t.signin.backToLoginBtn}
+        </button>
       )}
 
       </div>
@@ -274,9 +391,65 @@ function PasswordField({
         onChange={e => onChange(e.target.value)}
         className="flex-1 bg-transparent text-white text-sm placeholder:text-[#79828b]/60 focus:outline-none"
       />
-      <button type="button" onClick={onToggle} className="text-[#79828b] hover:text-white transition-colors shrink-0">
+      <button type="button" tabIndex={-1} onClick={onToggle} className="text-[#79828b] hover:text-white transition-colors shrink-0">
         {show ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>
+    </div>
+  );
+}
+
+function CountrySelect({ country, onSelect }: { country: Country; onSelect: (c: Country) => void }) {
+  const { t } = useLang();
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function close(e: PointerEvent) {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [open]);
+
+  const filtered = COUNTRIES.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 bg-[#181818]/60 border border-white/10 rounded-xl hover:border-white/20 transition-colors text-sm text-white"
+      >
+        <span>{country.name}</span>
+        <ChevronDown size={15} className={`text-[#79828b] shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-30">
+          <DropdownPanel scrollable className="p-2">
+            <input
+              autoFocus
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={t.signin.searchCountryPlaceholder}
+              className="w-full px-3 py-2 mb-1 bg-white/5 rounded-lg text-sm text-white placeholder:text-[#79828b]/60 focus:outline-none"
+            />
+            {filtered.map(c => (
+              <button
+                key={c.iso}
+                type="button"
+                onClick={() => { onSelect(c); setOpen(false); setSearch(""); }}
+                className="flex items-center justify-between w-full px-3 py-2.5 text-sm font-semibold text-white hover:bg-[var(--surface-active)] rounded-lg transition-colors text-left focus:outline-none"
+              >
+                <span>{c.name}</span>
+                <span className="text-[#79828b]">{c.dial}</span>
+              </button>
+            ))}
+          </DropdownPanel>
+        </div>
+      )}
     </div>
   );
 }

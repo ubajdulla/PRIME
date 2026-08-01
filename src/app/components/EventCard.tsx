@@ -1,26 +1,7 @@
 import { Link } from "react-router";
-import { MapPin, Calendar, Clock, ChevronRight, User, Volleyball, Trophy, Dumbbell, Palmtree, PartyPopper } from "lucide-react";
-import { getCategoryIconName } from "../data/adminData";
-
-// One color for every tier — the app's accent violet. Only the numeric
-// range in the badge changes between levels, not the color.
-const LEVEL_ACCENT = "hsl(249, 64%, 50%)";
-const LEVEL_RANGE: Record<string, string> = {
-  Rookie:       "1–2",
-  Beginner:     "2–3",
-  Intermediate: "3–4",
-  Advanced:     "4–5",
-  Pro:          "5–6",
-  PRIME:        "6–7",
-};
-
-const CATEGORY_ICON = {
-  volleyball: Volleyball,
-  trophy: Trophy,
-  dumbbell: Dumbbell,
-  palmtree: Palmtree,
-  party: PartyPopper,
-};
+import { MapPin, Calendar, Clock, ChevronRight, User } from "lucide-react";
+import { LevelBookmark } from "./ui/LevelBookmark";
+import { CategoryIcon } from "./ui/CategoryIcon";
 
 export interface EventCardProps {
   id: string;
@@ -53,12 +34,12 @@ export function EventCard({
   image,
   category,
   level,
+  status,
   horizontal = false,
   canceled = false,
 }: EventCardProps) {
   const fillPct = Math.min(100, (capacity.current / capacity.max) * 100);
   const initials = moderator?.name?.trim().charAt(0).toUpperCase() ?? "";
-  const CategoryIcon = category ? CATEGORY_ICON[getCategoryIconName(category)] : null;
 
   return (
     <Link
@@ -85,34 +66,11 @@ export function EventCard({
             </svg>
           )}
 
-          {/* Canceled badge — overlaid top-left on image */}
-          {canceled && (
-            <div className="absolute top-2.5 left-2.5">
-              <span className="text-[10px] font-bold px-2.5 py-1 uppercase tracking-widest rounded-md flex items-center gap-1 backdrop-blur-sm bg-[#ef4444]/90 text-white">
-                <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
-                CANCELED
-              </span>
-            </div>
-          )}
-
           {/* Level ribbon — hangs from the top edge of the image like a bookmark,
               instead of floating as an isolated corner chip. */}
-          {level && (() => {
-            const range = LEVEL_RANGE[level] ?? LEVEL_RANGE["Rookie"];
-            return (
-              <div
-                className="absolute top-0 right-3.5 w-9 flex flex-col items-center pt-2 shadow-[0_3px_8px_rgba(0,0,0,0.35)]"
-                style={{
-                  height: 52,
-                  background: LEVEL_ACCENT,
-                  clipPath: "polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%)",
-                }}
-              >
-                <span className="text-[7px] font-black uppercase tracking-wide text-white/85">Lvl</span>
-                <span className="text-sm font-black italic leading-tight text-white mt-0.5">{range}</span>
-              </div>
-            );
-          })()}
+          {level && (
+            <LevelBookmark level={level} insufficient={status === "REQUEST ONLY"} positionClassName="right-3.5" />
+          )}
         </div>
       </div>
 
@@ -123,7 +81,7 @@ export function EventCard({
           <h3 className="font-black italic text-xl uppercase tracking-wide text-white line-clamp-2 leading-tight min-w-0">
             {title}
           </h3>
-          {CategoryIcon && <CategoryIcon size={16} className="text-[#79828b] shrink-0 -translate-y-px" />}
+          <CategoryIcon category={category} size={16} className="text-[#79828b] shrink-0 -translate-y-px" />
         </div>
 
         {/* Date & Time */}

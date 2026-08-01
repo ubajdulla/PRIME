@@ -335,7 +335,7 @@ function AlertRow({
       alert.unread ? "bg-[#462ed1]/5" : ""
     }`}>
       {/* Icon */}
-      <div className={`mt-0.5 shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${cfg.bg}`}>
+      <div className={`mt-0.5 shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${cfg.bg}`}>
         <Icon size={18} className={cfg.color} />
       </div>
 
@@ -353,13 +353,13 @@ function AlertRow({
             <div className="flex gap-2 mt-2">
               <button
                 onClick={e => { e.preventDefault(); e.stopPropagation(); onAccept(alert); }}
-                className="px-3 py-1 rounded-lg bg-[#22c55e]/15 text-[#22c55e] text-[11px] font-bold hover:bg-[#22c55e]/25 transition-colors"
+                className="px-3 py-1 rounded-full bg-[#22c55e]/15 text-[#22c55e] text-[11px] font-bold hover:bg-[#22c55e]/25 transition-colors"
               >
                 {acceptLabel}
               </button>
               <button
                 onClick={e => { e.preventDefault(); e.stopPropagation(); onDecline(alert); }}
-                className="px-3 py-1 rounded-lg bg-[#ef4444]/15 text-[#ef4444] text-[11px] font-bold hover:bg-[#ef4444]/25 transition-colors"
+                className="px-3 py-1 rounded-full bg-[#ef4444]/15 text-[#ef4444] text-[11px] font-bold hover:bg-[#ef4444]/25 transition-colors"
               >
                 {declineLabel}
               </button>
@@ -392,7 +392,7 @@ function AlertRow({
   );
 
   return alert.eventId ? (
-    <Link to={`${cfg.linkPrefix}${alert.eventId}`} className="block">
+    <Link to={`${cfg.linkPrefix}${alert.eventId}`} state={{ hub: "alerts" }} className="block">
       {inner}
     </Link>
   ) : (
