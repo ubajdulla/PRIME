@@ -138,6 +138,24 @@ export interface Dict {
     signUpLink: string;
     signInLink: string;
     orContinueWith: string;
+    stepLabel: (step: number, total: number) => string;
+    birthDateLabel: string;
+    phoneStepTitle: string;
+    phoneStepDesc: string;
+    countryPlaceholder: string;
+    searchCountryPlaceholder: string;
+    phonePlaceholder: string;
+    nextBtn: string;
+    phoneRequiredError: string;
+    birthDateRequiredError: string;
+    fillFieldsError: string;
+    invalidEmailError: string;
+    passwordTooShortError: string;
+    passwordMismatchError: string;
+    birthDatePlaceholder: string;
+    confirmEmailTitle: string;
+    confirmEmailDesc: (email: string) => string;
+    backToLoginBtn: string;
   };
   admin: {
     overview: string;

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import {
   Send, Instagram, Calendar, MapPin,
-  CheckCircle2, BadgeCheck, Clock, ShieldOff,
+  CheckCircle2, BadgeCheck, Clock,
   OctagonX, Lock, Globe, ChevronDown,
   Phone, Mail, User, Pencil, Plus, Flag,
 } from "lucide-react";
@@ -10,6 +10,10 @@ import { SKILL_ORDER, type SkillLevel } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
 import { Toast } from "../../components/ui/Toast";
 import { SelectField } from "../../components/ui/SelectField";
+import { DatePickerField } from "../../components/ui/DatePickerField";
+import { ContactRow } from "../../components/ui/ContactRow";
+import { ConfirmModal } from "../../components/ui/Modal";
+import { TapConfirmButton } from "../../components/ui/TapConfirmButton";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../lib/AuthContext";
 import { isPastDate } from "../../lib/eventDate";
@@ -67,26 +71,18 @@ export function AdminPlayerProfile() {
   const [loading, setLoading] = useState(true);
 
   // ── Modal / draft state (UI-only, not backend state) ────────
-  const [showVerifyConfirm, setShowVerifyConfirm] = useState(false);
-  const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
-
   const [showSuspendModal,  setShowSuspendModal]  = useState(false);
-  const [showLiftConfirm,   setShowLiftConfirm]   = useState(false);
   const [suspendDate,       setSuspendDate]       = useState("");
   const [suspendReason,     setSuspendReason]     = useState("");
 
   const [showBanConfirm,    setShowBanConfirm]    = useState(false);
-  const [showUnbanConfirm,  setShowUnbanConfirm]  = useState(false);
   const [banReason,         setBanReason]         = useState("");
 
   const [showSkillConfirm,  setShowSkillConfirm]  = useState(false);
   const [pendingSkill,      setPendingSkill]      = useState<SkillLevel | "">("");
 
-  const [editingInfo,       setEditingInfo]       = useState(false);
-  const [infoDraft,         setInfoDraft]         = useState({ name: "", birthDate: "" });
-
-  const [editingContact,   setEditingContact]   = useState(false);
-  const [contactDraft,     setContactDraft]     = useState({ phone: "", email: "", telegram: "", instagram: "" });
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [detailsDraft,   setDetailsDraft]   = useState({ name: "", birthDate: "", phone: "", email: "", telegram: "", instagram: "" });
 
   const [addingNote,     setAddingNote]     = useState(false);
   const [noteDraft,      setNoteDraft]      = useState("");
@@ -169,7 +165,6 @@ export function AdminPlayerProfile() {
   const player = profile;
   const displaySkill = player.skill_level;
   const ringColor    = dotColor(displaySkill);
-  const today        = new Date().toISOString().split("T")[0];
 
   const upcomingEvents = events.filter(e => e.status === "upcoming" && !isPastDate(e.event_date));
   const pastEvents     = events.filter(e => isPastDate(e.event_date));
@@ -190,6 +185,32 @@ export function AdminPlayerProfile() {
   function formatDate(d: string) {
     if (!d) return "";
     return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  function openDetailsEdit() {
+    setDetailsDraft({
+      name: player.name, birthDate: player.birth_date ?? "",
+      phone: player.phone ?? "", email: player.email ?? "",
+      telegram: player.telegram ?? "", instagram: player.instagram ?? "",
+    });
+    setEditingDetails(true);
+  }
+
+  function setDetailsField(k: keyof typeof detailsDraft, v: string) {
+    setDetailsDraft(d => ({ ...d, [k]: v }));
+  }
+
+  async function saveDetails() {
+    await patchProfile({
+      name: detailsDraft.name.trim() || player.name,
+      birth_date: detailsDraft.birthDate || null,
+      phone: detailsDraft.phone || null,
+      email: detailsDraft.email || null,
+      telegram: detailsDraft.telegram || null,
+      instagram: detailsDraft.instagram || null,
+    });
+    setEditingDetails(false);
+    fireToast("Details updated");
   }
 
   function calcAge(birthDate: string): number | null {
@@ -269,114 +290,58 @@ export function AdminPlayerProfile() {
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={() => setToast(p => ({ ...p, visible: false }))} />
 
       {/* ── Modals ─────────────────────────────────────────── */}
-      {showVerifyConfirm && (
-        <Modal icon={<BadgeCheck size={18} className="text-[#462ed1]" />} iconBg="bg-[#462ed1]/10 border-[#462ed1]/20"
-          title="Verify Player?" sub="A badge will appear on their profile."
-          body={<><span className="text-white font-bold">{player.name}</span> will receive a verified badge visible to all users.</>}
-          cancelLabel="Cancel" onCancel={() => setShowVerifyConfirm(false)}
-          confirmLabel="Verify" confirmCls="bg-[#462ed1] text-white"
-          onConfirm={async () => { await patchProfile({ is_verified: true }); setShowVerifyConfirm(false); fireToast("Player verified"); }} />
-      )}
-      {showRevokeConfirm && (
-        <Modal icon={<ShieldOff size={18} className="text-[#ef4444]" />} iconBg="bg-[#ef4444]/10 border-[#ef4444]/20"
-          title="Revoke Verification?" sub="The badge will be removed."
-          body={<><span className="text-white font-bold">{player.name}</span> will lose their verified status.</>}
-          cancelLabel="Cancel" onCancel={() => setShowRevokeConfirm(false)}
-          confirmLabel="Revoke" confirmCls="bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444]"
-          onConfirm={async () => { await patchProfile({ is_verified: false }); setShowRevokeConfirm(false); fireToast("Verification revoked"); }} />
-      )}
-      {showLiftConfirm && (
-        <Modal icon={<CheckCircle2 size={18} className="text-[#4dcd5e]" />} iconBg="bg-[#4dcd5e]/10 border-[#4dcd5e]/20"
-          title="Lift Suspension?" sub="Player can join events again." body={null}
-          cancelLabel="Cancel" onCancel={() => setShowLiftConfirm(false)}
-          confirmLabel="Lift" confirmCls="bg-[#4dcd5e]/10 border border-[#4dcd5e]/30 text-[#4dcd5e]"
-          onConfirm={async () => { await patchProfile({ is_suspended: false, suspended_until: null, suspend_reason: null }); setShowLiftConfirm(false); fireToast("Suspension lifted"); }} />
-      )}
-      {showUnbanConfirm && (
-        <Modal icon={<CheckCircle2 size={18} className="text-[#4dcd5e]" />} iconBg="bg-[#4dcd5e]/10 border-[#4dcd5e]/20"
-          title="Unban Player?" sub="Player will be able to join events again." body={null}
-          cancelLabel="Cancel" onCancel={() => setShowUnbanConfirm(false)}
-          confirmLabel="Unban" confirmCls="bg-[#4dcd5e]/10 border border-[#4dcd5e]/30 text-[#4dcd5e]"
-          onConfirm={async () => { await patchProfile({ is_banned: false, ban_reason: null }); setShowUnbanConfirm(false); fireToast("Player unbanned"); }} />
-      )}
       {showSkillConfirm && (
-        <Modal icon={<ChevronDown size={18} className="text-[#a855f7]" />} iconBg="bg-[#a855f7]/10 border-[#a855f7]/20"
+        <ConfirmModal icon={<ChevronDown size={18} className="text-[#a855f7]" />} iconBg="bg-[#a855f7]/10 border-[#a855f7]/20"
           title="Change Skill Level?" sub={`${displaySkill} → ${pendingSkill}`}
           body={<>This will move <span className="text-white font-bold">{player.name}</span> to the <span className="text-white font-bold">{pendingSkill}</span> group.</>}
           cancelLabel="Cancel" onCancel={() => { setShowSkillConfirm(false); setPendingSkill(""); }}
-          confirmLabel="Confirm" confirmCls="bg-[#a855f7]/10 border border-[#a855f7]/30 text-[#a855f7]"
+          confirmLabel="Confirm" confirmCls="bg-[#a855f7] text-white"
           onConfirm={confirmSkillChange} />
       )}
       {/* Suspend modal */}
       {showSuspendModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[#212121] border border-white/10 rounded-2xl p-4 shadow-2xl">
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-[#eab308]/10 border border-[#eab308]/20 flex items-center justify-center shrink-0">
-                <Clock size={15} className="text-[#eab308]" />
-              </div>
-              <div>
-                <h3 className="font-black italic uppercase tracking-widest text-white text-sm">Suspend Player</h3>
-                <p className="text-[#79828b] text-[11px]">Can't join events until the date.</p>
-              </div>
+        <ConfirmModal
+          icon={<Clock size={15} className="text-[#eab308]" />} iconBg="bg-[#eab308]/10 border-[#eab308]/20"
+          title="Suspend Player" sub="Can't join events until the date."
+          cancelLabel="Cancel" onCancel={() => { setShowSuspendModal(false); setSuspendDate(""); setSuspendReason(""); }}
+          confirmLabel="Suspend" confirmCls="bg-[#b45309] text-white"
+          confirmDisabled={!suspendDate} onConfirm={confirmSuspend}
+        >
+          <div className="flex flex-col gap-2.5">
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-[#79828b] block mb-1">Suspended until</label>
+              <DatePickerField
+                value={suspendDate}
+                onChange={setSuspendDate}
+                triggerClassName="flex items-center justify-between gap-2 w-full h-10 bg-white/5 border border-white/10 rounded-lg px-3 text-white text-sm font-bold outline-none focus:border-white/25 transition-colors cursor-pointer"
+              />
             </div>
-            <div className="flex flex-col gap-2.5 mb-4">
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-[#79828b] block mb-1">Suspended until</label>
-                <input type="date" min={today} value={suspendDate} onChange={e => setSuspendDate(e.target.value)}
-                  style={{ colorScheme: "dark" }}
-                  className="w-full h-10 bg-[#212121] border border-white/10 rounded-xl px-3 text-white text-sm font-bold focus:outline-none focus:border-[#eab308]/50 transition-colors appearance-none" />
-              </div>
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-[#79828b] block mb-1">
-                  Reason <span className="normal-case font-normal tracking-normal">(optional)</span>
-                </label>
-                <input type="text" value={suspendReason} onChange={e => setSuspendReason(e.target.value)} placeholder="e.g. repeated no-show"
-                  className="w-full bg-[#212121] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#eab308]/50 transition-colors" />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => { setShowSuspendModal(false); setSuspendDate(""); setSuspendReason(""); }}
-                className="flex-1 py-2 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">Cancel</button>
-              <button onClick={confirmSuspend} disabled={!suspendDate}
-                className="flex-1 py-2 rounded-xl bg-[#eab308]/10 border border-[#eab308]/30 text-[#eab308] font-bold text-sm transition-transform disabled:opacity-40 disabled:cursor-not-allowed">
-                Suspend
-              </button>
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-[#79828b] block mb-1">
+                Reason <span className="normal-case font-normal tracking-normal">(optional)</span>
+              </label>
+              <input type="text" value={suspendReason} onChange={e => setSuspendReason(e.target.value)} placeholder="e.g. repeated no-show"
+                className="w-full h-10 bg-white/5 border border-white/10 rounded-lg px-3 text-white text-sm font-bold outline-none focus:border-white/25 transition-colors placeholder:text-[#79828b] placeholder:font-normal" />
             </div>
           </div>
-        </div>
+        </ConfirmModal>
       )}
 
       {/* Ban modal */}
       {showBanConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[#212121] border border-white/10 rounded-2xl p-6 shadow-2xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/20 flex items-center justify-center shrink-0">
-                <OctagonX size={18} className="text-[#ef4444]" />
-              </div>
-              <div>
-                <h3 className="font-black italic uppercase tracking-widest text-white text-base">Ban Player?</h3>
-                <p className="text-[#79828b] text-xs">Permanent — cannot join any events.</p>
-              </div>
-            </div>
-            <div className="mb-5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-[#79828b] block mb-1.5">
-                Reason <span className="normal-case font-normal tracking-normal">(optional)</span>
-              </label>
-              <input type="text" value={banReason} onChange={e => setBanReason(e.target.value)} placeholder="e.g. harassment"
-                className="w-full bg-[#212121] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#ef4444]/50 transition-colors" />
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => { setShowBanConfirm(false); setBanReason(""); }}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">Cancel</button>
-              <button onClick={confirmBan}
-                className="flex-1 py-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-bold text-sm transition-transform">
-                Ban
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          icon={<OctagonX size={18} className="text-[#ef4444]" />} iconBg="bg-[#ef4444]/10 border-[#ef4444]/20"
+          title="Ban Player?" sub="Permanent — cannot join any events."
+          cancelLabel="Cancel" onCancel={() => { setShowBanConfirm(false); setBanReason(""); }}
+          confirmLabel="Ban" confirmCls="bg-[#dc2626] text-white"
+          onConfirm={confirmBan}
+        >
+          <label className="text-[10px] font-black uppercase tracking-widest text-[#79828b] block mb-1.5">
+            Reason <span className="normal-case font-normal tracking-normal">(optional)</span>
+          </label>
+          <input type="text" value={banReason} onChange={e => setBanReason(e.target.value)} placeholder="e.g. harassment"
+            className="w-full h-10 bg-white/5 border border-white/10 rounded-lg px-3 text-white text-sm font-bold outline-none focus:border-white/25 transition-colors placeholder:text-[#79828b] placeholder:font-normal" />
+        </ConfirmModal>
       )}
 
       <BackBar label="Back" />
@@ -430,159 +395,82 @@ export function AdminPlayerProfile() {
 
         {/* ── Info ─────────────────────────────────────────── */}
         <section>
-          <div className="flex items-center justify-between mb-2 px-1">
+          <div className="flex items-center justify-between h-8 mb-2 px-1">
             <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Info</h2>
-            {editingInfo ? (
+            {editingDetails ? (
               <div className="flex items-center gap-3">
-                <button onClick={() => setEditingInfo(false)} className="text-[11px] font-bold text-[#79828b] hover:text-white transition-colors">Cancel</button>
-                <button onClick={async () => {
-                  const patch: Partial<ProfileRow> = { birth_date: infoDraft.birthDate || null };
-                  if (infoDraft.name.trim()) patch.name = infoDraft.name.trim();
-                  await patchProfile(patch);
-                  setEditingInfo(false); fireToast("Info updated");
-                }}
-                  className="text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors">Save</button>
+                <button onClick={() => setEditingDetails(false)} className="text-sm text-[#aaa] font-medium active:opacity-60 transition-opacity">Cancel</button>
+                <button onClick={saveDetails} className="text-sm text-[#462ed1] font-medium active:opacity-70 transition-opacity">Save</button>
               </div>
             ) : (
-              <button onClick={() => { setInfoDraft({ name: player.name, birthDate: player.birth_date ?? "" }); setEditingInfo(true); }}
-                className="flex items-center gap-1 text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors">
-                <Pencil size={11} /> Edit
+              <button onClick={openDetailsEdit}
+                className="w-8 h-8 flex items-center justify-center rounded-full text-[#79828b] hover:bg-white/5 hover:text-white transition-colors">
+                <Pencil size={16} />
               </button>
             )}
           </div>
-          <div className="bg-[#212121] rounded-xl overflow-hidden divide-y divide-white/[0.06]">
-            {/* First Name row */}
-            <div className="flex items-center gap-3 px-4 py-3">
-              <div className="w-8 h-8 rounded-lg bg-[#462ed1]/15 flex items-center justify-center shrink-0">
-                <User size={15} className="text-[#462ed1]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[11px] text-[#aaa] mb-0.5">First Name</div>
-                {editingInfo ? (
-                  <input type="text" value={infoDraft.name} onChange={e => setInfoDraft(d => ({ ...d, name: e.target.value }))}
-                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#462ed1]/60 transition-colors" />
-                ) : (
-                  <div className="text-sm text-white">{player.name}</div>
-                )}
-              </div>
-            </div>
-            {/* Date of Birth row */}
-            <div className="flex items-center gap-3 px-4 py-3">
-              <div className="w-8 h-8 rounded-lg bg-[#462ed1]/15 flex items-center justify-center shrink-0">
+          <div className="bg-[#212121] rounded-xl overflow-hidden">
+            <ContactRow
+              editing={editingDetails}
+              icon={<User size={15} className="text-[#462ed1]" />} iconBg="bg-[#462ed1]/15"
+              label="First Name" displayValue={player.name} editValue={detailsDraft.name}
+              onChange={v => setDetailsField("name", v)}
+            />
+
+            {/* Date of Birth — needs a calendar picker, not a plain-text row */}
+            <div className="flex items-center gap-3 px-4 h-[56px] shrink-0 border-t border-white/[0.06]">
+              <div className="w-8 h-8 rounded-full bg-[#462ed1]/15 flex items-center justify-center shrink-0">
                 <Calendar size={15} className="text-[#462ed1]" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[11px] text-[#aaa] mb-0.5">Date of Birth</div>
-                {editingInfo ? (
-                  <input type="date" value={infoDraft.birthDate} onChange={e => setInfoDraft(d => ({ ...d, birthDate: e.target.value }))}
-                    style={{ colorScheme: "dark" }}
-                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#462ed1]/60 transition-colors appearance-none" />
-                ) : player.birth_date ? (
-                  <div className="text-sm text-white">
-                    {formatDate(player.birth_date)}
-                    <span className="text-[#79828b] ml-1.5">· {calcAge(player.birth_date)}</span>
-                  </div>
-                ) : (
-                  <div className="text-sm text-[#79828b]">—</div>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Contact ───────────────────────────────────────── */}
-        <section>
-          <div className="flex items-center justify-between mb-2 px-1">
-            <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Contact</h2>
-            {editingContact ? (
-              <div className="flex items-center gap-3">
-                <button onClick={() => setEditingContact(false)} className="text-[11px] font-bold text-[#79828b] hover:text-white transition-colors">Cancel</button>
-                <button onClick={async () => {
-                  await patchProfile({
-                    phone: contactDraft.phone || null,
-                    email: contactDraft.email || null,
-                    telegram: contactDraft.telegram || null,
-                    instagram: contactDraft.instagram || null,
-                  });
-                  setEditingContact(false); fireToast("Contact updated");
-                }}
-                  className="text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors">Save</button>
-              </div>
-            ) : (
-              <button onClick={() => { setContactDraft({ phone: player.phone ?? "", email: player.email ?? "", telegram: player.telegram ?? "", instagram: player.instagram ?? "" }); setEditingContact(true); }}
-                className="flex items-center gap-1 text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors">
-                <Pencil size={11} /> Edit
-              </button>
-            )}
-          </div>
-          <div className="bg-[#212121] rounded-xl overflow-hidden divide-y divide-white/[0.06]">
-
-            {/* Phone */}
-            <div className="flex items-center gap-3 px-4 py-3">
-              <div className="w-8 h-8 rounded-lg bg-[#462ed1]/15 flex items-center justify-center shrink-0">
-                <Phone size={15} className="text-[#462ed1]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[11px] text-[#aaa] mb-0.5">Phone</div>
-                {editingContact ? (
-                  <input type="tel" value={contactDraft.phone} onChange={e => setContactDraft(d => ({ ...d, phone: e.target.value }))}
-                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#462ed1]/60 transition-colors" />
-                ) : player.phone ? (
-                  <a href={`tel:${player.phone.replace(/\s/g, "")}`} className="text-sm text-white">{player.phone}</a>
-                ) : <div className="text-sm text-[#79828b]">—</div>}
+                <div className="text-[11px] text-[#aaa] mb-0.5 h-[13px]">Date of Birth</div>
+                <div className="flex items-center h-5">
+                  {editingDetails ? (
+                    <DatePickerField
+                      value={detailsDraft.birthDate}
+                      onChange={v => setDetailsField("birthDate", v)}
+                      triggerClassName="flex items-center gap-1 text-white text-sm leading-5 focus:outline-none"
+                    />
+                  ) : player.birth_date ? (
+                    <div className="text-sm text-white leading-5 truncate">
+                      {formatDate(player.birth_date)}
+                      <span className="text-[#79828b] ml-1.5">· {calcAge(player.birth_date)}</span>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-[#79828b] leading-5">—</div>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Email */}
-            <div className="flex items-center gap-3 px-4 py-3">
-              <div className="w-8 h-8 rounded-lg bg-[#462ed1]/15 flex items-center justify-center shrink-0">
-                <Mail size={15} className="text-[#462ed1]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[11px] text-[#aaa] mb-0.5">Email</div>
-                {editingContact ? (
-                  <input type="email" value={contactDraft.email} onChange={e => setContactDraft(d => ({ ...d, email: e.target.value }))}
-                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 focus:outline-none focus:border-[#462ed1]/60 transition-colors" />
-                ) : player.email ? (
-                  <a href={`mailto:${player.email}`} className="text-sm text-white">{player.email}</a>
-                ) : <div className="text-sm text-[#79828b]">—</div>}
-              </div>
-            </div>
-
-            {/* Telegram */}
-            <div className="flex items-center gap-3 px-4 py-3">
-              <div className="w-8 h-8 rounded-lg bg-[#462ed1] flex items-center justify-center shrink-0">
-                <Send size={14} className="text-white -ml-0.5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[11px] text-[#aaa] mb-0.5">Telegram</div>
-                {editingContact ? (
-                  <input type="text" value={contactDraft.telegram} onChange={e => setContactDraft(d => ({ ...d, telegram: e.target.value }))}
-                    placeholder="@username"
-                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/60 transition-colors" />
-                ) : player.telegram ? (
-                  <a href={`https://t.me/${player.telegram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-sm text-white">{player.telegram}</a>
-                ) : <span className="text-sm text-[#79828b]">—</span>}
-              </div>
-            </div>
-
-            {/* Instagram */}
-            <div className="flex items-center gap-3 px-4 py-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888] flex items-center justify-center shrink-0">
-                <Instagram size={14} className="text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[11px] text-[#aaa] mb-0.5">Instagram</div>
-                {editingContact ? (
-                  <input type="text" value={contactDraft.instagram} onChange={e => setContactDraft(d => ({ ...d, instagram: e.target.value }))}
-                    placeholder="@username"
-                    className="w-full bg-transparent border-0 border-b border-white/15 text-white text-sm pb-0.5 placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/60 transition-colors" />
-                ) : player.instagram ? (
-                  <a href={`https://instagram.com/${player.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-sm text-white">@{player.instagram.replace("@", "")}</a>
-                ) : <span className="text-sm text-[#79828b]">—</span>}
-              </div>
-            </div>
-
+            <ContactRow
+              editing={editingDetails}
+              href={`tel:${(player.phone ?? "").replace(/\s/g, "")}`}
+              icon={<Phone size={15} className="text-[#462ed1]" />} iconBg="bg-[#462ed1]/15"
+              label="Phone" displayValue={player.phone ?? ""} editValue={detailsDraft.phone}
+              onChange={v => setDetailsField("phone", v)}
+            />
+            <ContactRow
+              editing={editingDetails}
+              href={`mailto:${player.email ?? ""}`}
+              icon={<Mail size={15} className="text-[#462ed1]" />} iconBg="bg-[#462ed1]/15"
+              label="Email" displayValue={player.email ?? ""} editValue={detailsDraft.email}
+              onChange={v => setDetailsField("email", v)}
+            />
+            <ContactRow
+              editing={editingDetails}
+              href={`https://t.me/${(player.telegram ?? "").replace("@", "")}`} external
+              icon={<Send size={14} className="text-white -ml-0.5" />} iconBg="bg-[#462ed1]"
+              label="Telegram" displayValue={player.telegram ?? ""} editValue={detailsDraft.telegram}
+              onChange={v => setDetailsField("telegram", v)}
+            />
+            <ContactRow
+              editing={editingDetails}
+              href={`https://instagram.com/${(player.instagram ?? "").replace("@", "")}`} external
+              icon={<Instagram size={14} className="text-white" />} iconBg="bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888]"
+              label="Instagram" displayValue={player.instagram ? `@${player.instagram.replace("@", "")}` : ""} editValue={detailsDraft.instagram}
+              onChange={v => setDetailsField("instagram", v)}
+            />
           </div>
         </section>
 
@@ -614,11 +502,11 @@ export function AdminPlayerProfile() {
                 className="w-full bg-[#212121] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none" />
               <div className="flex items-center gap-1.5">
                 <button type="button" onClick={() => setNoteVisibility("admin")} title="Admins only"
-                  className={`p-1.5 rounded-lg border transition-colors ${noteVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
+                  className={`p-1.5 rounded-full border transition-colors ${noteVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
                   <Lock size={12} />
                 </button>
                 <button type="button" onClick={() => setNoteVisibility("all")} title="Visible to everyone"
-                  className={`p-1.5 rounded-lg border transition-colors ${noteVisibility === "all" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
+                  className={`p-1.5 rounded-full border transition-colors ${noteVisibility === "all" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
                   <Globe size={12} />
                 </button>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#79828b]">
@@ -661,7 +549,7 @@ export function AdminPlayerProfile() {
 
             {/* Skill Level */}
             <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0">
                 <span className={`text-[10px] font-black ${SKILL_COLOR[displaySkill] ?? "text-white"}`}>
                   {displaySkill.slice(0, 3).toUpperCase()}
                 </span>
@@ -676,7 +564,7 @@ export function AdminPlayerProfile() {
                   options={skillOptions}
                   onChange={openSkillPicker}
                   disabled={hierarchyLocked}
-                  triggerClassName="flex items-center gap-1.5 bg-[#212121] border border-white/10 rounded-lg pl-3 pr-2.5 py-1.5 text-white text-[11px] font-black uppercase tracking-wider transition-colors focus:outline-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  triggerClassName="w-24 h-8 flex items-center justify-between gap-1.5 bg-white/5 rounded-full pl-3 pr-2.5 text-white/70 text-[11px] font-black uppercase tracking-wider transition-colors hover:bg-white/10 hover:text-white focus:outline-none cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                   panelClassName="absolute right-0 top-full mt-1.5 z-30"
                   panelWidthClassName="w-36"
                 />
@@ -690,7 +578,7 @@ export function AdminPlayerProfile() {
 
             {/* Verification */}
             <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${player.is_verified ? "bg-[#462ed1]" : "bg-white/5"}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${player.is_verified ? "bg-[#3897f0]" : "bg-white/5"}`}>
                 <BadgeCheck size={16} className={player.is_verified ? "text-white" : "text-[#79828b]"} />
               </div>
               <div className="flex-1 min-w-0">
@@ -698,21 +586,21 @@ export function AdminPlayerProfile() {
                 <div className="text-[11px] text-[#79828b]">{player.is_verified ? "Badge visible to all users" : "Not verified"}</div>
               </div>
               {player.is_verified ? (
-                <button onClick={() => setShowRevokeConfirm(true)} disabled={player.is_admin}
-                  className="px-3 py-1.5 rounded-lg border border-[#ef4444]/30 text-[#ef4444] text-[11px] font-black uppercase tracking-wider hover:bg-[#ef4444]/5 transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
-                  Revoke
-                </button>
+                <TapConfirmButton
+                  label="Revoke" fillCls="bg-[#3897f0]" disabled={player.is_admin}
+                  onConfirm={async () => { await patchProfile({ is_verified: false }); fireToast("Verification revoked"); }}
+                />
               ) : (
-                <button onClick={() => setShowVerifyConfirm(true)}
-                  className="px-3 py-1.5 rounded-lg border border-[#462ed1]/30 text-[#462ed1] text-[11px] font-black uppercase tracking-wider hover:bg-[#462ed1]/5 transition-colors shrink-0">
-                  Verify
-                </button>
+                <TapConfirmButton
+                  label="Verify" fillCls="bg-[#3897f0]"
+                  onConfirm={async () => { await patchProfile({ is_verified: true }); fireToast("Player verified"); }}
+                />
               )}
             </div>
 
             {/* Suspension */}
             <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${player.is_suspended ? "bg-[#eab308]/15" : "bg-white/5"}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${player.is_suspended ? "bg-[#eab308]/15" : "bg-white/5"}`}>
                 <Clock size={16} className={player.is_suspended ? "text-[#eab308]" : "text-[#79828b]"} />
               </div>
               <div className="flex-1 min-w-0">
@@ -720,13 +608,13 @@ export function AdminPlayerProfile() {
                 <div className="text-[11px] text-[#79828b]">{player.is_suspended ? `Until ${formatDate(player.suspended_until ?? "")}` : "Not suspended"}</div>
               </div>
               {player.is_suspended ? (
-                <button onClick={() => setShowLiftConfirm(true)} disabled={hierarchyLocked}
-                  className="px-3 py-1.5 rounded-lg border border-[#4dcd5e]/30 text-[#4dcd5e] text-[11px] font-black uppercase tracking-wider hover:bg-[#4dcd5e]/5 transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
-                  Lift
-                </button>
+                <TapConfirmButton
+                  label="Lift" fillCls="bg-[#4dcd5e]" armedTextCls="text-white" disabled={hierarchyLocked}
+                  onConfirm={async () => { await patchProfile({ is_suspended: false, suspended_until: null, suspend_reason: null }); fireToast("Suspension lifted"); }}
+                />
               ) : (
                 <button onClick={() => setShowSuspendModal(true)} disabled={player.is_banned || hierarchyLocked}
-                  className="px-3 py-1.5 rounded-lg border border-[#eab308]/30 text-[#eab308] text-[11px] font-black uppercase tracking-wider hover:bg-[#eab308]/5 transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
+                  className="w-24 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/70 text-[11px] font-black uppercase tracking-wider hover:bg-white/10 hover:text-white transition-colors focus:outline-none shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
                   Suspend
                 </button>
               )}
@@ -734,7 +622,7 @@ export function AdminPlayerProfile() {
 
             {/* Ban */}
             <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${player.is_banned ? "bg-[#ef4444]/15" : "bg-white/5"}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${player.is_banned ? "bg-[#ef4444]/15" : "bg-white/5"}`}>
                 <OctagonX size={16} className={player.is_banned ? "text-[#ef4444]" : "text-[#79828b]"} />
               </div>
               <div className="flex-1 min-w-0">
@@ -742,13 +630,13 @@ export function AdminPlayerProfile() {
                 <div className="text-[11px] text-[#79828b]">{player.is_banned ? "Permanently banned" : "Not banned"}</div>
               </div>
               {player.is_banned ? (
-                <button onClick={() => setShowUnbanConfirm(true)} disabled={hierarchyLocked}
-                  className="px-3 py-1.5 rounded-lg border border-[#4dcd5e]/30 text-[#4dcd5e] text-[11px] font-black uppercase tracking-wider hover:bg-[#4dcd5e]/5 transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
-                  Unban
-                </button>
+                <TapConfirmButton
+                  label="Unban" fillCls="bg-[#4dcd5e]" armedTextCls="text-white" disabled={hierarchyLocked}
+                  onConfirm={async () => { await patchProfile({ is_banned: false, ban_reason: null }); fireToast("Player unbanned"); }}
+                />
               ) : (
                 <button onClick={() => setShowBanConfirm(true)} disabled={hierarchyLocked}
-                  className="px-3 py-1.5 rounded-lg border border-[#ef4444]/30 text-[#ef4444] text-[11px] font-black uppercase tracking-wider hover:bg-[#ef4444]/5 transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
+                  className="w-24 h-8 flex items-center justify-center rounded-full bg-[#ef4444]/10 text-[#ef4444] text-[11px] font-black uppercase tracking-wider hover:bg-[#ef4444]/20 transition-colors focus:outline-none shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
                   Ban
                 </button>
               )}
@@ -756,7 +644,7 @@ export function AdminPlayerProfile() {
 
             {/* Trust Label */}
             <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                 player.trust_label === "red" ? "bg-[#ef4444]/15" : player.trust_label === "yellow" ? "bg-[#eab308]/15" : "bg-white/5"
               }`}>
                 <Flag size={16} className={
@@ -824,30 +712,6 @@ export function AdminPlayerProfile() {
           )}
         </section>
 
-      </div>
-    </div>
-  );
-}
-
-function Modal({ icon, iconBg, title, sub, body, cancelLabel, onCancel, confirmLabel, confirmCls, onConfirm }: {
-  icon: React.ReactNode; iconBg: string; title: string; sub: string; body: React.ReactNode;
-  cancelLabel: string; onCancel: () => void; confirmLabel: string; confirmCls: string; onConfirm: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-sm bg-[#212121] border border-white/10 rounded-2xl p-6 shadow-2xl">
-        <div className="flex items-center gap-3 mb-3">
-          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${iconBg}`}>{icon}</div>
-          <div>
-            <h3 className="font-black italic uppercase tracking-widest text-white text-base">{title}</h3>
-            <p className="text-[#79828b] text-xs">{sub}</p>
-          </div>
-        </div>
-        {body && <p className="text-[#79828b] text-sm mb-5">{body}</p>}
-        <div className={`flex gap-3 ${!body ? "mt-4" : ""}`}>
-          <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors">{cancelLabel}</button>
-          <button onClick={onConfirm} className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-transform ${confirmCls}`}>{confirmLabel}</button>
-        </div>
       </div>
     </div>
   );

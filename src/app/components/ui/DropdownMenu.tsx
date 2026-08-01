@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 export function DropdownPanel({
   children,
   className = "",
@@ -47,7 +49,8 @@ export function DropdownItem({
   );
 }
 
-/** Dropdown row that arms on first tap (sweeps in a solid fill + confirm label/icon) and fires on the second tap. */
+/** Dropdown row that arms on first tap (sweeps in a solid fill + confirm label/icon) and fires on the second tap.
+ * Disarms itself on anything other than a second tap on the same row - a click or scroll anywhere else. */
 export function ConfirmDropdownItem({
   icon,
   label,
@@ -56,6 +59,7 @@ export function ConfirmDropdownItem({
   armed,
   onArm,
   onConfirm,
+  onDisarm,
 }: {
   icon: React.ReactNode;
   label: React.ReactNode;
@@ -64,7 +68,24 @@ export function ConfirmDropdownItem({
   armed: boolean;
   onArm: () => void;
   onConfirm: () => void;
+  onDisarm?: () => void;
 }) {
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!armed || !onDisarm) return;
+    function disarm(e: Event) {
+      if (e.target instanceof Node && btnRef.current?.contains(e.target)) return;
+      onDisarm!();
+    }
+    document.addEventListener("pointerdown", disarm);
+    document.addEventListener("wheel", disarm, { passive: true });
+    return () => {
+      document.removeEventListener("pointerdown", disarm);
+      document.removeEventListener("wheel", disarm);
+    };
+  }, [armed, onDisarm]);
+
   const fill =
     variant === "destructive" ? "bg-[#ef4444]" :
     variant === "warning" ? "bg-[#eab308]" :
@@ -81,6 +102,7 @@ export function ConfirmDropdownItem({
 
   return (
     <button
+      ref={btnRef}
       onClick={armed ? onConfirm : onArm}
       className={`relative flex items-center justify-between gap-3 w-full h-11 px-4 text-sm font-semibold text-left overflow-hidden focus:outline-none transition-colors ${
         armed ? "" : idleHover

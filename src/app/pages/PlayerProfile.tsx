@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useLocation, useParams } from "react-router";
 import { Navigate } from "react-router";
 import { Send, Instagram, Calendar, MapPin, User } from "lucide-react";
 import { SKILL_STYLE } from "../data/adminData";
@@ -9,6 +9,7 @@ import { VerifiedBadge } from "../components/ui/VerifiedBadge";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { shortDate, isPastDate } from "../lib/eventDate";
+import { getHub } from "../lib/hub";
 
 const SKILL_COLOR: Record<string, string> = {
   PRIME:        "text-[#ccff00]",
@@ -31,6 +32,8 @@ type NoteRow = { id: string; body: string };
 export function PlayerProfile() {
   const { playerId } = useParams<{ playerId: string }>();
   const { isLoggedIn, loading: authLoading } = useAuth();
+  const location = useLocation();
+  const hub = getHub(location);
 
   const [player, setPlayer] = useState<ProfileRow | null>(null);
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -133,7 +136,7 @@ export function PlayerProfile() {
               {player.telegram && player.show_telegram !== false && (
                 <a href={`https://t.me/${player.telegram.replace("@", "")}`} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] active:bg-white/5 transition-colors">
-                  <div className="w-8 h-8 rounded-lg bg-[#462ed1] flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-[#462ed1] flex items-center justify-center shrink-0">
                     <Send size={14} className="text-white -ml-0.5" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -145,7 +148,7 @@ export function PlayerProfile() {
               {player.instagram && player.show_instagram !== false && (
                 <a href={`https://instagram.com/${player.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer"
                   className={`flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] active:bg-white/5 transition-colors ${player.telegram && player.show_telegram !== false ? "border-t border-white/[0.06]" : ""}`}>
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888] flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888] flex items-center justify-center shrink-0">
                     <Instagram size={14} className="text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -168,7 +171,7 @@ export function PlayerProfile() {
           ) : (
             <div className="flex flex-col gap-2">
               {upcomingEvents.map(e => (
-                <Link key={e.id} to={`/events/${e.id}`} className="block bg-[#212121] rounded-xl px-4 py-3.5 hover:bg-[#1c2a36] transition-colors">
+                <Link key={e.id} to={`/events/${e.id}`} state={{ hub }} className="block bg-[#212121] rounded-xl px-4 py-3.5 hover:bg-[#1c2a36] transition-colors">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="text-sm font-bold text-white uppercase tracking-wide">{e.title}</span>
                   </div>
@@ -201,6 +204,7 @@ export function PlayerProfile() {
                 <Link
                   key={e.id}
                   to={`/events/${e.id}`}
+                  state={{ hub }}
                   className={`flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors ${i > 0 ? "border-t border-white/[0.06]" : ""}`}
                 >
                   <span className="text-sm text-white/75 truncate">{e.title}</span>

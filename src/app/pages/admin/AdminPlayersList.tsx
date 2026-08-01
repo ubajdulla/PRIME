@@ -84,7 +84,7 @@ export function AdminPlayersList() {
           <button
             key={pos}
             onClick={() => setPosition(pos)}
-            className={`px-3 py-1.5 rounded-lg font-bold text-[11px] uppercase tracking-wider whitespace-nowrap flex-shrink-0 border transition-all ${
+            className={`px-3 py-1.5 rounded-full font-bold text-[11px] uppercase tracking-wider whitespace-nowrap flex-shrink-0 border transition-all ${
               position === pos
                 ? "bg-white/10 text-white border-white/20"
                 : "bg-transparent text-[#79828b] border-white/5 hover:border-white/15 hover:text-white/70"

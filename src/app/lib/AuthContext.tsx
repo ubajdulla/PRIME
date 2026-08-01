@@ -18,6 +18,14 @@ export type Profile = {
   is_admin: boolean;
 };
 
+export type SignUpFields = {
+  name: string;
+  email: string;
+  password: string;
+  phone: string;
+  birthDate: string;
+};
+
 type AuthContextValue = {
   user: User | null;
   profile: Profile | null;
@@ -25,7 +33,7 @@ type AuthContextValue = {
   isAdmin: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (name: string, email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (fields: SignUpFields) => Promise<{ error: string | null; needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -73,13 +81,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   }
 
-  async function signUp(name: string, email: string, password: string) {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name } },
+  async function signUp(fields: SignUpFields) {
+    const { data, error } = await supabase.auth.signUp({
+      email: fields.email,
+      password: fields.password,
+      options: {
+        data: {
+          name: fields.name,
+          phone: fields.phone,
+          birth_date: fields.birthDate,
+        },
+      },
     });
-    return { error: error?.message ?? null };
+    return { error: error?.message ?? null, needsConfirmation: !error && !data.session };
   }
 
   async function signOut() {

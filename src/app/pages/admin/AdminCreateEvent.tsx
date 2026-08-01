@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, FileText, X } from "lucide-react";
 import { SKILL_ORDER } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
 import { SelectField } from "../../components/ui/SelectField";
@@ -39,11 +39,12 @@ export function AdminCreateEvent() {
 
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [shake, setShake] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(isEditMode);
   const [titleTouched, setTitleTouched] = useState(false);
   const [locations, setLocations] = useState<string[]>([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -56,6 +57,7 @@ export function AdminCreateEvent() {
     title: suggestedTitle("GAMES", "Rookie"), description: "", category: "GAMES", level: "Rookie", location: "",
     price: "150", capacity: "12", date: "",
     startH: "00", startM: "00", endH: "00", endM: "00",
+    attachmentUrl: "", attachmentName: "",
   });
 
   useEffect(() => {
@@ -85,6 +87,7 @@ export function AdminCreateEvent() {
         date: data.event_date ?? "",
         startH: startTime.h, startM: startTime.m,
         endH: endTime.h, endM: endTime.m,
+        attachmentUrl: data.attachment_url ?? "", attachmentName: data.attachment_name ?? "",
       });
       setLoadingEdit(false);
     })();
@@ -93,13 +96,37 @@ export function AdminCreateEvent() {
 
   const s = (k: string, v: string) => setF(p => ({ ...p, [k]: v }));
 
+  function triggerShake(logMessage?: string) {
+    if (logMessage) console.error(logMessage);
+    setShake(false);
+    requestAnimationFrame(() => setShake(true));
+  }
+
   const showLevel = f.category === "GAMES" || f.category === "TRAININGS" || f.category === "BEACH";
   const image = categoryImage(f.category);
+
+  async function handleAttachmentChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingAttachment(true);
+    const path = `${editId ?? "new"}/${Date.now()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage.from("event-attachments").upload(path, file, { upsert: true });
+    if (uploadError) { triggerShake(uploadError.message); setUploadingAttachment(false); return; }
+    const { data } = supabase.storage.from("event-attachments").getPublicUrl(path);
+    setF(p => ({ ...p, attachmentUrl: data.publicUrl, attachmentName: file.name }));
+    setUploadingAttachment(false);
+  }
 
   async function handleSave() {
     const capacityNum = f.capacity ? parseInt(f.capacity, 10) : 0;
     if (!capacityNum || capacityNum < 2) {
-      setError("Max Players is required (minimum 2).");
+      triggerShake("Max Players is required (minimum 2).");
+      return;
+    }
+
+    if (!f.date) {
+      triggerShake("Date is required.");
       return;
     }
 
@@ -115,15 +142,16 @@ export function AdminCreateEvent() {
       price: priceNum,
       price_label: priceNum > 0 ? `${priceNum} CZK` : "FREE",
       capacity: capacityNum,
+      attachment_url: f.attachmentUrl || null,
+      attachment_name: f.attachmentUrl ? f.attachmentName : null,
     };
 
-    setError(null);
     setSaving(true);
 
     if (isEditMode) {
       const { error } = await supabase.from("events").update(payload).eq("id", editId);
       setSaving(false);
-      if (error) { setError(error.message); return; }
+      if (error) { triggerShake(error.message); return; }
       setDone(true);
       setTimeout(() => navigate(`/admin/events/${editId}`), 1200);
       return;
@@ -136,7 +164,7 @@ export function AdminCreateEvent() {
       .single();
 
     setSaving(false);
-    if (error || !data) { setError(error?.message ?? "Could not save event."); return; }
+    if (error || !data) { triggerShake(error?.message ?? "Could not save event."); return; }
 
     setDone(true);
     setTimeout(() => navigate(`/admin/events/${data.id}`), 1200);
@@ -166,12 +194,6 @@ export function AdminCreateEvent() {
 
       <div className="max-w-[640px] mx-auto px-4 py-5 flex flex-col gap-5">
 
-        {error && (
-          <div className="px-4 py-3 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] text-sm">
-            {error}
-          </div>
-        )}
-
         {/* Title + Description */}
         <FieldGroup>
           <Field label="Event Title">
@@ -182,6 +204,24 @@ export function AdminCreateEvent() {
             <textarea value={f.description} onChange={e => s("description", e.target.value)}
               placeholder="Event details, rules, notes..." rows={2}
               className={`${F_INPUT} resize-none`} />
+          </Field>
+          <Field label="Attachment (PDF)">
+            {f.attachmentName ? (
+              <div className="flex items-center gap-2.5">
+                <FileText size={15} className="text-white/60 shrink-0" />
+                <span className="flex-1 text-white text-sm font-bold truncate">{f.attachmentName}</span>
+                <button type="button" onClick={() => setF(p => ({ ...p, attachmentUrl: "", attachmentName: "" }))}
+                  className="text-[#79828b] hover:text-white transition-colors">
+                  <X size={15} />
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-2 text-[#79828b] text-sm font-bold cursor-pointer hover:text-white transition-colors">
+                <FileText size={15} />
+                <span>{uploadingAttachment ? "Uploading..." : "Upload PDF"}</span>
+                <input type="file" accept="application/pdf" className="hidden" disabled={uploadingAttachment} onChange={handleAttachmentChange} />
+              </label>
+            )}
           </Field>
         </FieldGroup>
 
@@ -267,7 +307,8 @@ export function AdminCreateEvent() {
 
         {/* Save — Back lives in the header (BackBar) already, no need to repeat it here */}
         <button type="button" onClick={handleSave} disabled={saving} onPointerDown={saveRipple.onPointerDown}
-          className="relative overflow-hidden w-full py-4 rounded-2xl font-bold text-base bg-[#462ed1] text-white focus:outline-none disabled:opacity-50">
+          onAnimationEnd={() => setShake(false)}
+          className={`relative overflow-hidden w-full py-4 rounded-2xl font-bold text-base bg-[#462ed1] text-white focus:outline-none disabled:opacity-50 ${shake ? "animate-shake" : ""}`}>
           {saving ? "…" : isEditMode ? "Save Changes" : "Save as Draft"}
           <RippleLayer ripples={saveRipple.ripples} />
         </button>

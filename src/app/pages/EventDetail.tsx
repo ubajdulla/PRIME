@@ -1,22 +1,30 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { useLang } from "../i18n";
 import { navDir } from "../lib/navDir";
+import { getHub } from "../lib/hub";
 import {
   ChevronDown,
   MapPin,
   Calendar,
   Clock,
-  CheckCircle2,
   User,
   Ticket,
   Share2,
+  FileText,
+  Download,
+  LogOut,
 } from "lucide-react";
 import { Toast } from "../components/ui/Toast";
+import { ModalOverlay } from "../components/ui/Modal";
 import { useWaterRipple, RippleLayer } from "../components/ui/useWaterRipple";
 import { BackBar } from "../components/ui/BackBar";
 import { TrustDot } from "../components/ui/TrustDot";
 import { VerifiedBadge } from "../components/ui/VerifiedBadge";
+import { ProfileRow } from "../components/ui/ProfileRow";
+import { LevelBookmark } from "../components/ui/LevelBookmark";
+import { CategoryIcon } from "../components/ui/CategoryIcon";
+import { PositionList } from "../components/ui/PositionList";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { computeJoinStatus } from "../lib/joinType";
@@ -28,6 +36,8 @@ type EventRow = {
   description: string | null;
   category: string | null;
   level: string | null;
+  attachment_url: string | null;
+  attachment_name: string | null;
   event_date: string;
   event_time: string;
   location: string;
@@ -59,6 +69,8 @@ function findScrollParent(el: HTMLElement): HTMLElement | (Window & typeof globa
 
 export function EventDetail() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const hub = getHub(location);
   const { id } = useParams();
   const { t } = useLang();
   const { user: authUser, profile, isLoggedIn, isAdmin } = useAuth();
@@ -73,8 +85,12 @@ export function EventDetail() {
     setToast({ message, visible: true });
   }
 
-  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [leaveArmed, setLeaveArmed] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const joinBtnRef = useRef<HTMLButtonElement>(null);
+  const joinModalBoxRef = useRef<HTMLDivElement>(null);
+  const [joinModalOrigin, setJoinModalOrigin] = useState<{ x: number; y: number } | null>(null);
+  const [joinModalEntered, setJoinModalEntered] = useState(false);
   const [waitlistOpen, setWaitlistOpen] = useState(false);
   const waitlistBoxRef = useRef<HTMLDivElement>(null);
   const waitlistRowsRef = useRef<HTMLDivElement>(null);
@@ -172,8 +188,11 @@ export function EventDetail() {
     rosterList.sort((a, b) => (a.id === moderatorId ? -1 : 0) - (b.id === moderatorId ? -1 : 0));
     setRoster(rosterList);
 
+    // Requests (pending approval on REQUEST ONLY events) show up in the same
+    // Waitlist panel as actual waitlist entries — from the outside both just
+    // mean "not confirmed on the roster yet", so they're shown together.
     const waitlistList: WaitlistEntry[] = (requestRows ?? [])
-      .filter(r => r.kind === "waitlist")
+      .filter(r => r.kind === "waitlist" || r.kind === "request")
       .map(r => ({ id: r.profiles?.id ?? r.player_id, name: r.profiles?.name ?? "Unknown", avatar: r.profiles?.avatar ?? null, trustLabel: r.profiles?.visible_trust_label ?? null, verified: r.profiles?.is_verified ?? false }));
     setWaitlist(waitlistList);
 
@@ -196,6 +215,28 @@ export function EventDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, authUser?.id]);
 
+  useEffect(() => {
+    if (!leaveArmed) return;
+    const timer = setTimeout(() => setLeaveArmed(false), 3000);
+    return () => clearTimeout(timer);
+  }, [leaveArmed]);
+
+  // Tap-to-confirm disarms on anything other than a second tap on the same
+  // button - a click/scroll anywhere else in the app, not just a timeout.
+  useEffect(() => {
+    if (!leaveArmed) return;
+    function disarm(e: Event) {
+      if (e.target instanceof Node && joinBtnRef.current?.contains(e.target)) return;
+      setLeaveArmed(false);
+    }
+    document.addEventListener("pointerdown", disarm);
+    document.addEventListener("wheel", disarm, { passive: true });
+    return () => {
+      document.removeEventListener("pointerdown", disarm);
+      document.removeEventListener("wheel", disarm);
+    };
+  }, [leaveArmed]);
+
   const isCanceled = event?.status === "canceled";
   const isRequestOnly = event ? computeJoinStatus(event.level, profile?.skill_level) === "REQUEST ONLY" : false;
   const requiresPosition = event?.category === "GAMES" && POSITION_REQUIRED_LEVELS.includes(event?.level ?? "");
@@ -214,9 +255,45 @@ export function EventDetail() {
 
   function handleJoinClick() {
     if (!isLoggedIn) { navigate("/signin"); return; }
-    if (myStatus) { setShowLeaveConfirm(true); }
-    else { setSelectedPosition(null); setTeamName(""); setShowJoinModal(true); }
+    if (myStatus) {
+      if (leaveArmed) { setLeaveArmed(false); confirmLeave(); } else { setLeaveArmed(true); }
+      return;
+    }
+    const rect = joinBtnRef.current?.getBoundingClientRect();
+    setJoinModalOrigin(rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null);
+    setJoinModalEntered(false);
+    setSelectedPosition(null);
+    setTeamName("");
+    setShowJoinModal(true);
   }
+
+  // Modal pops open from the CTA button's on-screen position instead of just
+  // fading in centered. Must measure the box's NATURAL (untransformed) rect
+  // before any scale is applied — getBoundingClientRect() already reflects
+  // CSS transforms, so reading it after scale-0 was live returned a
+  // collapsed rect near the default center origin, not the button. Doing
+  // this via direct style writes in a layout effect (instead of a Tailwind
+  // class driven by state) means the browser never paints the untransformed
+  // frame — no flash before it collapses to the origin point.
+  useLayoutEffect(() => {
+    if (!showJoinModal || !joinModalBoxRef.current) return;
+    const box = joinModalBoxRef.current;
+    const rect = box.getBoundingClientRect();
+    if (joinModalOrigin) {
+      box.style.transformOrigin = `${joinModalOrigin.x - rect.left}px ${joinModalOrigin.y - rect.top}px`;
+    }
+    box.style.transition = "none";
+    box.style.transform = "scale(0.01)";
+    box.style.opacity = "0";
+    void box.offsetHeight; // force reflow so the collapsed state actually commits
+    const raf = requestAnimationFrame(() => {
+      box.style.transition = "transform 320ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease-out";
+      box.style.transform = "scale(1)";
+      box.style.opacity = "1";
+      setJoinModalEntered(true);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [showJoinModal, joinModalOrigin]);
 
   async function confirmJoin() {
     if (!authUser || !event || busy) return;
@@ -245,7 +322,6 @@ export function EventDetail() {
     }
     await load(event.id);
     setBusy(false);
-    setShowLeaveConfirm(false);
   }
 
   const joinButtonLabel = () => {
@@ -270,104 +346,70 @@ return (
     <div className="min-h-full bg-[#181818] text-white font-sans">
       <Toast message={toast.message} visible={toast.visible} variant="copied" onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
 
-      {/* Join confirmation modal */}
+      {/* Join confirmation modal — pops open from the CTA button's on-screen
+          position, so it keeps its own overlay opacity + box scale animation
+          instead of the shell's default instant show. */}
       {showJoinModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowJoinModal(false)}>
-          <div className="w-full max-w-sm bg-[#212121] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">
-              {isRequestOnly ? t.event.sendRequest : isFull ? "Join Waitlist" : t.event.joinTitle}
-            </h3>
-            <p className="text-[#79828b] text-sm mb-5">
-              {isRequestOnly
-                ? t.event.requestDesc
-                : isFull
-                  ? "This event is full — you'll join the waitlist and get notified if a spot opens up."
-                  : t.event.joinDesc}
-            </p>
+        <ModalOverlay
+          onClose={() => setShowJoinModal(false)}
+          rounded="rounded-[2rem]"
+          overlayClassName={`transition-opacity duration-200 ${joinModalEntered ? "opacity-100" : "opacity-0"}`}
+          boxRef={joinModalBoxRef}
+        >
+          <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">
+            {isRequestOnly ? t.event.sendRequest : isFull ? "Join Waitlist" : t.event.joinTitle}
+          </h3>
+          <p className="text-[#79828b] text-sm mb-5">
+            {isRequestOnly
+              ? t.event.requestDesc
+              : isFull
+                ? "This event is full — you'll join the waitlist and get notified if a spot opens up."
+                : t.event.joinDesc}
+          </p>
 
-            {requiresPosition && (
-              <div className="mb-5">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2">{t.event.selectPosition}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {POSITIONS.map(pos => (
-                    <button
-                      key={pos}
-                      onClick={() => setSelectedPosition(pos)}
-                      className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
-                        selectedPosition === pos
-                          ? isRequestOnly
-                            ? "bg-[#eab308] border-[#eab308] text-black"
-                            : "bg-[#462ed1] border-[#462ed1] text-white"
-                          : "bg-white/5 border-white/10 text-[#79828b] hover:text-white hover:border-white/25"
-                      }`}
-                    >
-                      {pos}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {requiresTeamName && (
-              <div className="mb-5">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2">{t.event.teamName}</p>
-                <input
-                  autoFocus
-                  value={teamName}
-                  onChange={e => setTeamName(e.target.value)}
-                  placeholder={t.event.teamNamePlaceholder}
-                  className="w-full h-10 bg-white/5 border border-white/10 rounded-lg px-3 text-white text-sm font-bold outline-none focus:border-white/25 transition-colors placeholder:text-[#79828b] placeholder:font-normal"
-                />
-              </div>
-            )}
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowJoinModal(false)}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
-              >
-                {t.common.cancel}
-              </button>
-              <button
-                onClick={confirmJoin}
-                disabled={busy || (requiresPosition && !selectedPosition) || (requiresTeamName && !teamName.trim())}
-                className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${theme.button}`}
-              >
-                {isRequestOnly || isFull ? t.event.sendRequest : t.event.join}
-              </button>
+          {requiresPosition && (
+            <div className="mb-5">
+              <p className="block w-full text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-3">{t.event.selectPosition}</p>
+              <PositionList
+                positions={POSITIONS}
+                value={selectedPosition}
+                onChange={setSelectedPosition}
+                accent={isRequestOnly ? "gold" : "violet"}
+              />
             </div>
+          )}
+
+          {requiresTeamName && (
+            <div className="mb-5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2">{t.event.teamName}</p>
+              <input
+                autoFocus
+                value={teamName}
+                onChange={e => setTeamName(e.target.value)}
+                placeholder={t.event.teamNamePlaceholder}
+                className="w-full h-10 bg-white/5 border border-white/10 rounded-lg px-3 text-white text-sm font-bold outline-none focus:border-white/25 transition-colors placeholder:text-[#79828b] placeholder:font-normal"
+              />
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowJoinModal(false)}
+              className="flex-1 py-2.5 rounded-full border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
+            >
+              {t.common.cancel}
+            </button>
+            <button
+              onClick={confirmJoin}
+              disabled={busy || (requiresPosition && !selectedPosition) || (requiresTeamName && !teamName.trim())}
+              className={`flex-1 py-2.5 rounded-full font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${theme.button}`}
+            >
+              {isRequestOnly || isFull ? t.event.sendRequest : t.event.join}
+            </button>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
-      {/* Leave confirmation modal */}
-      {showLeaveConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLeaveConfirm(false)}>
-          <div className="w-full max-w-sm bg-[#212121] border border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">
-              {myStatus === "pending" ? t.event.cancelRequestTitle : t.event.leaveTitle}
-            </h3>
-            <p className="text-[#79828b] text-sm mb-6">
-              {myStatus === "pending" ? t.event.cancelRequestDesc : t.event.leaveDesc}
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowLeaveConfirm(false)}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
-              >
-                {t.event.keep}
-              </button>
-              <button
-                onClick={confirmLeave}
-                disabled={busy}
-                className="flex-1 py-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-bold text-sm transition-transform disabled:opacity-40"
-              >
-                {myStatus === "pending" ? t.event.cancelRequestBtn : t.event.leaveBtn}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <BackBar label="Events" to="/">
         <button
@@ -390,77 +432,71 @@ return (
 
         {/* COMPACT UPPER SECTION */}
         <div className="mb-6">
-          <h1 className="text-3xl font-black italic uppercase tracking-tight leading-none text-white mb-4">
-            {title}
-          </h1>
-
-          {/* Organizer */}
-          <div className="flex items-center justify-between bg-[#212121] border border-white/5 rounded-xl p-2.5 mb-4 shadow-sm">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => { navDir.forward(); navigate(playerProfilePath(event.moderator_id)); }}
-                className={`relative shrink-0 ${isLoggedIn ? "cursor-pointer" : "cursor-default"}`}
-                disabled={!isLoggedIn}
-              >
-                {event.moderator?.avatar ? (
-                  <img
-                    src={event.moderator.avatar}
-                    alt="Organizer"
-                    className="w-11 h-11 rounded-full object-cover border border-white/10"
-                  />
-                ) : (
-                  <div className="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                    <User size={18} className="text-white/30" />
-                  </div>
-                )}
-                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#462ed1] rounded-full flex items-center justify-center border-2 border-[#212121]">
-                  <CheckCircle2 size={10} className="text-white" strokeWidth={3} />
-                </div>
-              </button>
-              <div>
-                <div className="text-[10px] font-bold text-[#79828b] uppercase tracking-widest leading-tight">{t.event.organizer}</div>
-                <div className="text-white font-bold text-sm">{event.moderator?.name ?? "—"}</div>
-              </div>
-            </div>
+          <div className="flex items-center gap-2 mb-4">
+            <h1 className="text-3xl font-black italic uppercase tracking-tight leading-none text-white">
+              {title}
+            </h1>
+            <CategoryIcon category={event.category} size={20} className="text-[#79828b] shrink-0" />
           </div>
 
+          {/* Organizer */}
+          <ProfileRow
+            avatar={event.moderator?.avatar ?? null}
+            avatarAlt="Organizer"
+            avatarSize={44}
+            eyebrow={t.event.organizer}
+            primary={<span className="text-white font-bold text-sm">{event.moderator?.name ?? "—"}</span>}
+            checkmark
+            variant="card"
+            className="mb-4 shadow-sm"
+            onClick={isLoggedIn ? () => { navDir.forward(); navigate(playerProfilePath(event.moderator_id), { state: { hub } }); } : undefined}
+          />
+
           {/* Info Panel */}
-          <div className="bg-[#212121] border border-white/5 rounded-xl flex flex-col">
-            <div className="flex justify-between items-center p-3 border-b border-white/5 flex-wrap gap-2">
-              <div className="flex items-center gap-2.5">
+          <div className="relative">
+            {event.level && <LevelBookmark level={event.level} insufficient={isRequestOnly} />}
+            <div className="bg-[#212121] border border-white/5 rounded-2xl divide-y divide-white/5 overflow-hidden">
+              <div className="flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors">
                 <Calendar size={16} className={theme.primary} />
-                <span className="text-sm font-semibold text-white/90">{shortDate(event.event_date, true)}</span>
+                <span className="text-sm font-semibold text-white/90">{shortDate(event.event_date, true)} · {event.event_time}</span>
               </div>
-              <div className="hidden sm:block w-[1px] h-4 bg-white/10" />
-              <div className="flex items-center gap-2.5">
-                <Clock size={16} className={theme.primary} />
-                <span className="text-sm font-semibold text-white/90">{event.event_time}</span>
-              </div>
-              <div className="hidden sm:block w-[1px] h-4 bg-white/10" />
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors">
                 <Ticket size={16} className={theme.primary} />
                 <span className="text-sm font-semibold text-white/90">{event.price_label ?? "FREE"}</span>
               </div>
+              <a
+                href={`https://www.google.com/maps/search/${encodeURIComponent(event.location)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors"
+              >
+                <MapPin size={16} className={theme.primary} />
+                <span className="text-sm font-semibold text-white/90 truncate">
+                  {event.location}
+                </span>
+              </a>
+              {event.description && (
+                <div className="p-3 hover:bg-white/[0.07] transition-colors">
+                  <p className="text-[#79828b] text-xs leading-relaxed">{event.description}</p>
+                </div>
+              )}
+              {event.attachment_url && (
+                <a
+                  href={event.attachment_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download={event.attachment_name ?? undefined}
+                  className="flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors"
+                >
+                  <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+                    <FileText size={13} className="text-white/60" />
+                  </div>
+                  <span className="text-sm font-semibold text-white/90 truncate flex-1">{event.attachment_name ?? "Attachment"}</span>
+                  <Download size={14} className="text-[#79828b] shrink-0" />
+                </a>
+              )}
             </div>
-            <a
-              href={`https://www.google.com/maps/search/${encodeURIComponent(event.location)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2.5 p-3 hover:bg-white/5 transition-colors rounded-b-xl"
-            >
-              <MapPin size={16} className={theme.primary} />
-              <span className="text-sm font-semibold text-white/90 truncate">
-                {event.location}
-              </span>
-            </a>
           </div>
-
-          {event.description && (
-            <p className="text-[#79828b] text-xs leading-relaxed mt-4 px-1">
-              {event.description}
-            </p>
-          )}
         </div>
 
         {/* ROSTER SECTION */}
@@ -472,22 +508,40 @@ return (
             </h2>
 
             {isCanceled ? (
-              <span className="w-48 py-3 flex items-center justify-center rounded-xl font-bold text-sm tracking-wide bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] cursor-default">
+              <span className="w-48 py-3 flex items-center justify-center rounded-xl font-bold text-sm tracking-wide bg-[#ef4444]/10 text-[#ef4444] cursor-default">
                 {t.event.canceled.toUpperCase()}
               </span>
             ) : myStatus === "joined" && rosterLocked ? null : (
               <button
+                ref={joinBtnRef}
                 onClick={handleJoinClick}
                 onPointerDown={joinRipple.onPointerDown}
-                className={`relative overflow-hidden w-48 py-3 flex items-center justify-center rounded-xl font-bold text-sm tracking-wide transition-colors ${
+                className={`relative overflow-hidden w-48 py-3 flex items-center justify-center rounded-xl font-bold text-sm tracking-wide transition-colors focus:outline-none ${
                   myStatus
-                    ? isRequestOnly
-                      ? "bg-[#eab308]/10 hover:bg-[#eab308]/20 border border-[#eab308]/30 text-[#eab308]"
-                      : "bg-[#462ed1]/10 hover:bg-[#462ed1]/20 border border-[#462ed1]/30 text-[#462ed1]"
+                    ? leaveArmed
+                      ? "text-white"
+                      : isRequestOnly
+                        ? "bg-[#eab308]/10 hover:bg-[#eab308]/20 text-[#eab308]"
+                        : "bg-[#462ed1]/10 hover:bg-[#462ed1]/20 text-[#462ed1]"
                     : `hover:brightness-110 ${theme.button}`
                 }`}
               >
-                {myStatus === "joined" ? t.event.leaveBtn.toUpperCase() : myStatus === "pending" ? t.event.cancelRequestBtn.toUpperCase() : joinButtonLabel()}
+                {myStatus && (
+                  <span
+                    aria-hidden
+                    className={`absolute inset-0 bg-[#dc2626] transition-transform duration-300 ease-out ${leaveArmed ? "translate-x-0" : "translate-x-full"}`}
+                  />
+                )}
+                <span className="relative z-10 flex items-center justify-center gap-2 whitespace-nowrap">
+                  {myStatus && (
+                    <LogOut size={14} className={`shrink-0 transition-transform duration-300 ${leaveArmed ? "rotate-12" : ""}`} />
+                  )}
+                  {myStatus
+                    ? leaveArmed
+                      ? "Tap to Confirm"
+                      : myStatus === "joined" ? t.event.leaveBtn.toUpperCase() : t.event.cancelRequestBtn.toUpperCase()
+                    : joinButtonLabel()}
+                </span>
                 <RippleLayer ripples={joinRipple.ripples} />
               </button>
             )}
@@ -512,59 +566,42 @@ return (
                 const clickable = isLoggedIn && !player.isGuest;
                 const isMe = player.id === authUser?.id;
                 const isOrganizer = player.id === event.moderator_id;
-                const Row = clickable ? "button" : "div";
                 return (
-                  <Row
+                  <ProfileRow
                     key={player.id}
-                    {...(clickable
-                      ? { type: "button" as const, onClick: () => { navDir.forward(); navigate(playerProfilePath(player.id)); } }
-                      : {})}
-                    className={`flex items-center gap-3 p-2.5 w-full text-left transition-colors focus:outline-none ${
-                      clickable ? "hover:bg-white/[0.07] cursor-pointer" : ""
-                    }`}
-                  >
-                    <div className="relative shrink-0">
-                      {player.avatar ? (
-                        <img
-                          src={player.avatar}
-                          alt={player.name}
-                          className="w-10 h-10 rounded-full object-cover border border-white/10"
-                        />
+                    avatar={player.avatar}
+                    avatarAlt={player.name}
+                    verified={player.verified}
+                    trustLabel={player.trustLabel}
+                    onClick={clickable ? () => { navDir.forward(); navigate(playerProfilePath(player.id), { state: { hub } }); } : undefined}
+                    primary={
+                      requiresTeamName ? (
+                        <span className={`font-bold text-sm block truncate ${player.teamName ? "text-white" : "text-[#79828b]/50 italic font-normal"}`}>
+                          {player.teamName || "No team name set"}
+                        </span>
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                          <User size={16} className="text-white/30" />
-                        </div>
-                      )}
-                      <VerifiedBadge verified={player.verified} size={13} ringClassName="border-[#212121]" />
-                      <TrustDot label={player.trustLabel} size={10} ringClassName="border-[#212121]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      {requiresTeamName ? (
-                        <>
-                          <span className={`font-bold text-sm block truncate ${player.teamName ? "text-white" : "text-[#79828b]/50 italic font-normal"}`}>
-                            {player.teamName || "No team name set"}
-                          </span>
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-[#79828b] block truncate">
-                            Captain: {player.name}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="font-bold text-sm block text-white truncate">{player.name}</span>
-                          {requiresPosition && player.position && (
-                            <span className={`text-[10px] font-bold uppercase tracking-widest ${theme.primary}`}>
-                              {player.position}
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </div>
-                    {(isOrganizer || isMe) && (
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#79828b] shrink-0">
-                        {isOrganizer ? "Organizer" : "You"}
-                      </span>
-                    )}
-                  </Row>
+                        <span className="font-bold text-sm block text-white truncate">{player.name}</span>
+                      )
+                    }
+                    secondary={
+                      requiresTeamName ? (
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#79828b] block truncate">
+                          Captain: {player.name}
+                        </span>
+                      ) : requiresPosition && player.position ? (
+                        <span className={`text-[10px] font-bold uppercase tracking-widest ${theme.primary}`}>
+                          {player.position}
+                        </span>
+                      ) : undefined
+                    }
+                    trailing={
+                      (isOrganizer || isMe) && (
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#79828b] shrink-0">
+                          {isOrganizer ? "Organizer" : "You"}
+                        </span>
+                      )
+                    }
+                  />
                 );
               })}
             </div>
@@ -575,26 +612,22 @@ return (
             const renderRow = (player: WaitlistEntry, withTopBorder: boolean) => {
               const isMe = player.id === authUser?.id;
               return (
-                <div key={player.id} className={`flex items-center gap-3 px-3 py-2.5 ${withTopBorder ? "border-t border-white/[0.05]" : ""}`}>
-                  <button
-                    type="button"
-                    onClick={() => { if (isMe) navigate("/profile"); else { navDir.forward(); navigate(playerProfilePath(player.id)); } }}
-                    className="relative shrink-0 cursor-pointer"
-                  >
-                    {player.avatar ? (
-                      <img src={player.avatar} alt={player.name} className="w-8 h-8 rounded-full object-cover border border-white/10" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                        <User size={12} className="text-white/30" />
-                      </div>
-                    )}
-                    <VerifiedBadge verified={player.verified} size={10} ringClassName="border-[#212121]" />
-                    <TrustDot label={player.trustLabel} size={8} ringClassName="border-[#212121]" />
-                  </button>
-                  <span className={`font-bold text-sm flex-1 ${isMe ? theme.primary : "text-white"}`}>
-                    {player.name}
-                    {isMe && <span className="text-[10px] text-[#79828b] font-bold ml-2 normal-case tracking-normal">{t.event.you}</span>}
-                  </span>
+                <div key={player.id} className={withTopBorder ? "border-t border-white/[0.05]" : ""}>
+                  <ProfileRow
+                    avatar={player.avatar}
+                    avatarAlt={player.name}
+                    verified={player.verified}
+                    trustLabel={player.trustLabel}
+                    onClick={() => { if (isMe) navigate("/profile", { state: { hub } }); else { navDir.forward(); navigate(playerProfilePath(player.id), { state: { hub } }); } }}
+                    primary={
+                      <span className={`font-bold text-sm block truncate ${isMe ? theme.primary : "text-white"}`}>{player.name}</span>
+                    }
+                    trailing={
+                      isMe && (
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#79828b] shrink-0">{t.event.you}</span>
+                      )
+                    }
+                  />
                 </div>
               );
             };

@@ -4,6 +4,7 @@ import { Calendar, User, Bell, ShieldCheck, ChevronDown, Check } from "lucide-re
 import logo from "../../imports/Prime_logo_nobg_white_border.png";
 import { useLang, LANG_CYCLE, type Lang } from "../i18n";
 import { navDir } from "../lib/navDir";
+import { getHub } from "../lib/hub";
 import { DropdownPanel } from "../components/ui/DropdownMenu";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
@@ -14,25 +15,13 @@ const LANG_OPTIONS: { code: Lang; label: string }[] = [
   { code: "ru", label: "Русский" },
 ];
 
-function getSection(path: string): string {
-  if (path === "/" || path.startsWith("/events")) return "events";
-  if (path.startsWith("/alerts")) return "alerts";
-  if (path.startsWith("/profile")) return "profile";
-  if (path.startsWith("/players")) return "players";
-  if (path.startsWith("/admin/player/")) return "admin-player";
-  if (path.startsWith("/admin")) return "admin";
-  return path;
-}
-
 function NavigationGuard() {
+  // Only block a POP (back/forward) that would cross from one navbar hub into
+  // another — content pushed within a hub (e.g. alerts -> notification -> event
+  // detail) always allows going back, since it carries its launching hub forward.
   const blocker = useBlocker(({ currentLocation, nextLocation, historyAction }) => {
     if (historyAction !== "POP") return false;
-    const from = getSection(currentLocation.pathname);
-    const to   = getSection(nextLocation.pathname);
-    // Player profile pages are a universal "pass-through" — always allow POP to/from them
-    if (from === "players" || to === "players") return false;
-    if (from === "admin-player" || to === "admin-player") return false;
-    return from !== to;
+    return getHub(currentLocation) !== getHub(nextLocation);
   });
 
   useEffect(() => {
@@ -98,7 +87,7 @@ export function MainLayout() {
           <a
             href="/"
             onClick={handleLogoClick}
-            className="flex items-center justify-center w-12 h-12 rounded-xl hover:opacity-80 transition-opacity duration-200"
+            className="flex items-center justify-center w-12 h-12 rounded-full hover:opacity-80 transition-opacity duration-200"
           >
             <img src={logo} alt="Prime Logo" className="w-9 h-9 object-contain" />
           </a>
@@ -115,7 +104,7 @@ export function MainLayout() {
           <div ref={desktopLangRef} className="relative">
             <button
               onClick={() => setShowLangDropdown(v => !v)}
-              className="flex items-center justify-center w-12 h-12 rounded-xl text-[#8899a6] hover:text-white hover:bg-white/5 transition-colors"
+              className="flex items-center justify-center w-12 h-12 rounded-full text-[#8899a6] hover:text-white hover:bg-white/5 transition-colors"
               title="Language"
             >
               <span className="font-black text-sm tracking-widest">{lang.toUpperCase()}</span>
@@ -157,7 +146,7 @@ export function MainLayout() {
         <div ref={mobileLangRef} className="absolute right-4">
           <button
             onClick={() => setShowLangDropdown(v => !v)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 text-[#79828b] hover:text-white transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/5 text-[#79828b] hover:text-white transition-colors"
           >
             <span className="font-black text-[13px] tracking-widest">{lang.toUpperCase()}</span>
             <ChevronDown
@@ -214,7 +203,7 @@ function NavItem({ to, icon, label, end, badge }: { to: string; icon: React.Reac
       replace
       onClick={() => navDir.none()}
       className={({ isActive }) =>
-        `relative flex items-center justify-center w-12 h-12 rounded-xl transition-colors
+        `relative flex items-center justify-center w-12 h-12 rounded-full transition-colors
          ${isActive ? "bg-white/[0.12] text-white" : "text-[#8899a6] hover:text-white hover:bg-white/10"}`
       }
       title={label}

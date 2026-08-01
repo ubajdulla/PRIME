@@ -149,7 +149,7 @@ export function AdminEvents() {
         <button
           onClick={() => navigate("/admin/events/create")}
           onPointerDown={createRipple.onPointerDown}
-          className="relative overflow-hidden flex items-center gap-2 h-11 bg-[#462ed1] text-white text-xs font-black uppercase tracking-widest px-4 rounded-xl"
+          className="relative overflow-hidden flex items-center gap-2 h-11 bg-[#462ed1] text-white text-xs font-black uppercase tracking-widest px-4 rounded-full"
         >
           <Plus size={15} />
           Create

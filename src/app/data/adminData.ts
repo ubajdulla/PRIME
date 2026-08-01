@@ -6,6 +6,19 @@ export type EventStatus = "upcoming" | "past" | "draft" | "canceled";
 export const SKILL_ORDER = ["Rookie", "Beginner", "Intermediate", "Advanced", "Pro", "PRIME"] as const;
 export type SkillLevel = typeof SKILL_ORDER[number];
 
+// One color for every tier — the app's accent violet. Only the numeric
+// range in the bookmark changes between levels, not the color. Shared
+// between EventCard's ribbon and the event detail info panel bookmark.
+export const LEVEL_ACCENT = "hsl(249, 64%, 50%)";
+export const LEVEL_RANGE: Record<string, string> = {
+  Rookie:       "1–2",
+  Beginner:     "2–3",
+  Intermediate: "3–4",
+  Advanced:     "4–5",
+  Pro:          "5–6",
+  PRIME:        "6–7",
+};
+
 export const SKILL_STYLE: Record<string, {
   text: string;
   badge: string;      // inactive badge
