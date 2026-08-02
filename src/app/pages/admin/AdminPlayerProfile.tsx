@@ -112,13 +112,6 @@ export function AdminPlayerProfile() {
   const [savingEditNote, setSavingEditNote] = useState(false);
   const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editNoteTextareaRef = useRef<HTMLTextAreaElement>(null);
-  // Scrolling the textarea itself into view only guarantees the textarea is
-  // visible - on mobile, with the keyboard open, the visibility/label row
-  // below it (still part of the same box) can end up hidden behind the
-  // keyboard anyway. Scrolling the whole box (block: "end") keeps that row
-  // visible too, since it anchors the box's bottom edge to the keyboard line.
-  const composerBoxRef = useRef<HTMLDivElement>(null);
-  const editNoteBoxRef = useRef<HTMLDivElement>(null);
 
   const [toast, setToast] = useState<{ message: string; variant: "success" | "copied" | "publish" | "error"; visible: boolean }>
     ({ message: "", variant: "success", visible: false });
@@ -153,10 +146,8 @@ export function AdminPlayerProfile() {
     if (!vv) return;
     function onResize() {
       const active = document.activeElement;
-      if (active === noteTextareaRef.current) {
-        composerBoxRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-      } else if (active === editNoteTextareaRef.current) {
-        editNoteBoxRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+      if (active === noteTextareaRef.current || active === editNoteTextareaRef.current) {
+        (active as HTMLTextAreaElement).scrollIntoView({ block: "center", behavior: "smooth" });
       }
     }
     vv.addEventListener("resize", onResize);
@@ -178,14 +169,22 @@ export function AdminPlayerProfile() {
     el.style.height = `${el.scrollHeight}px`;
     el.focus();
     el.setSelectionRange(el.value.length, el.value.length);
-    editNoteBoxRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [editingNoteId]);
 
   useEffect(() => {
     if (!openNoteMenuId) return;
     const close = () => setOpenNoteMenuId(null);
     document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    // Scroll happens on the page body, not a fixed dropdown - without this,
+    // the menu stays open and visually detaches from its trigger as the note
+    // list scrolls underneath it. `capture: true` catches scrolling inside
+    // any scrollable ancestor, not just window-level scroll.
+    document.addEventListener("scroll", close, { capture: true, passive: true });
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("scroll", close, { capture: true });
+    };
   }, [openNoteMenuId]);
 
   // Menu closing (click elsewhere, or picking another item) disarms the
@@ -683,7 +682,7 @@ export function AdminPlayerProfile() {
             onTransitionEnd={e => { if (e.propertyName === "grid-template-rows" && addingNote) setComposerSettled(true); }}
           >
             <div className={`${composerSettled ? "overflow-visible" : "overflow-hidden"} min-h-0`}>
-              <div ref={composerBoxRef} className={`bg-[#212121] rounded-xl p-3 flex flex-col gap-2 transition-opacity duration-150 ease-out ${addingNote ? "opacity-100" : "opacity-0"}`}>
+              <div className={`bg-[#212121] rounded-xl p-3 flex flex-col gap-2 transition-opacity duration-150 ease-out ${addingNote ? "opacity-100" : "opacity-0"}`}>
                 <textarea ref={noteTextareaRef} value={noteDraft}
                   onChange={e => {
                     setNoteDraft(e.target.value);
@@ -692,7 +691,7 @@ export function AdminPlayerProfile() {
                     el.style.height = `${el.scrollHeight}px`;
                   }}
                   onKeyDown={handleNoteKeyDown}
-                  onFocus={() => composerBoxRef.current?.scrollIntoView({ block: "end", behavior: "smooth" })}
+                  onFocus={() => noteTextareaRef.current?.scrollIntoView({ block: "center", behavior: "smooth" })}
                   placeholder="Add a note about this player… (Enter to save, Shift+Enter for new line)" rows={2}
                   enterKeyHint="send"
                   className="w-full bg-[#212121] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-hidden" />
@@ -794,7 +793,7 @@ export function AdminPlayerProfile() {
                       )}
                     </div>
                     {isEditing ? (
-                      <div ref={editNoteBoxRef} className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2">
                         <textarea
                           ref={editNoteTextareaRef}
                           value={editNoteDraft}
@@ -804,7 +803,7 @@ export function AdminPlayerProfile() {
                             el.style.height = "auto";
                             el.style.height = `${el.scrollHeight}px`;
                           }}
-                          onFocus={() => editNoteBoxRef.current?.scrollIntoView({ block: "end", behavior: "smooth" })}
+                          onFocus={() => editNoteTextareaRef.current?.scrollIntoView({ block: "center", behavior: "smooth" })}
                           onKeyDown={e => {
                             if (e.key === "Escape") { setEditingNoteId(null); setEditNoteDraft(""); }
                           }}
