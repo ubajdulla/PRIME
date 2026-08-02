@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useKeyboardInset } from "../../lib/useKeyboardInset";
 import { Link, useParams } from "react-router";
 import {
   Send, Instagram, Calendar, MapPin,
@@ -112,11 +113,15 @@ export function AdminPlayerProfile() {
   const [savingEditNote, setSavingEditNote] = useState(false);
   const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editNoteTextareaRef = useRef<HTMLTextAreaElement>(null);
-  // Scrolling just the textarea can leave the visibility/label row below it
-  // (still part of the same box) below the fold - scroll the whole box so
-  // that row stays visible too.
   const composerBoxRef = useRef<HTMLDivElement>(null);
   const editNoteBoxRef = useRef<HTMLDivElement>(null);
+  // Whichever box is focused gets pinned (position: sticky, bottom:
+  // keyboardInset) so it stays above the on-screen keyboard - not chased
+  // there reactively via scrollIntoView, just anchored the same way a chat
+  // app's message composer is.
+  const [composerFocused, setComposerFocused] = useState(false);
+  const [editNoteFocused, setEditNoteFocused] = useState(false);
+  const keyboardInset = useKeyboardInset();
 
   const [toast, setToast] = useState<{ message: string; variant: "success" | "copied" | "publish" | "error"; visible: boolean }>
     ({ message: "", variant: "success", visible: false });
@@ -148,27 +153,12 @@ export function AdminPlayerProfile() {
   // `autoFocus` prop only ever fires once - re-focus explicitly whenever it opens.
   useEffect(() => {
     if (addingNote) noteTextareaRef.current?.focus();
-    else setComposerSettled(false);
+    else { setComposerSettled(false); setComposerFocused(false); }
   }, [addingNote]);
 
-  // onFocus fires *before* the keyboard opens, so scrollIntoView there
-  // measures against the still-full-height viewport and can decide "already
-  // visible, no scroll needed" - then the keyboard opens afterwards and
-  // covers it anyway. interactive-widget=resizes-content means the browser
-  // now actually fires a real `resize` once the keyboard animation finishes
-  // and the layout viewport has genuinely shrunk - re-run the scroll then,
-  // against the real post-keyboard size, not the stale one from onFocus.
   useEffect(() => {
-    function onResize() {
-      if (document.activeElement === noteTextareaRef.current) {
-        composerBoxRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      } else if (document.activeElement === editNoteTextareaRef.current) {
-        editNoteBoxRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      }
-    }
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
+    if (!editingNoteId) setEditNoteFocused(false);
+  }, [editingNoteId]);
 
   useLayoutEffect(() => {
     const el = editNoteTextareaRef.current;
@@ -177,11 +167,9 @@ export function AdminPlayerProfile() {
     el.style.height = `${el.scrollHeight}px`;
     el.focus();
     el.setSelectionRange(el.value.length, el.value.length);
-    // The viewport meta's interactive-widget=resizes-content makes the layout
-    // viewport itself shrink when the keyboard opens (rather than just
-    // overlaying it on an unchanged one), so a plain scrollIntoView already
-    // has correct numbers to work with here - no manual keyboard math needed.
-    // Scroll the whole box (Cancel/Save row included), not just the textarea.
+    // Brings the general area into view if the note was off-screen to begin
+    // with - once focused, the sticky positioning below takes over keeping
+    // it above the keyboard as that opens/animates.
     editNoteBoxRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [editingNoteId]);
 
@@ -695,7 +683,11 @@ export function AdminPlayerProfile() {
             onTransitionEnd={e => { if (e.propertyName === "grid-template-rows" && addingNote) setComposerSettled(true); }}
           >
             <div className={`${composerSettled ? "overflow-visible" : "overflow-hidden"} min-h-0`}>
-              <div ref={composerBoxRef} className={`bg-[#212121] rounded-xl p-3 flex flex-col gap-2 transition-opacity duration-150 ease-out ${addingNote ? "opacity-100" : "opacity-0"}`}>
+              <div
+                ref={composerBoxRef}
+                style={composerFocused && keyboardInset > 0 ? { bottom: keyboardInset + 8 } : undefined}
+                className={`bg-[#212121] rounded-xl p-3 flex flex-col gap-2 transition-opacity duration-150 ease-out ${addingNote ? "opacity-100" : "opacity-0"} ${composerFocused && keyboardInset > 0 ? "sticky z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.4)]" : ""}`}
+              >
                 <textarea ref={noteTextareaRef} value={noteDraft}
                   onChange={e => {
                     setNoteDraft(e.target.value);
@@ -704,7 +696,11 @@ export function AdminPlayerProfile() {
                     el.style.height = `${el.scrollHeight}px`;
                   }}
                   onKeyDown={handleNoteKeyDown}
-                  onFocus={() => composerBoxRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" })}
+                  onFocus={() => {
+                    setComposerFocused(true);
+                    composerBoxRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                  }}
+                  onBlur={() => setComposerFocused(false)}
                   placeholder="Add a note about this player… (Enter to save, Shift+Enter for new line)" rows={2}
                   enterKeyHint="send"
                   className="w-full bg-[#212121] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-hidden" />
@@ -806,7 +802,11 @@ export function AdminPlayerProfile() {
                       )}
                     </div>
                     {isEditing ? (
-                      <div ref={editNoteBoxRef} className="flex flex-col gap-2">
+                      <div
+                        ref={editNoteBoxRef}
+                        style={editNoteFocused && keyboardInset > 0 ? { bottom: keyboardInset + 8 } : undefined}
+                        className={`flex flex-col gap-2 bg-[#212121] rounded-xl p-1 ${editNoteFocused && keyboardInset > 0 ? "sticky z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.4)]" : ""}`}
+                      >
                         <textarea
                           ref={editNoteTextareaRef}
                           value={editNoteDraft}
@@ -816,7 +816,11 @@ export function AdminPlayerProfile() {
                             el.style.height = "auto";
                             el.style.height = `${el.scrollHeight}px`;
                           }}
-                          onFocus={() => editNoteBoxRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" })}
+                          onFocus={() => {
+                            setEditNoteFocused(true);
+                            editNoteBoxRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                          }}
+                          onBlur={() => setEditNoteFocused(false)}
                           onKeyDown={e => {
                             if (e.key === "Escape") { setEditingNoteId(null); setEditNoteDraft(""); }
                           }}
