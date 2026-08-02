@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useKeyboardInset } from "../../lib/useKeyboardInset";
 import { Link, useParams } from "react-router";
 import {
   Send, Instagram, Calendar, MapPin,
@@ -108,11 +107,6 @@ export function AdminPlayerProfile() {
   const [savingEditNote, setSavingEditNote] = useState(false);
   const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editNoteTextareaRef = useRef<HTMLTextAreaElement>(null);
-  // Add Note / Edit Note render as a fixed bottom sheet (see below), not an
-  // inline block in the scrolling list - so there's no scroll position or
-  // focus-timing to chase the keyboard with. useKeyboardInset just tells the
-  // sheet how much of the screen the keyboard currently covers.
-  const keyboardInset = useKeyboardInset();
 
   const [toast, setToast] = useState<{ message: string; variant: "success" | "copied" | "publish" | "error"; visible: boolean }>
     ({ message: "", variant: "success", visible: false });
@@ -491,110 +485,90 @@ export function AdminPlayerProfile() {
         </ConfirmModal>
       )}
 
-      {/* Add Note sheet — a fixed bottom sheet, not an inline expanding block,
-          so it never depends on scroll position or focus timing: it's always
-          pinned the same distance above the keyboard (or screen bottom, when
-          the keyboard is closed), same pattern chat apps use for their
-          message composer. */}
+      {/* Add Note / Edit Note - the same ConfirmModal shell every other
+          confirm in this file uses (Suspend, Ban, Skill change), instead of
+          a bespoke keyboard-aware positioning scheme. A centered modal
+          doesn't need any keyboard math at all: interactive-widget=resizes-
+          content (index.html) makes the browser actually shrink the layout
+          viewport when the keyboard opens, and this modal is centered
+          *within that shrunk viewport* by plain flexbox - it just never
+          ends up under the keyboard to begin with. */}
       {addingNote && (
-        <>
-          <div className="fixed inset-0 z-40 bg-black/50" onClick={() => { setAddingNote(false); setNoteDraft(""); setNoteLabel(""); }} />
-          <div
-            className="fixed left-0 right-0 z-50 px-4 flex justify-center transition-[bottom] duration-150 ease-out"
-            style={{ bottom: keyboardInset + 16 }}
-          >
-            <div className="w-full max-w-[608px] bg-[#212121] border border-white/10 rounded-2xl shadow-2xl p-3 flex flex-col gap-2">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Add Note</span>
-                <div className="flex items-center gap-3">
-                  <button type="button" onClick={() => { setAddingNote(false); setNoteDraft(""); setNoteLabel(""); }}
-                    className="text-[11px] font-bold text-[#79828b] hover:text-white transition-colors">Cancel</button>
-                  <button type="button" onClick={addNote} disabled={!noteDraft.trim() || savingNote}
-                    className="text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Save</button>
-                </div>
-              </div>
-              <textarea ref={noteTextareaRef} value={noteDraft}
-                onChange={e => {
-                  setNoteDraft(e.target.value);
-                  const el = e.target;
-                  el.style.height = "auto";
-                  el.style.height = `${el.scrollHeight}px`;
-                }}
-                onKeyDown={handleNoteKeyDown} autoFocus
-                placeholder="Add a note about this player… (Enter to save, Shift+Enter for new line)" rows={2}
-                enterKeyHint="send"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-hidden" />
-              <div className="flex items-center gap-1.5">
-                <button type="button" onClick={() => setNoteVisibility("admin")} title="Admins only"
-                  className={`p-1.5 rounded-full border transition-colors ${noteVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
-                  <Lock size={12} />
-                </button>
-                <button type="button" onClick={() => setNoteVisibility("all")} title="Visible to everyone"
-                  className={`p-1.5 rounded-full border transition-colors ${noteVisibility === "all" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
-                  <Globe size={12} />
-                </button>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#79828b]">
-                  {noteVisibility === "admin" ? "Admins only" : "Visible to everyone"}
-                </span>
-                <div className="ml-auto">
-                  <SelectField
-                    value={noteLabel}
-                    options={[
-                      { value: "", label: "No label" },
-                      { value: "no_show", label: "No-show", icon: noteLabelIcon("no_show") },
-                      { value: "rude_behavior", label: "Rude Behavior", icon: noteLabelIcon("rude_behavior") },
-                      { value: "warning", label: "Warning", icon: noteLabelIcon("warning") },
-                      { value: "trustworthy", label: "Trustworthy", icon: noteLabelIcon("trustworthy") },
-                    ]}
-                    onChange={v => setNoteLabel(v as TrustLabel | "")}
-                    triggerClassName="h-7 flex items-center justify-between gap-1.5 bg-white/5 rounded-full pl-2.5 pr-2 text-white/70 text-[10px] font-black uppercase tracking-wider transition-colors hover:bg-white/10 hover:text-white focus:outline-none cursor-pointer"
-                    panelClassName="absolute right-0 bottom-full mb-1.5 z-30"
-                    panelWidthClassName="w-40"
-                  />
-                </div>
+        <ConfirmModal
+          title="Add Note"
+          cancelLabel="Cancel" onCancel={() => { setAddingNote(false); setNoteDraft(""); setNoteLabel(""); }}
+          confirmLabel="Save" confirmDisabled={!noteDraft.trim() || savingNote}
+          onConfirm={addNote}
+        >
+          <div className="flex flex-col gap-2">
+            <textarea ref={noteTextareaRef} value={noteDraft}
+              onChange={e => {
+                setNoteDraft(e.target.value);
+                const el = e.target;
+                el.style.height = "auto";
+                el.style.height = `${el.scrollHeight}px`;
+              }}
+              onKeyDown={handleNoteKeyDown} autoFocus
+              placeholder="Add a note about this player… (Enter to save, Shift+Enter for new line)" rows={2}
+              enterKeyHint="send"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-hidden" />
+            <div className="flex items-center gap-1.5">
+              <button type="button" onClick={() => setNoteVisibility("admin")} title="Admins only"
+                className={`p-1.5 rounded-full border transition-colors ${noteVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
+                <Lock size={12} />
+              </button>
+              <button type="button" onClick={() => setNoteVisibility("all")} title="Visible to everyone"
+                className={`p-1.5 rounded-full border transition-colors ${noteVisibility === "all" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
+                <Globe size={12} />
+              </button>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#79828b]">
+                {noteVisibility === "admin" ? "Admins only" : "Visible to everyone"}
+              </span>
+              <div className="ml-auto">
+                <SelectField
+                  value={noteLabel}
+                  options={[
+                    { value: "", label: "No label" },
+                    { value: "no_show", label: "No-show", icon: noteLabelIcon("no_show") },
+                    { value: "rude_behavior", label: "Rude Behavior", icon: noteLabelIcon("rude_behavior") },
+                    { value: "warning", label: "Warning", icon: noteLabelIcon("warning") },
+                    { value: "trustworthy", label: "Trustworthy", icon: noteLabelIcon("trustworthy") },
+                  ]}
+                  onChange={v => setNoteLabel(v as TrustLabel | "")}
+                  triggerClassName="h-7 flex items-center justify-between gap-1.5 bg-white/5 rounded-full pl-2.5 pr-2 text-white/70 text-[10px] font-black uppercase tracking-wider transition-colors hover:bg-white/10 hover:text-white focus:outline-none cursor-pointer"
+                  panelClassName="absolute right-0 top-full mt-1.5 z-30"
+                  panelWidthClassName="w-40"
+                />
               </div>
             </div>
           </div>
-        </>
+        </ConfirmModal>
       )}
 
-      {/* Edit Note sheet — same fixed-bottom-sheet pattern as Add Note above. */}
       {editingNoteId && (
-        <>
-          <div className="fixed inset-0 z-40 bg-black/50" onClick={() => { setEditingNoteId(null); setEditNoteDraft(""); }} />
-          <div
-            className="fixed left-0 right-0 z-50 px-4 flex justify-center transition-[bottom] duration-150 ease-out"
-            style={{ bottom: keyboardInset + 16 }}
-          >
-            <div className="w-full max-w-[608px] bg-[#212121] border border-white/10 rounded-2xl shadow-2xl p-3 flex flex-col gap-2">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Edit Note</span>
-                <div className="flex items-center gap-3">
-                  <button type="button" onClick={() => { setEditingNoteId(null); setEditNoteDraft(""); }}
-                    className="text-[11px] font-bold text-[#79828b] hover:text-white transition-colors">Cancel</button>
-                  <button type="button" onClick={saveNoteEdit} disabled={!editNoteDraft.trim() || savingEditNote}
-                    className="text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Save</button>
-                </div>
-              </div>
-              <textarea
-                ref={editNoteTextareaRef}
-                value={editNoteDraft}
-                onChange={e => {
-                  setEditNoteDraft(e.target.value);
-                  const el = e.target;
-                  el.style.height = "auto";
-                  el.style.height = `${el.scrollHeight}px`;
-                }}
-                autoFocus
-                onKeyDown={e => {
-                  if (e.key === "Escape") { setEditingNoteId(null); setEditNoteDraft(""); }
-                }}
-                rows={2}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-hidden"
-              />
-            </div>
-          </div>
-        </>
+        <ConfirmModal
+          title="Edit Note"
+          cancelLabel="Cancel" onCancel={() => { setEditingNoteId(null); setEditNoteDraft(""); }}
+          confirmLabel="Save" confirmDisabled={!editNoteDraft.trim() || savingEditNote}
+          onConfirm={saveNoteEdit}
+        >
+          <textarea
+            ref={editNoteTextareaRef}
+            value={editNoteDraft}
+            onChange={e => {
+              setEditNoteDraft(e.target.value);
+              const el = e.target;
+              el.style.height = "auto";
+              el.style.height = `${el.scrollHeight}px`;
+            }}
+            autoFocus
+            onKeyDown={e => {
+              if (e.key === "Escape") { setEditingNoteId(null); setEditNoteDraft(""); }
+            }}
+            rows={2}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-hidden"
+          />
+        </ConfirmModal>
       )}
 
       <BackBar label="Back" />
