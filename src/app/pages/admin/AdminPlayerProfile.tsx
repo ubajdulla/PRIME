@@ -4,7 +4,7 @@ import {
   Send, Instagram, Calendar, MapPin,
   CheckCircle2, BadgeCheck, Clock,
   OctagonX, Lock, Globe, ChevronDown,
-  Phone, Mail, User, Pencil, Plus, Flag,
+  Phone, Mail, User, Pencil, Flag,
   MoreVertical, Trash2, ThumbsUp,
 } from "lucide-react";
 import { SKILL_ORDER, type SkillLevel } from "../../data/adminData";
@@ -509,7 +509,7 @@ export function AdminPlayerProfile() {
               onKeyDown={handleNoteKeyDown}
               placeholder="Add a note about this player… (Enter to save, Shift+Enter for new line)" rows={2}
               enterKeyHint="send"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-hidden" />
+              className="w-full max-h-[160px] bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-y-auto" />
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -564,7 +564,7 @@ export function AdminPlayerProfile() {
               if (e.key === "Escape") { setEditingNoteId(null); setEditNoteDraft(""); }
             }}
             rows={2}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-hidden"
+            className="w-full max-h-[160px] bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-y-auto"
           />
         </ConfirmModal>
       )}
@@ -722,8 +722,8 @@ export function AdminPlayerProfile() {
                   setOpenNoteMenuId(null);
                   setDeleteArmedId(null);
                 }}
-                className="flex items-center gap-1 text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors">
-                <Plus size={11} /> Add Note
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-[#79828b] hover:bg-white/20 hover:text-white transition-colors">
+                <Send size={14} />
               </button>
             )}
           </div>
