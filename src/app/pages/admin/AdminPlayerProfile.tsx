@@ -141,13 +141,19 @@ export function AdminPlayerProfile() {
   // Keep the note composer/editor visible above the on-screen mobile
   // keyboard: the visualViewport shrinks as the keyboard opens, so re-scroll
   // whichever textarea is focused into view each time that happens.
+  // scrollIntoView's own "am I visible" check isn't reliable here — it
+  // doesn't consistently read the shrunk visualViewport in iOS standalone
+  // PWA mode, so the field can end up centered against the *unshrunk*
+  // viewport, mostly hidden behind the keyboard. Computing the actual
+  // overlap against visualViewport.height and scrolling by exactly that
+  // amount doesn't depend on the browser getting that right.
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
     function onResize() {
       const active = document.activeElement;
       if (active === noteTextareaRef.current || active === editNoteTextareaRef.current) {
-        (active as HTMLTextAreaElement).scrollIntoView({ block: "center", behavior: "smooth" });
+        scrollFieldAboveKeyboard(active as HTMLElement);
       }
     }
     vv.addEventListener("resize", onResize);
@@ -169,7 +175,11 @@ export function AdminPlayerProfile() {
     el.style.height = `${el.scrollHeight}px`;
     el.focus();
     el.setSelectionRange(el.value.length, el.value.length);
-    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    // The keyboard is often still animating in at this point, so the
+    // visualViewport resize listener above hasn't necessarily fired with its
+    // final height yet - a delayed second pass catches the settled state.
+    scrollFieldAboveKeyboard(el);
+    setTimeout(() => scrollFieldAboveKeyboard(el), 350);
   }, [editingNoteId]);
 
   useEffect(() => {
@@ -691,7 +701,10 @@ export function AdminPlayerProfile() {
                     el.style.height = `${el.scrollHeight}px`;
                   }}
                   onKeyDown={handleNoteKeyDown}
-                  onFocus={() => noteTextareaRef.current?.scrollIntoView({ block: "center", behavior: "smooth" })}
+                  onFocus={() => {
+                    scrollFieldAboveKeyboard(noteTextareaRef.current);
+                    setTimeout(() => scrollFieldAboveKeyboard(noteTextareaRef.current), 350);
+                  }}
                   placeholder="Add a note about this player… (Enter to save, Shift+Enter for new line)" rows={2}
                   enterKeyHint="send"
                   className="w-full bg-[#212121] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-hidden" />
@@ -803,7 +816,10 @@ export function AdminPlayerProfile() {
                             el.style.height = "auto";
                             el.style.height = `${el.scrollHeight}px`;
                           }}
-                          onFocus={() => editNoteTextareaRef.current?.scrollIntoView({ block: "center", behavior: "smooth" })}
+                          onFocus={() => {
+                            scrollFieldAboveKeyboard(editNoteTextareaRef.current);
+                            setTimeout(() => scrollFieldAboveKeyboard(editNoteTextareaRef.current), 350);
+                          }}
                           onKeyDown={e => {
                             if (e.key === "Escape") { setEditingNoteId(null); setEditNoteDraft(""); }
                           }}
@@ -1041,6 +1057,18 @@ export function AdminPlayerProfile() {
 // Same small colored badge as the label shown on each note, reused inside
 // the label picker's dropdown so a reason reads the same way whether it's
 // being chosen or already applied.
+// Scrolls just enough that `el`'s bottom edge clears the visible viewport -
+// computed directly from visualViewport instead of trusting
+// scrollIntoView's own visibility check, which doesn't reliably account for
+// the on-screen keyboard in iOS standalone PWA mode.
+function scrollFieldAboveKeyboard(el: HTMLElement | null) {
+  if (!el) return;
+  const vv = window.visualViewport;
+  const viewportBottom = vv ? vv.height + vv.offsetTop : window.innerHeight;
+  const overlap = el.getBoundingClientRect().bottom - viewportBottom;
+  if (overlap > 0) window.scrollBy({ top: overlap + 24, behavior: "smooth" });
+}
+
 function noteLabelIcon(l: TrustLabel) {
   const meta = LABEL_META[l];
   const color = SENTIMENT_COLOR[meta.sentiment];
