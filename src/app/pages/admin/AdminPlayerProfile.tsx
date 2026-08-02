@@ -151,6 +151,25 @@ export function AdminPlayerProfile() {
     else setComposerSettled(false);
   }, [addingNote]);
 
+  // onFocus fires *before* the keyboard opens, so scrollIntoView there
+  // measures against the still-full-height viewport and can decide "already
+  // visible, no scroll needed" - then the keyboard opens afterwards and
+  // covers it anyway. interactive-widget=resizes-content means the browser
+  // now actually fires a real `resize` once the keyboard animation finishes
+  // and the layout viewport has genuinely shrunk - re-run the scroll then,
+  // against the real post-keyboard size, not the stale one from onFocus.
+  useEffect(() => {
+    function onResize() {
+      if (document.activeElement === noteTextareaRef.current) {
+        composerBoxRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      } else if (document.activeElement === editNoteTextareaRef.current) {
+        editNoteBoxRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   useLayoutEffect(() => {
     const el = editNoteTextareaRef.current;
     if (!editingNoteId || !el) return;
