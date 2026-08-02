@@ -5,7 +5,7 @@ import {
   CheckCircle2, BadgeCheck, Clock,
   OctagonX, Lock, Globe, ChevronDown,
   Phone, Mail, User, Pencil, Flag,
-  MoreVertical, Trash2, ThumbsUp,
+  MoreVertical, Trash2, ThumbsUp, Camera,
 } from "lucide-react";
 import { SKILL_ORDER, type SkillLevel } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
@@ -90,6 +90,8 @@ export function AdminPlayerProfile() {
 
   const [showSkillConfirm,  setShowSkillConfirm]  = useState(false);
   const [pendingSkill,      setPendingSkill]      = useState<SkillLevel | "">("");
+
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const [editingDetails, setEditingDetails] = useState(false);
   const [detailsDraft,   setDetailsDraft]   = useState({ name: "", birthDate: "", phone: "", email: "", telegram: "", instagram: "" });
@@ -196,6 +198,23 @@ export function AdminPlayerProfile() {
       visibility: "admin",
     }).select().single();
     if (data) setNotes(prev => [data as NoteRow, ...prev]);
+  }
+
+  async function handleAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f || !profile) return;
+    setUploadingAvatar(true);
+    const ext = f.name.split(".").pop() || "jpg";
+    const path = `${profile.id}/${Date.now()}.${ext}`;
+    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, f, { upsert: true });
+    if (uploadError) { fireToast(uploadError.message, "error"); setUploadingAvatar(false); return; }
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    const r = await patchProfile({ avatar: data.publicUrl });
+    setUploadingAvatar(false);
+    if (!r.ok) { fireToast(r.error ?? "Failed to update photo", "error"); return; }
+    fireToast("Profile photo updated");
+    logAction(profile.id, "Profile photo changed");
   }
 
   if (loading) return <div className="min-h-screen bg-[#181818]" />;
@@ -573,13 +592,13 @@ export function AdminPlayerProfile() {
 
       {/* ── Avatar + identity ─────────────────────────────── */}
       <div className="flex flex-col items-center pt-8 pb-6 px-4">
-        <div className="relative mb-4">
+        <label className="relative mb-4 cursor-pointer">
           {player.avatar ? (
             <img src={player.avatar} alt={player.name}
-              className="w-28 h-28 rounded-full object-cover bg-[#212121]"
+              className={`w-28 h-28 rounded-full object-cover bg-[#212121] ${uploadingAvatar ? "opacity-50" : ""}`}
               style={{ boxShadow: `0 0 0 3px ${ringColor}` }} />
           ) : (
-            <div className="w-28 h-28 rounded-full bg-[#212121] flex items-center justify-center"
+            <div className={`w-28 h-28 rounded-full bg-[#212121] flex items-center justify-center ${uploadingAvatar ? "opacity-50" : ""}`}
               style={{ boxShadow: `0 0 0 3px ${ringColor}` }}>
               <User size={36} className="text-white/20" />
             </div>
@@ -589,7 +608,13 @@ export function AdminPlayerProfile() {
               <CheckCircle2 size={14} className="text-white" strokeWidth={2.5} />
             </div>
           )}
-        </div>
+          {/* Admin-only override: tap to replace this player's photo, same
+              upload path as their own Profile page avatar picker. */}
+          <span className="absolute top-0 right-0 w-7 h-7 rounded-full bg-white/10 border-2 border-[#181818] flex items-center justify-center pointer-events-none">
+            <Camera size={12} className="text-white" />
+          </span>
+          <input type="file" accept="image/*" className="hidden" disabled={uploadingAvatar} onChange={handleAvatar} />
+        </label>
         <div className="flex items-center gap-2 mb-1">
           <h1 className="text-xl font-semibold text-white">{player.name}</h1>
           {player.is_verified && <BadgeCheck size={18} className="text-[#462ed1] shrink-0" />}
