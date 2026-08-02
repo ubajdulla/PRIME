@@ -96,11 +96,6 @@ export function AdminPlayerProfile() {
   const [detailsDraft,   setDetailsDraft]   = useState({ name: "", birthDate: "", phone: "", email: "", telegram: "", instagram: "" });
 
   const [addingNote,     setAddingNote]     = useState(false);
-  // Overflow stays clipped while the composer's height is animating (open or
-  // closed - both directions need the clip), then switches to visible once
-  // it's settled open so the note-label SelectField's dropdown isn't cut off
-  // by the same box that clips the collapsed state.
-  const [composerSettled, setComposerSettled] = useState(false);
   const [noteDraft,      setNoteDraft]      = useState("");
   const [noteVisibility, setNoteVisibility] = useState<"admin" | "all">("admin");
   const [noteLabel,      setNoteLabel]      = useState<TrustLabel | "">("");
@@ -113,14 +108,10 @@ export function AdminPlayerProfile() {
   const [savingEditNote, setSavingEditNote] = useState(false);
   const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editNoteTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const composerBoxRef = useRef<HTMLDivElement>(null);
-  const editNoteBoxRef = useRef<HTMLDivElement>(null);
-  // Whichever box is focused gets pinned (position: sticky, bottom:
-  // keyboardInset) so it stays above the on-screen keyboard - not chased
-  // there reactively via scrollIntoView, just anchored the same way a chat
-  // app's message composer is.
-  const [composerFocused, setComposerFocused] = useState(false);
-  const [editNoteFocused, setEditNoteFocused] = useState(false);
+  // Add Note / Edit Note render as a fixed bottom sheet (see below), not an
+  // inline block in the scrolling list - so there's no scroll position or
+  // focus-timing to chase the keyboard with. useKeyboardInset just tells the
+  // sheet how much of the screen the keyboard currently covers.
   const keyboardInset = useKeyboardInset();
 
   const [toast, setToast] = useState<{ message: string; variant: "success" | "copied" | "publish" | "error"; visible: boolean }>
@@ -148,29 +139,16 @@ export function AdminPlayerProfile() {
     load(playerId);
   }, [playerId]);
 
-  // The composer/edit textarea now stays mounted at all times (its height is
-  // animated via grid-rows instead of being conditionally rendered), so the
-  // `autoFocus` prop only ever fires once - re-focus explicitly whenever it opens.
-  useEffect(() => {
-    if (addingNote) noteTextareaRef.current?.focus();
-    else { setComposerSettled(false); setComposerFocused(false); }
-  }, [addingNote]);
-
-  useEffect(() => {
-    if (!editingNoteId) setEditNoteFocused(false);
-  }, [editingNoteId]);
-
+  // Both sheets only ever mount while open (conditional render, not a
+  // grid-rows expand), so `autoFocus` on their textarea already does the
+  // right thing on its own - this just gets the cursor to the end of the
+  // existing text and the height right on the first paint.
   useLayoutEffect(() => {
     const el = editNoteTextareaRef.current;
     if (!editingNoteId || !el) return;
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
-    el.focus();
     el.setSelectionRange(el.value.length, el.value.length);
-    // Brings the general area into view if the note was off-screen to begin
-    // with - once focused, the sticky positioning below takes over keeping
-    // it above the keyboard as that opens/animates.
-    editNoteBoxRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [editingNoteId]);
 
   useEffect(() => {
@@ -513,6 +491,112 @@ export function AdminPlayerProfile() {
         </ConfirmModal>
       )}
 
+      {/* Add Note sheet — a fixed bottom sheet, not an inline expanding block,
+          so it never depends on scroll position or focus timing: it's always
+          pinned the same distance above the keyboard (or screen bottom, when
+          the keyboard is closed), same pattern chat apps use for their
+          message composer. */}
+      {addingNote && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/50" onClick={() => { setAddingNote(false); setNoteDraft(""); setNoteLabel(""); }} />
+          <div
+            className="fixed left-0 right-0 z-50 px-4 flex justify-center transition-[bottom] duration-150 ease-out"
+            style={{ bottom: keyboardInset + 16 }}
+          >
+            <div className="w-full max-w-[608px] bg-[#212121] border border-white/10 rounded-2xl shadow-2xl p-3 flex flex-col gap-2">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Add Note</span>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={() => { setAddingNote(false); setNoteDraft(""); setNoteLabel(""); }}
+                    className="text-[11px] font-bold text-[#79828b] hover:text-white transition-colors">Cancel</button>
+                  <button type="button" onClick={addNote} disabled={!noteDraft.trim() || savingNote}
+                    className="text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Save</button>
+                </div>
+              </div>
+              <textarea ref={noteTextareaRef} value={noteDraft}
+                onChange={e => {
+                  setNoteDraft(e.target.value);
+                  const el = e.target;
+                  el.style.height = "auto";
+                  el.style.height = `${el.scrollHeight}px`;
+                }}
+                onKeyDown={handleNoteKeyDown} autoFocus
+                placeholder="Add a note about this player… (Enter to save, Shift+Enter for new line)" rows={2}
+                enterKeyHint="send"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-hidden" />
+              <div className="flex items-center gap-1.5">
+                <button type="button" onClick={() => setNoteVisibility("admin")} title="Admins only"
+                  className={`p-1.5 rounded-full border transition-colors ${noteVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
+                  <Lock size={12} />
+                </button>
+                <button type="button" onClick={() => setNoteVisibility("all")} title="Visible to everyone"
+                  className={`p-1.5 rounded-full border transition-colors ${noteVisibility === "all" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
+                  <Globe size={12} />
+                </button>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#79828b]">
+                  {noteVisibility === "admin" ? "Admins only" : "Visible to everyone"}
+                </span>
+                <div className="ml-auto">
+                  <SelectField
+                    value={noteLabel}
+                    options={[
+                      { value: "", label: "No label" },
+                      { value: "no_show", label: "No-show", icon: noteLabelIcon("no_show") },
+                      { value: "rude_behavior", label: "Rude Behavior", icon: noteLabelIcon("rude_behavior") },
+                      { value: "warning", label: "Warning", icon: noteLabelIcon("warning") },
+                      { value: "trustworthy", label: "Trustworthy", icon: noteLabelIcon("trustworthy") },
+                    ]}
+                    onChange={v => setNoteLabel(v as TrustLabel | "")}
+                    triggerClassName="h-7 flex items-center justify-between gap-1.5 bg-white/5 rounded-full pl-2.5 pr-2 text-white/70 text-[10px] font-black uppercase tracking-wider transition-colors hover:bg-white/10 hover:text-white focus:outline-none cursor-pointer"
+                    panelClassName="absolute right-0 bottom-full mb-1.5 z-30"
+                    panelWidthClassName="w-40"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Edit Note sheet — same fixed-bottom-sheet pattern as Add Note above. */}
+      {editingNoteId && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/50" onClick={() => { setEditingNoteId(null); setEditNoteDraft(""); }} />
+          <div
+            className="fixed left-0 right-0 z-50 px-4 flex justify-center transition-[bottom] duration-150 ease-out"
+            style={{ bottom: keyboardInset + 16 }}
+          >
+            <div className="w-full max-w-[608px] bg-[#212121] border border-white/10 rounded-2xl shadow-2xl p-3 flex flex-col gap-2">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Edit Note</span>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={() => { setEditingNoteId(null); setEditNoteDraft(""); }}
+                    className="text-[11px] font-bold text-[#79828b] hover:text-white transition-colors">Cancel</button>
+                  <button type="button" onClick={saveNoteEdit} disabled={!editNoteDraft.trim() || savingEditNote}
+                    className="text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Save</button>
+                </div>
+              </div>
+              <textarea
+                ref={editNoteTextareaRef}
+                value={editNoteDraft}
+                onChange={e => {
+                  setEditNoteDraft(e.target.value);
+                  const el = e.target;
+                  el.style.height = "auto";
+                  el.style.height = `${el.scrollHeight}px`;
+                }}
+                autoFocus
+                onKeyDown={e => {
+                  if (e.key === "Escape") { setEditingNoteId(null); setEditNoteDraft(""); }
+                }}
+                rows={2}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-hidden"
+              />
+            </div>
+          </div>
+        </>
+      )}
+
       <BackBar label="Back" />
 
       {/* ── Avatar + identity ─────────────────────────────── */}
@@ -653,14 +737,7 @@ export function AdminPlayerProfile() {
         <section>
           <div className="flex items-center justify-between mb-2 px-1">
             <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Notes</h2>
-            {addingNote ? (
-              <div className="flex items-center gap-3">
-                <button type="button" onClick={() => { setAddingNote(false); setNoteDraft(""); setNoteLabel(""); }}
-                  className="text-[11px] font-bold text-[#79828b] hover:text-white transition-colors">Cancel</button>
-                <button type="button" onClick={addNote} disabled={!noteDraft.trim() || savingNote}
-                  className="text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Save</button>
-              </div>
-            ) : (
+            {!addingNote && (
               <button
                 type="button"
                 onClick={() => {
@@ -678,68 +755,6 @@ export function AdminPlayerProfile() {
               </button>
             )}
           </div>
-          <div
-            className={`grid transition-[grid-template-rows] duration-150 ease-out mb-2 ${addingNote ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
-            onTransitionEnd={e => { if (e.propertyName === "grid-template-rows" && addingNote) setComposerSettled(true); }}
-          >
-            <div className={`${composerSettled ? "overflow-visible" : "overflow-hidden"} min-h-0`}>
-              <div
-                ref={composerBoxRef}
-                style={composerFocused && keyboardInset > 0 ? { bottom: keyboardInset + 8 } : undefined}
-                className={`bg-[#212121] rounded-xl p-3 flex flex-col gap-2 transition-opacity duration-150 ease-out ${addingNote ? "opacity-100" : "opacity-0"} ${composerFocused && keyboardInset > 0 ? "sticky z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.4)]" : ""}`}
-              >
-                <textarea ref={noteTextareaRef} value={noteDraft}
-                  onChange={e => {
-                    setNoteDraft(e.target.value);
-                    const el = e.target;
-                    el.style.height = "auto";
-                    el.style.height = `${el.scrollHeight}px`;
-                  }}
-                  onKeyDown={handleNoteKeyDown}
-                  onFocus={() => {
-                    setComposerFocused(true);
-                    composerBoxRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-                  }}
-                  onBlur={() => setComposerFocused(false)}
-                  placeholder="Add a note about this player… (Enter to save, Shift+Enter for new line)" rows={2}
-                  enterKeyHint="send"
-                  className="w-full bg-[#212121] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-hidden" />
-                <div className="flex items-center gap-1.5">
-                  <button type="button" onClick={() => setNoteVisibility("admin")} title="Admins only"
-                    className={`p-1.5 rounded-full border transition-colors ${noteVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
-                    <Lock size={12} />
-                  </button>
-                  <button type="button" onClick={() => setNoteVisibility("all")} title="Visible to everyone"
-                    className={`p-1.5 rounded-full border transition-colors ${noteVisibility === "all" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
-                    <Globe size={12} />
-                  </button>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#79828b]">
-                    {noteVisibility === "admin" ? "Admins only" : "Visible to everyone"}
-                  </span>
-                  <div className="ml-auto">
-                    <SelectField
-                      value={noteLabel}
-                      options={[
-                        { value: "", label: "No label" },
-                        { value: "no_show", label: "No-show", icon: noteLabelIcon("no_show") },
-                        { value: "rude_behavior", label: "Rude Behavior", icon: noteLabelIcon("rude_behavior") },
-                        { value: "warning", label: "Warning", icon: noteLabelIcon("warning") },
-                        { value: "trustworthy", label: "Trustworthy", icon: noteLabelIcon("trustworthy") },
-                      ]}
-                      onChange={v => setNoteLabel(v as TrustLabel | "")}
-                      triggerClassName="h-7 flex items-center justify-between gap-1.5 bg-white/5 rounded-full pl-2.5 pr-2 text-white/70 text-[10px] font-black uppercase tracking-wider transition-colors hover:bg-white/10 hover:text-white focus:outline-none cursor-pointer"
-                      // Opens upward, not downward: this trigger sits on the
-                      // composer's bottom row, which on mobile is often right
-                      // above the on-screen keyboard - a downward panel would
-                      // render with no visible space left to open into.
-                      panelClassName="absolute right-0 bottom-full mb-1.5 z-30"
-                      panelWidthClassName="w-40"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {notes.length === 0 ? (
             <p className="mt-2 py-3 text-center text-sm text-[#79828b]">No notes yet</p>
@@ -750,7 +765,7 @@ export function AdminPlayerProfile() {
                 const isExpanded = expandedNoteId === n.id;
                 const isEditing = editingNoteId === n.id;
                 return (
-                  <div key={n.id} className="bg-[#212121] rounded-xl px-3 py-3">
+                  <div key={n.id} className={`bg-[#212121] rounded-xl px-3 py-3 transition-opacity ${isEditing ? "opacity-40" : ""}`}>
                     <div className="flex items-center gap-2 mb-1">
                       {n.is_legacy ? (
                         <span className="text-[10px] font-bold uppercase tracking-wider text-[#79828b]">Legacy note</span>
@@ -801,56 +816,19 @@ export function AdminPlayerProfile() {
                         </div>
                       )}
                     </div>
-                    {isEditing ? (
-                      <div
-                        ref={editNoteBoxRef}
-                        style={editNoteFocused && keyboardInset > 0 ? { bottom: keyboardInset + 8 } : undefined}
-                        className={`flex flex-col gap-2 bg-[#212121] rounded-xl p-1 ${editNoteFocused && keyboardInset > 0 ? "sticky z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.4)]" : ""}`}
-                      >
-                        <textarea
-                          ref={editNoteTextareaRef}
-                          value={editNoteDraft}
-                          onChange={e => {
-                            setEditNoteDraft(e.target.value);
-                            const el = e.target;
-                            el.style.height = "auto";
-                            el.style.height = `${el.scrollHeight}px`;
-                          }}
-                          onFocus={() => {
-                            setEditNoteFocused(true);
-                            editNoteBoxRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-                          }}
-                          onBlur={() => setEditNoteFocused(false)}
-                          onKeyDown={e => {
-                            if (e.key === "Escape") { setEditingNoteId(null); setEditNoteDraft(""); }
-                          }}
-                          rows={2}
-                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-hidden"
-                        />
-                        <div className="flex items-center justify-end gap-3">
-                          <button type="button" onClick={() => { setEditingNoteId(null); setEditNoteDraft(""); }}
-                            className="text-[11px] font-bold text-[#79828b] hover:text-white transition-colors">Cancel</button>
-                          <button type="button" onClick={saveNoteEdit} disabled={!editNoteDraft.trim() || savingEditNote}
-                            className="text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Save</button>
-                        </div>
+                    <p className={`text-sm text-white/80 leading-relaxed whitespace-pre-wrap break-words ${isLong && !isExpanded ? "line-clamp-4" : ""}`}>
+                      {n.body}
+                    </p>
+                    {isLong && (
+                      <div className="flex justify-end mt-1">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedNoteId(prev => prev === n.id ? null : n.id)}
+                          className="text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors"
+                        >
+                          {isExpanded ? "Show less" : "Read more"}
+                        </button>
                       </div>
-                    ) : (
-                      <>
-                        <p className={`text-sm text-white/80 leading-relaxed whitespace-pre-wrap break-words ${isLong && !isExpanded ? "line-clamp-4" : ""}`}>
-                          {n.body}
-                        </p>
-                        {isLong && (
-                          <div className="flex justify-end mt-1">
-                            <button
-                              type="button"
-                              onClick={() => setExpandedNoteId(prev => prev === n.id ? null : n.id)}
-                              className="text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors"
-                            >
-                              {isExpanded ? "Show less" : "Read more"}
-                            </button>
-                          </div>
-                        )}
-                      </>
                     )}
                   </div>
                 );
