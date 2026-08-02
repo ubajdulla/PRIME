@@ -514,18 +514,18 @@ export function AdminPlayerProfile() {
               placeholder="Add a note about this player… (Enter to save, Shift+Enter for new line)" rows={2}
               enterKeyHint="send"
               className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-hidden" />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setNoteVisibility(v => v === "admin" ? "all" : "admin")}
                 title={noteVisibility === "admin" ? "Admins only" : "Visible to everyone"}
-                className={`relative w-[38px] h-[22px] rounded-full shrink-0 transition-colors ${noteVisibility === "all" ? "bg-[#462ed1]" : "bg-white/15"}`}
+                className={`relative w-[52px] h-[30px] rounded-full shrink-0 transition-colors ${noteVisibility === "all" ? "bg-[#462ed1]" : "bg-white/15"}`}
               >
-                <span className={`absolute top-0.5 w-[18px] h-[18px] rounded-full bg-white transition-all ${noteVisibility === "all" ? "left-[18px]" : "left-0.5"}`} />
+                <span className={`absolute top-[3px] w-6 h-6 rounded-full bg-white transition-all ${noteVisibility === "all" ? "left-[25px]" : "left-[3px]"}`} />
               </button>
               {noteVisibility === "admin"
-                ? <Lock size={15} className="text-[#79828b]" />
-                : <Globe size={15} className="text-[#79828b]" />}
+                ? <Lock size={20} className="text-[#79828b]" />
+                : <Globe size={20} className="text-[#79828b]" />}
               <div className="ml-auto">
                 <SelectField
                   value={noteLabel}
@@ -538,9 +538,9 @@ export function AdminPlayerProfile() {
                     { value: "trustworthy", label: "Trust", icon: noteLabelIcon("trustworthy") },
                   ]}
                   onChange={v => setNoteLabel(v as TrustLabel | "")}
-                  triggerClassName="w-40 h-8 flex items-center justify-between gap-1.5 bg-white/5 rounded-lg px-2.5 text-white/80 text-[11px] font-bold transition-colors hover:bg-white/10 hover:text-white focus:outline-none cursor-pointer"
+                  triggerClassName="w-48 h-11 flex items-center justify-between gap-1.5 bg-white/5 rounded-lg px-3 text-white/80 text-sm font-bold transition-colors hover:bg-white/10 hover:text-white focus:outline-none cursor-pointer"
                   panelClassName="absolute right-0 top-full mt-1.5 z-30"
-                  panelWidthClassName="w-40"
+                  panelWidthClassName="w-48"
                 />
               </div>
             </div>
@@ -1018,8 +1018,8 @@ function noteLabelIcon(l: TrustLabel) {
   const color = SENTIMENT_COLOR[meta.sentiment];
   const Icon = meta.sentiment === "positive" ? ThumbsUp : Flag;
   return (
-    <span className="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style={{ background: `${color}26` }}>
-      <Icon size={9} style={{ color }} />
+    <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: `${color}26` }}>
+      <Icon size={11} style={{ color }} />
     </span>
   );
 }
