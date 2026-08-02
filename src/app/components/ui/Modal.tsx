@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
 import { registerModalOpen } from "../../lib/modalChrome";
+import { useKeyboardInset } from "../../lib/useKeyboardInset";
 
 export type ModalOrigin = { x: number; y: number } | null;
 
@@ -71,9 +72,21 @@ export function ModalOverlay({
   // this they'd sit visually on top of the backdrop and eat taps meant for it.
   useEffect(() => registerModalOpen(), []);
 
+  // Modals with an autoFocus field (e.g. the join-event team name input)
+  // open their keyboard the instant they mount. `interactive-widget=resizes-
+  // content` (index.html) is supposed to shrink the layout viewport so plain
+  // flex centering keeps the box clear of it, but on a real device the
+  // keyboard's own slide-up animation and this box's pop-in scale animation
+  // run at the same time, and the box can settle centered on the pre-resize
+  // viewport with the field left under the keyboard. Anchoring to the bottom
+  // of the keyboard-safe area instead of the viewport center whenever the
+  // keyboard is open sidesteps that race entirely, first frame included.
+  const keyboardInset = useKeyboardInset();
+
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm ${overlayClassName}`}
+      className={`fixed inset-0 z-50 flex justify-center p-4 bg-black/60 backdrop-blur-sm ${keyboardInset > 0 ? "items-end" : "items-center"} ${overlayClassName}`}
+      style={keyboardInset > 0 ? { paddingBottom: keyboardInset + 16 } : undefined}
       onClick={onClose}
     >
       <div
