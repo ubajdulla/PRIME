@@ -75,6 +75,7 @@ export const ru: Dict = {
     instagram: "Instagram",
     upcomingEvents: "Предстоящие события",
     pastEvents: "Прошедшие события",
+    notes: "Заметки",
     pending: "Ожидание",
     logOut: "Выйти",
     logOutTitle: "Выйти?",

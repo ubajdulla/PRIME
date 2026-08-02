@@ -73,6 +73,7 @@ export interface Dict {
     instagram: string;
     upcomingEvents: string;
     pastEvents: string;
+    notes: string;
     pending: string;
     logOut: string;
     logOutTitle: string;

@@ -75,6 +75,7 @@ export const cs: Dict = {
     instagram: "Instagram",
     upcomingEvents: "Nadcházející události",
     pastEvents: "Minulé události",
+    notes: "Poznámky",
     pending: "Čeká",
     logOut: "Odhlásit se",
     logOutTitle: "Odhlásit se?",

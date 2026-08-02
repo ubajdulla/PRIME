@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link, Navigate } from "react-router";
+import { formatDistanceToNowStrict } from "date-fns";
 import { useLang } from "../i18n";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
@@ -7,15 +8,18 @@ import { SKILL_STYLE } from "../data/adminData";
 import { shortDate, isPastDate } from "../lib/eventDate";
 import {
   Phone, Mail, Instagram, Send, MapPin, Calendar, Clock,
-  Pencil, Camera, LogOut, User, MoreVertical,
+  Pencil, Camera, LogOut, User, MoreVertical, OctagonX, ThumbsUp, Flag, Globe,
 } from "lucide-react";
 import { SelectField } from "../components/ui/SelectField";
 import { DropdownPanel, DropdownItem, ConfirmDropdownItem } from "../components/ui/DropdownMenu";
 import { ContactRow } from "../components/ui/ContactRow";
+import { ModAvatarIcon } from "../components/ui/ModAvatarIcon";
+import { LABEL_META, SENTIMENT_COLOR, type TrustLabel } from "../lib/trustLabel";
 
 const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
 
 type EventRow = { id: string; title: string; event_date: string; event_time: string; location: string; status: string };
+type NoteRow = { id: string; author_name: string; body: string; created_at: string; label: TrustLabel | null };
 
 type ContactDraft = {
   name: string;
@@ -42,13 +46,21 @@ export function Profile() {
 
   const [upcomingEvents, setUpcomingEvents] = useState<{ event: EventRow; pending: boolean }[]>([]);
   const [pastEvents, setPastEvents] = useState<EventRow[]>([]);
+  const [notes, setNotes] = useState<NoteRow[]>([]);
+  // Ticks once a minute purely to force the suspension countdown to
+  // re-render - formatDistanceToNowStrict itself doesn't update on its own.
+  const [, setCountdownTick] = useState(0);
 
   useEffect(() => {
     if (!authUser) return;
     (async () => {
-      const [{ data: partRows }, { data: reqRows }] = await Promise.all([
+      const [{ data: partRows }, { data: reqRows }, { data: noteRows }] = await Promise.all([
         supabase.from("event_participants").select("events(id, title, event_date, event_time, location, status)").eq("player_id", authUser.id),
         supabase.from("event_requests").select("events(id, title, event_date, event_time, location, status)").eq("player_id", authUser.id).in("kind", ["request", "waitlist"]),
+        // RLS (015_player_notes.sql) already restricts a non-admin to only their
+        // own visibility='all' notes, but filtering here too keeps the intent
+        // explicit and avoids depending on that being the *only* thing enforcing it.
+        supabase.from("player_notes").select("id, author_name, body, created_at, label").eq("player_id", authUser.id).eq("visibility", "all").order("created_at", { ascending: false }),
       ]);
       const joined  = (partRows ?? []).map(r => r.events).filter(Boolean) as unknown as EventRow[];
       const pending = (reqRows  ?? []).map(r => r.events).filter(Boolean) as unknown as EventRow[];
@@ -61,8 +73,15 @@ export function Profile() {
       setPastEvents(
         joined.filter(e => isPastDate(e.event_date)).sort((a, b) => b.event_date.localeCompare(a.event_date))
       );
+      setNotes((noteRows as NoteRow[]) ?? []);
     })();
   }, [authUser]);
+
+  useEffect(() => {
+    if (!profile?.is_suspended) return;
+    const id = setInterval(() => setCountdownTick(t => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, [profile?.is_suspended]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -149,9 +168,15 @@ export function Profile() {
       {/* ── Profile identity ── */}
       <div className="flex flex-col items-center pt-8 pb-6 px-4">
 
-        {/* Avatar — always tappable */}
-        <label className="relative cursor-pointer mb-4">
-          {profile.avatar ? (
+        {/* Avatar — always tappable. Suspended/banned gets the exact same
+            grayscale-avatar-with-icon-wash treatment as the admin's
+            Suspend/Ban confirm modal, so it reads as the same status. */}
+        <label className="relative cursor-pointer mb-4 w-28 h-28">
+          {profile.is_banned ? (
+            <ModAvatarIcon avatar={profile.avatar} tint="bg-[#7f1d1d]/75" icon={<OctagonX size={32} className="text-white" />} />
+          ) : profile.is_suspended ? (
+            <ModAvatarIcon avatar={profile.avatar} tint="bg-[#b45309]/75" icon={<Clock size={32} className="text-white" />} />
+          ) : profile.avatar ? (
             <img
               src={profile.avatar}
               alt=""
@@ -319,6 +344,63 @@ export function Profile() {
           </div>
         </section>
 
+        {/* Notes — visible only when there's something to show: an active
+            suspension/ban status, or a note an admin marked visible to
+            everyone (player_notes.visibility = 'all'). Admin-only notes never
+            reach this query (see RLS in 015_player_notes.sql). */}
+        {(profile.is_suspended || profile.is_banned || notes.length > 0) && (
+          <section>
+            <SectionLabel>{t.profile.notes}</SectionLabel>
+            <div className="mt-2 flex flex-col gap-2">
+              {profile.is_banned ? (
+                <div className="bg-[#ef4444]/10 border border-[#ef4444]/25 rounded-xl px-3 py-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <OctagonX size={13} className="text-[#ef4444] shrink-0" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#ef4444]">Banned</span>
+                  </div>
+                  <p className="text-sm text-white/80 leading-relaxed">
+                    {profile.ban_reason || "You've been permanently banned and can't join any events."}
+                  </p>
+                </div>
+              ) : profile.is_suspended && (
+                <div className="bg-[#eab308]/10 border border-[#eab308]/25 rounded-xl px-3 py-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Clock size={13} className="text-[#eab308] shrink-0" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#eab308]">
+                      Suspended — {profile.suspended_until ? formatDistanceToNowStrict(new Date(profile.suspended_until)) : ""} left
+                    </span>
+                  </div>
+                  <p className="text-sm text-white/80 leading-relaxed">
+                    {profile.suspend_reason || "You can't join events until the suspension ends."}
+                  </p>
+                </div>
+              )}
+
+              {notes.map(n => (
+                <div key={n.id} className="bg-[#212121] rounded-xl px-3 py-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Globe size={11} className="text-[#79828b] shrink-0" />
+                    <span className="text-[11px] font-bold text-white/70">{n.author_name || "Admin"}</span>
+                    <span className="text-[10px] text-[#79828b]">· {new Date(n.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
+                    {n.label && (
+                      <span
+                        className="ml-auto w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                        style={{ background: `${SENTIMENT_COLOR[LABEL_META[n.label].sentiment]}26` }}
+                        title={LABEL_META[n.label].name}
+                      >
+                        {LABEL_META[n.label].sentiment === "positive"
+                          ? <ThumbsUp size={11} style={{ color: SENTIMENT_COLOR[LABEL_META[n.label].sentiment] }} />
+                          : <Flag size={11} style={{ color: SENTIMENT_COLOR[LABEL_META[n.label].sentiment] }} />}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap break-words">{n.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Upcoming Events */}
         <section>
           <SectionLabel>{t.profile.upcomingEvents}</SectionLabel>
@@ -326,15 +408,11 @@ export function Profile() {
             <Empty />
           ) : (
             <div className="flex flex-col gap-2">
-              {upcomingEvents.map(({ event: e, pending }) => (
-                <Link key={e.id} to={`/events/${e.id}`} state={{ hub: "profile" }} className="block bg-[#212121] rounded-xl px-4 py-3.5 hover:bg-[#1c2a36] transition-colors">
+              {upcomingEvents.slice(0, 7).map(({ event: e, pending }) => (
+                <Link key={e.id} to={`/events/${e.id}`} state={{ hub: "profile" }} className="block bg-[#212121] rounded-xl px-4 py-3.5 hover:bg-white/5 transition-colors">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="text-sm font-bold text-white uppercase tracking-wide">{e.title}</span>
-                    {pending && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#f5c542]/10 text-[#f5c542] shrink-0">
-                        {t.profile.pending}
-                      </span>
-                    )}
+                    {pending && <Clock size={14} className="text-[#f5c542] shrink-0" />}
                   </div>
                   <div className="flex flex-wrap gap-3 text-xs text-[#aaa]">
                     <span className="flex items-center gap-1"><Calendar size={11} className="text-[#462ed1]" />{shortDate(e.event_date, true)}</span>
@@ -354,7 +432,7 @@ export function Profile() {
             <Empty />
           ) : (
             <div className="bg-[#212121] rounded-xl overflow-hidden">
-              {pastEvents.map((e, i) => (
+              {pastEvents.slice(0, 7).map((e, i) => (
                 <Link
                   key={e.id}
                   to={`/events/${e.id}`}

@@ -122,7 +122,7 @@ export function AdminEvents() {
           <button
             onClick={() => setShowFilter(v => !v)}
             aria-label={activeLabel}
-            className="flex items-center justify-center w-11 h-11 rounded-full border transition-colors bg-[#462ed1]/10 border-[#462ed1]/40 text-[#462ed1]"
+            className="flex items-center justify-center w-11 h-11 rounded-full bg-white/10 text-[#79828b] hover:bg-white/20 hover:text-white transition-colors"
           >
             <SlidersHorizontal size={16} />
           </button>
