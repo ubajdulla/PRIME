@@ -21,26 +21,24 @@ export function Toast({ message, visible, variant = "success", onHide }: ToastPr
   if (!visible) return null;
 
   const iconMap: Record<ToastVariant, React.ReactNode> = {
-    success: <Check size={16} />,
-    copied:  <Copy size={16} />,
-    publish: <Send size={16} />,
-    error:   <AlertTriangle size={16} />,
+    success: <Check size={12} strokeWidth={3} />,
+    copied:  <Copy size={12} strokeWidth={3} />,
+    publish: <Send size={12} strokeWidth={3} />,
+    error:   <AlertTriangle size={12} strokeWidth={3} />,
   };
 
   const colorMap: Record<ToastVariant, string> = {
-    success: "bg-[#4dcd5e]/15 text-[#4dcd5e]",
-    copied:  "bg-[#462ed1]/15 text-[#462ed1]",
-    publish: "bg-[#462ed1]/15 text-[#462ed1]",
-    error:   "bg-[#ef4444]/15 text-[#ef4444]",
+    success: "text-[#4dcd5e]",
+    copied:  "text-[#462ed1]",
+    publish: "text-[#462ed1]",
+    error:   "text-[#ef4444]",
   };
 
   return (
     <div className="fixed bottom-24 sm:bottom-6 z-[60] pointer-events-none flex justify-end px-4 inset-x-0">
-      <div className="bg-[#1c2b3a] border border-white/15 rounded-2xl px-4 py-3 shadow-2xl flex items-center gap-2.5 max-w-[220px]">
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${colorMap[variant]}`}>
-          {iconMap[variant]}
-        </div>
-        <span className="text-white font-bold text-sm leading-snug">{message}</span>
+      <div className="bg-[#181818]/95 border border-white/5 rounded-full px-[10px] py-[3px] shadow-[0_4px_10px_rgba(0,0,0,0.25)] flex items-center gap-1.5 max-w-[180px]">
+        <span className={`shrink-0 flex ${colorMap[variant]}`}>{iconMap[variant]}</span>
+        <span className="text-white/90 text-[11px] font-medium leading-tight whitespace-nowrap overflow-hidden text-ellipsis">{message}</span>
       </div>
     </div>
   );

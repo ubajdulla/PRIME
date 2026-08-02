@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
+import { registerModalOpen } from "../../lib/modalChrome";
 
 export type ModalOrigin = { x: number; y: number } | null;
 
@@ -65,6 +66,11 @@ export function ModalOverlay({
   // pass their own instead of the shared default.
   rounded?: string;
 }) {
+  // Hides the mobile top header / bottom nav (see MainLayout) for as long as
+  // this instance is mounted - they're position:static, not fixed, so without
+  // this they'd sit visually on top of the backdrop and eat taps meant for it.
+  useEffect(() => registerModalOpen(), []);
+
   return (
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm ${overlayClassName}`}
