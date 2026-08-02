@@ -43,7 +43,6 @@ export function useModalPopIn(origin: ModalOrigin) {
 // (headers, forms, custom entrance animation) stays with the caller —
 // only the overlay/box chrome is shared.
 export function ModalOverlay({
-  onClose,
   children,
   boxClassName = "p-6",
   boxRef,
@@ -52,7 +51,6 @@ export function ModalOverlay({
   clipOverflow = true,
   rounded = "rounded-2xl",
 }: {
-  onClose?: () => void;
   children: ReactNode;
   boxClassName?: string;
   boxRef?: Ref<HTMLDivElement>;
@@ -85,15 +83,16 @@ export function ModalOverlay({
 
   return (
     <div
+      // No onClick here — tapping the backdrop must not dismiss the modal.
+      // A stray tap while typing (e.g. reaching for the keyboard's dismiss
+      // area) would otherwise silently discard whatever the user was typing.
       className={`fixed inset-0 z-50 flex justify-center p-4 bg-black/60 backdrop-blur-sm ${keyboardInset > 0 ? "items-end" : "items-center"} ${overlayClassName}`}
       style={keyboardInset > 0 ? { paddingBottom: keyboardInset + 16 } : undefined}
-      onClick={onClose}
     >
       <div
         ref={boxRef}
         style={boxStyle}
         className={`w-full max-w-sm bg-[#212121] border border-white/10 ${rounded} shadow-2xl ${clipOverflow ? "overflow-hidden" : ""} ${boxClassName}`}
-        onClick={e => e.stopPropagation()}
       >
         {children}
       </div>
@@ -141,7 +140,6 @@ export function ConfirmModal({
   const { boxRef, entered } = useModalPopIn(origin ?? null);
   return (
     <ModalOverlay
-      onClose={onCancel}
       clipOverflow={false}
       boxRef={origin !== undefined ? boxRef : undefined}
       overlayClassName={origin !== undefined ? `transition-opacity duration-200 ${entered ? "opacity-100" : "opacity-0"}` : ""}

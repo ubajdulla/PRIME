@@ -351,7 +351,6 @@ return (
           instead of the shell's default instant show. */}
       {showJoinModal && (
         <ModalOverlay
-          onClose={() => setShowJoinModal(false)}
           rounded="rounded-[2rem]"
           overlayClassName={`transition-opacity duration-200 ${joinModalEntered ? "opacity-100" : "opacity-0"}`}
           boxRef={joinModalBoxRef}

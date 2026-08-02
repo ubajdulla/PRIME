@@ -116,7 +116,6 @@ export function PublishEventModal({
 
   return (
     <ModalOverlay
-      onClose={onClose}
       boxClassName=""
       rounded="rounded-[2rem]"
       boxRef={boxRef}
