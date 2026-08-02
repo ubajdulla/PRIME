@@ -16,6 +16,11 @@ export type Profile = {
   show_telegram: boolean;
   show_instagram: boolean;
   is_admin: boolean;
+  is_suspended: boolean;
+  suspended_until: string | null;
+  suspend_reason: string | null;
+  is_banned: boolean;
+  ban_reason: string | null;
 };
 
 export type SignUpFields = {

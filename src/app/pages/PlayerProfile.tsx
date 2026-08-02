@@ -24,7 +24,7 @@ type ProfileRow = {
   id: string; name: string; avatar: string | null; position: string | null; skill_level: string;
   telegram: string | null; instagram: string | null; show_telegram: boolean; show_instagram: boolean;
   is_verified: boolean;
-  visible_trust_label: "yellow" | "red" | null;
+  visible_trust_label: "no_show" | "rude_behavior" | "trustworthy" | "warning" | null;
 };
 type EventRow = { id: string; title: string; event_date: string; location: string; status: string };
 type NoteRow = { id: string; body: string };

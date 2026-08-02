@@ -1,4 +1,38 @@
-import type { CSSProperties, ReactNode, Ref } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
+
+export type ModalOrigin = { x: number; y: number } | null;
+
+// Reusable "pop open from the trigger button" entrance — extracted from the
+// join-event modal in EventDetail so any ConfirmModal can opt in via `origin`
+// instead of every caller re-implementing the same useLayoutEffect. See
+// mechanics note on ConfirmModal's `origin` prop below.
+export function useModalPopIn(origin: ModalOrigin) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [entered, setEntered] = useState(false);
+
+  useLayoutEffect(() => {
+    const box = boxRef.current;
+    if (!box) return;
+    const rect = box.getBoundingClientRect();
+    if (origin) {
+      box.style.transformOrigin = `${origin.x - rect.left}px ${origin.y - rect.top}px`;
+    }
+    box.style.transition = "none";
+    box.style.transform = "scale(0.01)";
+    box.style.opacity = "0";
+    void box.offsetHeight; // force reflow so the collapsed state actually commits
+    const raf = requestAnimationFrame(() => {
+      box.style.transition = "transform 320ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease-out";
+      box.style.transform = "scale(1)";
+      box.style.opacity = "1";
+      setEntered(true);
+    });
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mount-once: caller only mounts this component while the modal is open
+
+  return { boxRef, entered };
+}
 
 // Shared modal shell — backdrop + centered box. Every popup in the app
 // (confirmations, the join modal, publish scheduler) renders through this
@@ -66,6 +100,7 @@ export function ConfirmModal({
   onConfirm,
   confirmCls = "bg-[#462ed1] text-white",
   confirmDisabled,
+  origin,
 }: {
   icon?: ReactNode;
   iconBg?: string;
@@ -79,9 +114,19 @@ export function ConfirmModal({
   onConfirm: () => void;
   confirmCls?: string;
   confirmDisabled?: boolean;
+  // Pops the modal open from the button that triggered it instead of a plain
+  // centered fade — pass the trigger's getBoundingClientRect() center. See
+  // feedback_modal_pop_entrance_effect: this is PRIME's standard for every modal.
+  origin?: ModalOrigin;
 }) {
+  const { boxRef, entered } = useModalPopIn(origin ?? null);
   return (
-    <ModalOverlay onClose={onCancel} clipOverflow={false}>
+    <ModalOverlay
+      onClose={onCancel}
+      clipOverflow={false}
+      boxRef={origin !== undefined ? boxRef : undefined}
+      overlayClassName={origin !== undefined ? `transition-opacity duration-200 ${entered ? "opacity-100" : "opacity-0"}` : ""}
+    >
       {icon ? (
         <div className="flex items-center gap-3 mb-3">
           <div className={`w-10 h-10 rounded-full border flex items-center justify-center shrink-0 ${iconBg}`}>{icon}</div>

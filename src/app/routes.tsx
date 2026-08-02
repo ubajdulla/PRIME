@@ -12,7 +12,6 @@ import { AdminEvents } from "./pages/admin/AdminEvents";
 import { AdminEventDetail } from "./pages/admin/AdminEventDetail";
 import { AdminCreateEvent } from "./pages/admin/AdminCreateEvent";
 import { AdminPlayers } from "./pages/admin/AdminPlayers";
-import { AdminPlayersList } from "./pages/admin/AdminPlayersList";
 import { AdminPlayerProfile } from "./pages/admin/AdminPlayerProfile";
 import { PlayerProfile } from "./pages/PlayerProfile";
 
@@ -37,7 +36,6 @@ export const router = createBrowserRouter([
           { path: "events/:id", Component: AdminEventDetail },
           { path: "events/:id/edit", Component: AdminCreateEvent },
           { path: "players", Component: AdminPlayers },
-          { path: "players/:level", Component: AdminPlayersList },
           { path: "player/:playerId", Component: AdminPlayerProfile },
         ],
       },

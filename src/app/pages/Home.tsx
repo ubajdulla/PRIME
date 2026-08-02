@@ -218,16 +218,15 @@ export function Home() {
         {/* ── Greeting ─────────────────────────────────────────────── */}
         {isLoggedIn && profile && (
           <div className="flex items-center justify-between gap-6 pb-8 mb-8 border-b border-white/8">
-            <div>
-              <h1 className="font-black italic text-white tracking-widest uppercase text-2xl">
-                {t.home.greeting.hello}, {profile.name.split(" ")[0]} 👋
-              </h1>
-              <div className="flex items-center gap-2 mt-1.5 text-sm text-[#79828b]">
-                {profile.position && <><span>{profile.position}</span><span className="text-white/20">•</span></>}
-                <span className="flex items-center gap-1.5">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${SKILL_STYLE[profile.skill_level]?.dot ?? SKILL_STYLE.Rookie.dot}`} />
-                  <span className={`font-semibold ${SKILL_STYLE[profile.skill_level]?.text ?? SKILL_STYLE.Rookie.text}`}>{profile.skill_level}</span>
-                </span>
+            <div className="flex items-stretch gap-3">
+              <span className={`w-1 rounded-full shrink-0 ${SKILL_STYLE[profile.skill_level]?.dot ?? SKILL_STYLE.Rookie.dot}`} />
+              <div>
+                <h1 className="font-black italic text-white tracking-widest uppercase text-2xl">
+                  {t.home.greeting.hello}, {profile.name.split(" ")[0]}
+                </h1>
+                <div className="text-sm font-semibold text-white mt-1.5">
+                  {profile.position ? `${profile.skill_level} ${profile.position}` : profile.skill_level}
+                </div>
               </div>
             </div>
             <Link to="/profile" className="shrink-0 hover:opacity-80 transition-opacity">
@@ -341,12 +340,22 @@ export function Home() {
               </div>
             </div>
             <div className="flex gap-2 shrink-0">
-              <div className="w-8 h-8 rounded-full bg-[#462ed1]/10 flex items-center justify-center text-[#462ed1]">
+              <a
+                href="https://t.me/GoPrimeCZ/10"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-8 h-8 rounded-full bg-[#462ed1]/10 flex items-center justify-center text-[#462ed1] hover:bg-[#462ed1]/20 transition-colors"
+              >
                 <Send size={14} />
-              </div>
-              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#79828b]">
+              </a>
+              <a
+                href="https://www.instagram.com/goprime.cz/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#79828b] hover:bg-white/10 transition-colors"
+              >
                 <Instagram size={14} />
-              </div>
+              </a>
             </div>
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-[#79828b] text-xs mb-4">

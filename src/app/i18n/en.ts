@@ -75,6 +75,7 @@ export const en: Dict = {
     instagram: "Instagram",
     upcomingEvents: "Upcoming Events",
     pastEvents: "Past Events",
+    notes: "Notes",
     pending: "Pending",
     logOut: "Log Out",
     logOutTitle: "Log Out?",

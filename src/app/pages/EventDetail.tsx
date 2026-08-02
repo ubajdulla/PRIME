@@ -645,10 +645,11 @@ return (
 
             return (
               <div className="mt-4 mb-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">{t.event.waitlist}</p>
                 <div ref={waitlistBoxRef} className="bg-[#212121] border border-white/5 rounded-xl overflow-hidden">
                   {/* Avatar stack + count stays put whether collapsed or expanded - only
                       the chevron and the rows below react to waitlistOpen. */}
-                  <button onClick={() => setWaitlistOpen(v => !v)} className="w-full flex items-center gap-3 px-3 py-2.5">
+                  <button onClick={() => setWaitlistOpen(v => !v)} className="w-full flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-white/[0.07] transition-colors">
                     <div className="flex -space-x-2.5">
                       {waitlist.slice(0, 3).map((p, i) => (
                         <div key={p.id} className="relative" style={{ zIndex: 3 - i }}>
