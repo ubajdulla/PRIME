@@ -133,16 +133,14 @@ export function AdminPlayerProfile() {
     load(playerId);
   }, [playerId]);
 
-  // Both sheets only ever mount while open (conditional render, not a
-  // grid-rows expand), so `autoFocus` on their textarea already does the
-  // right thing on its own - this just gets the cursor to the end of the
-  // existing text and the height right on the first paint.
+  // No autoFocus on the textarea - see Add/Edit Note ConfirmModal comment -
+  // this only sizes it to the existing text's height on first paint, so it
+  // doesn't render as a cramped 2-row box for a long note.
   useLayoutEffect(() => {
     const el = editNoteTextareaRef.current;
     if (!editingNoteId || !el) return;
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
-    el.setSelectionRange(el.value.length, el.value.length);
   }, [editingNoteId]);
 
   useEffect(() => {
@@ -486,13 +484,11 @@ export function AdminPlayerProfile() {
       )}
 
       {/* Add Note / Edit Note - the same ConfirmModal shell every other
-          confirm in this file uses (Suspend, Ban, Skill change), instead of
-          a bespoke keyboard-aware positioning scheme. A centered modal
-          doesn't need any keyboard math at all: interactive-widget=resizes-
-          content (index.html) makes the browser actually shrink the layout
-          viewport when the keyboard opens, and this modal is centered
-          *within that shrunk viewport* by plain flexbox - it just never
-          ends up under the keyboard to begin with. */}
+          confirm in this file uses (Suspend, Ban, Skill change). No
+          autoFocus on the textarea, same as Suspend/Ban's inputs - the
+          keyboard only opens once the user actually taps the field, same
+          as it would for any other input, instead of racing the modal's
+          own entrance against the keyboard's slide-up animation. */}
       {addingNote && (
         <ConfirmModal
           icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[#462ed1]/75" icon={<Pencil size={18} className="text-white" />} />}
@@ -510,7 +506,7 @@ export function AdminPlayerProfile() {
                 el.style.height = "auto";
                 el.style.height = `${el.scrollHeight}px`;
               }}
-              onKeyDown={handleNoteKeyDown} autoFocus
+              onKeyDown={handleNoteKeyDown}
               placeholder="Add a note about this player… (Enter to save, Shift+Enter for new line)" rows={2}
               enterKeyHint="send"
               className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-hidden" />
@@ -564,7 +560,6 @@ export function AdminPlayerProfile() {
               el.style.height = "auto";
               el.style.height = `${el.scrollHeight}px`;
             }}
-            autoFocus
             onKeyDown={e => {
               if (e.key === "Escape") { setEditingNoteId(null); setEditNoteDraft(""); }
             }}

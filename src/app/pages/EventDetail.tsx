@@ -382,7 +382,6 @@ return (
             <div className="mb-5">
               <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2">{t.event.teamName}</p>
               <input
-                autoFocus
                 value={teamName}
                 onChange={e => setTeamName(e.target.value)}
                 placeholder={t.event.teamNamePlaceholder}
