@@ -8,6 +8,7 @@ import { getHub } from "../lib/hub";
 import { DropdownPanel } from "../components/ui/DropdownMenu";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
+import { useKeyboardInset } from "../lib/useKeyboardInset";
 
 const LANG_OPTIONS: { code: Lang; label: string }[] = [
   { code: "en", label: "English" },
@@ -43,6 +44,13 @@ export function MainLayout() {
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const { isAdmin, user } = useAuth();
+  // Hide the mobile chrome (top header, bottom tab bar) whenever the
+  // on-screen keyboard is open - otherwise both stay in the layout taking
+  // up their normal space (they're not position: fixed, just flex children
+  // that don't shrink), squeezing the already-keyboard-shrunk content area
+  // even further and fighting a focused field's fixed bottom sheet for
+  // the same corner of the screen.
+  const keyboardOpen = useKeyboardInset() > 0;
 
   // No realtime in this app - re-check on every navigation (cheap count-only
   // query) so the badge clears shortly after the user reads/actions an alert.
@@ -135,7 +143,7 @@ export function MainLayout() {
       </aside>
 
       {/* ── Mobile Top Header ──────────────────────────────── */}
-      <div className="md:hidden relative shrink-0 w-full flex items-center justify-center px-4 py-3 bg-[#212121] shadow-sm border-b border-[#101923]">
+      <div className={`md:hidden relative shrink-0 w-full items-center justify-center px-4 py-3 bg-[#212121] shadow-sm border-b border-[#101923] ${keyboardOpen ? "hidden" : "flex"}`}>
         {/* Logo stays centered */}
         <div className="flex items-center gap-2">
           <img src={logo} alt="Prime Logo" className="h-7 object-contain" />
@@ -185,7 +193,7 @@ export function MainLayout() {
       </main>
 
       {/* ── Mobile Bottom Nav ─────────────────────────────── */}
-      <nav className="md:hidden shrink-0 w-full bg-[#212121] border-t border-[#101923] flex justify-around items-center p-2 z-50 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[0_-4px_20px_rgba(0,0,0,0.2)]">
+      <nav className={`md:hidden shrink-0 w-full bg-[#212121] border-t border-[#101923] justify-around items-center p-2 z-50 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[0_-4px_20px_rgba(0,0,0,0.2)] ${keyboardOpen ? "hidden" : "flex"}`}>
         <MobileNavItem to="/" end icon={<Calendar size={24} />} label={t.nav.events} />
         <MobileNavItem to="/alerts"  icon={<Bell size={24} />}  label={t.nav.alerts}  badge={unreadAlerts} />
         <MobileNavItem to="/profile" icon={<User size={24} />}  label={t.nav.profile} />
