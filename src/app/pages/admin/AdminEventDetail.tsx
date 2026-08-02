@@ -803,20 +803,23 @@ export function AdminEventDetail() {
             )}
             {roster.map((player, i) => (
               <div key={player.id} className="relative">
-                <div className={`flex items-center gap-2 p-3 transition-colors hover:bg-white/[0.07] ${i > 0 ? "border-t border-white/[0.05]" : ""} ${i === 0 ? "rounded-t-2xl" : ""} ${i === roster.length - 1 ? "rounded-b-2xl" : ""}`}>
+                <div
+                  onClick={player.isGuest ? undefined : () => openProfile(player)}
+                  className={`flex items-center gap-2 p-3 transition-colors hover:bg-white/[0.07] ${player.isGuest ? "" : "cursor-pointer"} ${i > 0 ? "border-t border-white/[0.05]" : ""} ${i === 0 ? "rounded-t-2xl" : ""} ${i === roster.length - 1 ? "rounded-b-2xl" : ""}`}
+                >
                   {player.isGuest ? (
                     player.avatar
                       ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full object-cover border border-white/10 shrink-0" />
                       : <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0"><User size={16} className="text-white/30" /></div>
                   ) : (
-                    <button type="button" onClick={() => openProfile(player)} className="relative shrink-0 cursor-pointer">
+                    <div className="relative shrink-0">
                       {player.avatar
                         ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full object-cover border border-white/10" />
                         : <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
                       }
                       <VerifiedBadge verified={player.verified} size={13} ringClassName="border-[#212121]" />
                       <TrustDot label={player.trustLabel} size={10} ringClassName="border-[#212121]" />
-                    </button>
+                    </div>
                   )}
                   <div className="flex-1 min-w-0">
                     {event.category === "TOURNAMENT" ? (
@@ -848,7 +851,7 @@ export function AdminEventDetail() {
                     ) : (
                       <>
                         <div className="font-bold text-white text-sm truncate">{player.name}</div>
-                        <div onMouseDown={e => e.stopPropagation()}>
+                        <div onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
                           <SelectField
                             value={player.position ?? POSITIONS[0]}
                             options={POSITIONS}
@@ -861,11 +864,13 @@ export function AdminEventDetail() {
                     )}
                   </div>
                   {event.price > 0 && (
-                    <PaymentToggle status={player.paymentStatus} onConfirm={s => confirmPayment(player.rowId, s)} />
+                    <div onClick={e => e.stopPropagation()}>
+                      <PaymentToggle status={player.paymentStatus} onConfirm={s => confirmPayment(player.rowId, s)} />
+                    </div>
                   )}
                   <button
                     onMouseDown={e => e.stopPropagation()}
-                    onClick={() => toggleMenu(player.id)}
+                    onClick={e => { e.stopPropagation(); toggleMenu(player.id); }}
                     className={`w-8 h-8 flex items-center justify-center rounded-full shrink-0 transition-colors ${openMenu === player.id ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
                   >
                     <MoreVertical size={16} />
@@ -920,18 +925,18 @@ export function AdminEventDetail() {
             )}
             {waitlist.map(player => (
               <div key={player.id} className="relative">
-                <div className="flex items-center gap-2 p-3 bg-[#212121] border border-white/5 rounded-xl transition-colors">
-                  <button type="button" onClick={() => openProfile(player)} className="shrink-0 cursor-pointer">
+                <div onClick={() => openProfile(player)} className="flex items-center gap-2 p-3 bg-[#212121] border border-white/5 rounded-xl transition-colors hover:bg-white/[0.07] cursor-pointer">
+                  <div className="shrink-0">
                     {player.avatar
                       ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#181818] object-cover" />
                       : <div className="w-10 h-10 rounded-full border-2 border-[#181818] bg-white/5 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
                     }
-                  </button>
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-white text-sm truncate">{player.name}</div>
                   </div>
                   <button
-                    onClick={() => addToRosterFromWaitlist(player.id)}
+                    onClick={e => { e.stopPropagation(); addToRosterFromWaitlist(player.id); }}
                     className="w-[76px] h-8 flex items-center justify-center gap-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-[#462ed1] text-white hover:brightness-110"
                   >
                     <CheckCheck size={12} />
@@ -939,7 +944,7 @@ export function AdminEventDetail() {
                   </button>
                   <button
                     onMouseDown={e => e.stopPropagation()}
-                    onClick={() => { setOpenMenu(prev => prev === `w-${player.id}` ? null : `w-${player.id}`); setConfirmWaitlistRemId(null); }}
+                    onClick={e => { e.stopPropagation(); setOpenMenu(prev => prev === `w-${player.id}` ? null : `w-${player.id}`); setConfirmWaitlistRemId(null); }}
                     className={`w-8 h-8 flex items-center justify-center rounded-full shrink-0 transition-colors ${openMenu === `w-${player.id}` ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
                   >
                     <MoreVertical size={15} />
@@ -990,18 +995,18 @@ export function AdminEventDetail() {
             )}
             {requests.map(player => (
               <div key={player.id} className="relative">
-                <div className="flex items-center gap-2 p-3 bg-[#212121] border border-white/5 rounded-xl transition-colors">
-                  <button type="button" onClick={() => openProfile(player)} className="shrink-0 cursor-pointer">
+                <div onClick={() => openProfile(player)} className="flex items-center gap-2 p-3 bg-[#212121] border border-white/5 rounded-xl transition-colors hover:bg-white/[0.07] cursor-pointer">
+                  <div className="shrink-0">
                     {player.avatar
                       ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#181818] object-cover" />
                       : <div className="w-10 h-10 rounded-full border-2 border-[#181818] bg-white/5 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
                     }
-                  </button>
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-white text-sm truncate">{player.name}</div>
                   </div>
                   <button
-                    onClick={() => approveRequest(player.id)}
+                    onClick={e => { e.stopPropagation(); approveRequest(player.id); }}
                     className="w-[76px] h-8 flex items-center justify-center gap-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-[#462ed1] text-white hover:brightness-110"
                   >
                     <CheckCheck size={12} />
@@ -1009,7 +1014,7 @@ export function AdminEventDetail() {
                   </button>
                   <button
                     onMouseDown={e => e.stopPropagation()}
-                    onClick={() => { setOpenMenu(prev => prev === `r-${player.id}` ? null : `r-${player.id}`); setConfirmRejectId(null); }}
+                    onClick={e => { e.stopPropagation(); setOpenMenu(prev => prev === `r-${player.id}` ? null : `r-${player.id}`); setConfirmRejectId(null); }}
                     className={`w-8 h-8 flex items-center justify-center rounded-full shrink-0 transition-colors ${openMenu === `r-${player.id}` ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
                   >
                     <MoreVertical size={15} />
