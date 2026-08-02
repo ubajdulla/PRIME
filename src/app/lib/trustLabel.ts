@@ -1,10 +1,16 @@
-export type TrustLabel = "no_show" | "rude_behavior" | "trustworthy" | "warning";
+// Keys are stored in the DB (player_notes.label, profiles.trust_label) and
+// are check-constrained there (031_note_label_payment.sql) - renaming a key
+// would silently orphan every existing note with that value, so only the
+// display name changes when the wording needs to change (rude_behavior is
+// shown as "Disrespect", trustworthy as "Trust").
+export type TrustLabel = "no_show" | "rude_behavior" | "trustworthy" | "warning" | "payment";
 
 export const LABEL_META: Record<TrustLabel, { name: string; sentiment: "negative" | "positive" | "warning" }> = {
-  no_show:       { name: "No-show",        sentiment: "negative" },
-  rude_behavior: { name: "Rude Behavior",  sentiment: "negative" },
-  trustworthy:   { name: "Trustworthy",    sentiment: "positive" },
-  warning:       { name: "Warning",        sentiment: "warning" },
+  warning:       { name: "Warning",     sentiment: "warning" },
+  no_show:       { name: "No-show",     sentiment: "negative" },
+  rude_behavior: { name: "Disrespect",  sentiment: "negative" },
+  payment:       { name: "Payment",     sentiment: "negative" },
+  trustworthy:   { name: "Trust",       sentiment: "positive" },
 };
 
 export const SENTIMENT_COLOR: Record<"negative" | "positive" | "warning", string> = {

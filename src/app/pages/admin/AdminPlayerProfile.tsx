@@ -495,7 +495,9 @@ export function AdminPlayerProfile() {
           ends up under the keyboard to begin with. */}
       {addingNote && (
         <ConfirmModal
-          title="Add Note"
+          icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[#462ed1]/75" icon={<Pencil size={18} className="text-white" />} />}
+          iconBg="border-[#462ed1]/25"
+          title="Add Note" sub={`About ${player.name}`}
           cancelLabel="Cancel" onCancel={() => { setAddingNote(false); setNoteDraft(""); setNoteLabel(""); }}
           confirmLabel="Save" confirmDisabled={!noteDraft.trim() || savingNote}
           onConfirm={addNote}
@@ -512,30 +514,31 @@ export function AdminPlayerProfile() {
               placeholder="Add a note about this player… (Enter to save, Shift+Enter for new line)" rows={2}
               enterKeyHint="send"
               className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-hidden" />
-            <div className="flex items-center gap-1.5">
-              <button type="button" onClick={() => setNoteVisibility("admin")} title="Admins only"
-                className={`p-1.5 rounded-full border transition-colors ${noteVisibility === "admin" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
-                <Lock size={12} />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setNoteVisibility(v => v === "admin" ? "all" : "admin")}
+                title={noteVisibility === "admin" ? "Admins only" : "Visible to everyone"}
+                className={`relative w-[38px] h-[22px] rounded-full shrink-0 transition-colors ${noteVisibility === "all" ? "bg-[#462ed1]" : "bg-white/15"}`}
+              >
+                <span className={`absolute top-0.5 w-[18px] h-[18px] rounded-full bg-white transition-all ${noteVisibility === "all" ? "left-[18px]" : "left-0.5"}`} />
               </button>
-              <button type="button" onClick={() => setNoteVisibility("all")} title="Visible to everyone"
-                className={`p-1.5 rounded-full border transition-colors ${noteVisibility === "all" ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-[#79828b] hover:text-white/70"}`}>
-                <Globe size={12} />
-              </button>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#79828b]">
-                {noteVisibility === "admin" ? "Admins only" : "Visible to everyone"}
-              </span>
+              {noteVisibility === "admin"
+                ? <Lock size={15} className="text-[#79828b]" />
+                : <Globe size={15} className="text-[#79828b]" />}
               <div className="ml-auto">
                 <SelectField
                   value={noteLabel}
                   options={[
                     { value: "", label: "No label" },
-                    { value: "no_show", label: "No-show", icon: noteLabelIcon("no_show") },
-                    { value: "rude_behavior", label: "Rude Behavior", icon: noteLabelIcon("rude_behavior") },
                     { value: "warning", label: "Warning", icon: noteLabelIcon("warning") },
-                    { value: "trustworthy", label: "Trustworthy", icon: noteLabelIcon("trustworthy") },
+                    { value: "no_show", label: "No-show", icon: noteLabelIcon("no_show") },
+                    { value: "rude_behavior", label: "Disrespect", icon: noteLabelIcon("rude_behavior") },
+                    { value: "payment", label: "Payment", icon: noteLabelIcon("payment") },
+                    { value: "trustworthy", label: "Trust", icon: noteLabelIcon("trustworthy") },
                   ]}
                   onChange={v => setNoteLabel(v as TrustLabel | "")}
-                  triggerClassName="h-7 flex items-center justify-between gap-1.5 bg-white/5 rounded-full pl-2.5 pr-2 text-white/70 text-[10px] font-black uppercase tracking-wider transition-colors hover:bg-white/10 hover:text-white focus:outline-none cursor-pointer"
+                  triggerClassName="w-40 h-8 flex items-center justify-between gap-1.5 bg-white/5 rounded-lg px-2.5 text-white/80 text-[11px] font-bold transition-colors hover:bg-white/10 hover:text-white focus:outline-none cursor-pointer"
                   panelClassName="absolute right-0 top-full mt-1.5 z-30"
                   panelWidthClassName="w-40"
                 />

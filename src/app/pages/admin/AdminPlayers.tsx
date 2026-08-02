@@ -57,7 +57,7 @@ function CategoryIcon({ category, size = 20 }: { category: Category; size?: numb
   );
 }
 
-const STATUSES = ["All", "Payment Pending", "Warnings", "No-show", "Rude Behaviour", "Trustworthy", "Newbie"] as const;
+const STATUSES = ["All", "Payment Pending", "Warnings", "No-show", "Disrespect", "Trust", "Newbie"] as const;
 type Status = typeof STATUSES[number];
 const NEWBIE_DAYS = 14;
 
@@ -220,8 +220,8 @@ export function AdminPlayers() {
     if (s === "Payment Pending") return p.hasUnpaid;
     if (s === "Warnings")        return eff?.label === "warning";
     if (s === "No-show")         return eff?.label === "no_show";
-    if (s === "Rude Behaviour")  return eff?.label === "rude_behavior";
-    if (s === "Trustworthy")     return eff?.label === "trustworthy";
+    if (s === "Disrespect")      return eff?.label === "rude_behavior";
+    if (s === "Trust")           return eff?.label === "trustworthy";
     return true;
   }
 
