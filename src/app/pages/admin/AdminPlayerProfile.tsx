@@ -112,6 +112,11 @@ export function AdminPlayerProfile() {
   const [savingEditNote, setSavingEditNote] = useState(false);
   const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editNoteTextareaRef = useRef<HTMLTextAreaElement>(null);
+  // Scrolling just the textarea can leave the visibility/label row below it
+  // (still part of the same box) below the fold - scroll the whole box so
+  // that row stays visible too.
+  const composerBoxRef = useRef<HTMLDivElement>(null);
+  const editNoteBoxRef = useRef<HTMLDivElement>(null);
 
   const [toast, setToast] = useState<{ message: string; variant: "success" | "copied" | "publish" | "error"; visible: boolean }>
     ({ message: "", variant: "success", visible: false });
@@ -157,7 +162,8 @@ export function AdminPlayerProfile() {
     // viewport itself shrink when the keyboard opens (rather than just
     // overlaying it on an unchanged one), so a plain scrollIntoView already
     // has correct numbers to work with here - no manual keyboard math needed.
-    el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    // Scroll the whole box (Cancel/Save row included), not just the textarea.
+    editNoteBoxRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [editingNoteId]);
 
   useEffect(() => {
@@ -670,7 +676,7 @@ export function AdminPlayerProfile() {
             onTransitionEnd={e => { if (e.propertyName === "grid-template-rows" && addingNote) setComposerSettled(true); }}
           >
             <div className={`${composerSettled ? "overflow-visible" : "overflow-hidden"} min-h-0`}>
-              <div className={`bg-[#212121] rounded-xl p-3 flex flex-col gap-2 transition-opacity duration-150 ease-out ${addingNote ? "opacity-100" : "opacity-0"}`}>
+              <div ref={composerBoxRef} className={`bg-[#212121] rounded-xl p-3 flex flex-col gap-2 transition-opacity duration-150 ease-out ${addingNote ? "opacity-100" : "opacity-0"}`}>
                 <textarea ref={noteTextareaRef} value={noteDraft}
                   onChange={e => {
                     setNoteDraft(e.target.value);
@@ -679,7 +685,7 @@ export function AdminPlayerProfile() {
                     el.style.height = `${el.scrollHeight}px`;
                   }}
                   onKeyDown={handleNoteKeyDown}
-                  onFocus={() => noteTextareaRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" })}
+                  onFocus={() => composerBoxRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" })}
                   placeholder="Add a note about this player… (Enter to save, Shift+Enter for new line)" rows={2}
                   enterKeyHint="send"
                   className="w-full bg-[#212121] border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-hidden" />
@@ -781,7 +787,7 @@ export function AdminPlayerProfile() {
                       )}
                     </div>
                     {isEditing ? (
-                      <div className="flex flex-col gap-2">
+                      <div ref={editNoteBoxRef} className="flex flex-col gap-2">
                         <textarea
                           ref={editNoteTextareaRef}
                           value={editNoteDraft}
@@ -791,7 +797,7 @@ export function AdminPlayerProfile() {
                             el.style.height = "auto";
                             el.style.height = `${el.scrollHeight}px`;
                           }}
-                          onFocus={() => editNoteTextareaRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" })}
+                          onFocus={() => editNoteBoxRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" })}
                           onKeyDown={e => {
                             if (e.key === "Escape") { setEditingNoteId(null); setEditNoteDraft(""); }
                           }}
