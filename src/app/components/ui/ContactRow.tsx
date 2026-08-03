@@ -35,8 +35,8 @@ export function ContactRow({
         <div className="text-[11px] text-[#aaa] mb-0.5 h-[13px]">{label}</div>
         <div className="grid h-5">
           <div
-            className={`col-start-1 row-start-1 flex items-center gap-0.5 transition-all duration-200 ease-out ${
-              editing ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1 pointer-events-none"
+            className={`col-start-1 row-start-1 flex items-center gap-0.5 transition-opacity duration-200 ease-out ${
+              editing ? "opacity-100" : "opacity-0 pointer-events-none"
             }`}
           >
             {prefix && <span className="text-[#aaa] text-sm shrink-0">{prefix}</span>}
@@ -49,8 +49,8 @@ export function ContactRow({
             />
           </div>
           <div
-            className={`col-start-1 row-start-1 flex items-center transition-all duration-200 ease-out ${
-              editing ? "opacity-0 translate-y-1 pointer-events-none" : "opacity-100 translate-y-0"
+            className={`col-start-1 row-start-1 flex items-center transition-opacity duration-200 ease-out ${
+              editing ? "opacity-0 pointer-events-none" : "opacity-100"
             }`}
           >
             {href && !isHidden ? (

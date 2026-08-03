@@ -80,7 +80,7 @@ export const cs: Dict = {
     logOut: "Odhlásit se",
     logOutTitle: "Odhlásit se?",
     logOutDesc: "Pro přístup k účtu se budeš muset znovu přihlásit.",
-    editDetails: "Upravit údaje profilu",
+    editDetails: "Upravit",
   },
   event: {
     eventDetails: "Detail události",

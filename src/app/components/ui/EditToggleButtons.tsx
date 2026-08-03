@@ -3,9 +3,11 @@ import type { ReactNode } from "react";
 // Crossfades between the "idle" trigger (a pencil button, a kebab menu -
 // whatever the caller uses to enter edit mode) and the Cancel/Save pair
 // instead of swapping instantly - both stay mounted, stacked in the same
-// grid cell (so the row doesn't jump width) and faded via opacity +
-// translate-y, the same idiom already used for the search-cancel button
-// in AdminPlayers and the FadeIn wrapper elsewhere in the app.
+// grid cell (so the row doesn't jump width) and faded via opacity only.
+// Deliberately no transform/translate here: it creates a stacking context
+// that traps the idle slot's popovers (the kebab dropdown) inside it,
+// so they can't paint above later siblings on the page - opacity-only
+// keeps the fade without that side effect.
 export function EditToggleButtons({
   editing, idle, onCancel, onSave, saving, cancelLabel = "Cancel", saveLabel = "Save",
 }: {
@@ -20,8 +22,8 @@ export function EditToggleButtons({
   return (
     <div className="grid items-center justify-items-end">
       <div
-        className={`col-start-1 row-start-1 flex items-center gap-3 transition-all duration-200 ease-out ${
-          editing ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1 pointer-events-none"
+        className={`col-start-1 row-start-1 flex items-center gap-3 transition-opacity duration-200 ease-out ${
+          editing ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
         <button
@@ -43,8 +45,8 @@ export function EditToggleButtons({
         </button>
       </div>
       <div
-        className={`col-start-1 row-start-1 transition-all duration-200 ease-out ${
-          editing ? "opacity-0 -translate-y-1 pointer-events-none" : "opacity-100 translate-y-0"
+        className={`col-start-1 row-start-1 transition-opacity duration-200 ease-out ${
+          editing ? "opacity-0 pointer-events-none" : "opacity-100"
         }`}
       >
         {idle}

@@ -37,8 +37,8 @@ export function DateOfBirthRow({
         <div className="text-[11px] text-[#aaa] mb-0.5 h-[13px]">Date of Birth</div>
         <div className="grid h-5">
           <div
-            className={`col-start-1 row-start-1 flex items-center transition-all duration-200 ease-out ${
-              editing ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1 pointer-events-none"
+            className={`col-start-1 row-start-1 flex items-center transition-opacity duration-200 ease-out ${
+              editing ? "opacity-100" : "opacity-0 pointer-events-none"
             }`}
           >
             <DatePickerField
@@ -48,8 +48,8 @@ export function DateOfBirthRow({
             />
           </div>
           <div
-            className={`col-start-1 row-start-1 flex items-center transition-all duration-200 ease-out ${
-              editing ? "opacity-0 translate-y-1 pointer-events-none" : "opacity-100 translate-y-0"
+            className={`col-start-1 row-start-1 flex items-center transition-opacity duration-200 ease-out ${
+              editing ? "opacity-0 pointer-events-none" : "opacity-100"
             }`}
           >
             {value ? (
