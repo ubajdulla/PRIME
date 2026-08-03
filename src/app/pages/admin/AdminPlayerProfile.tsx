@@ -24,7 +24,8 @@ import { StatusBadge } from "../../components/ui/StatusBadge";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../lib/AuthContext";
 import { isPastDate } from "../../lib/eventDate";
-import { LABEL_META, SENTIMENT_COLOR, effectiveLabel, type TrustLabel } from "../../lib/trustLabel";
+import { encodeNotification } from "../../lib/notificationText";
+import { LABEL_META, SENTIMENT_COLOR, effectiveLabel, labelName, type TrustLabel } from "../../lib/trustLabel";
 import { useLang } from "../../i18n";
 
 const SUPERADMIN_EMAIL = "ubajdulla@seznam.cz";
@@ -384,7 +385,7 @@ export function AdminPlayerProfile() {
     logAction(player.id, `Suspended until ${formatDate(suspendDate)}.${suspendReason ? ` Reason: ${suspendReason}` : ""}`);
     const { error: notifyErr } = await supabase.from("notifications").insert({
       recipient_id: player.id, type: "account_suspended", title: "You've Been Suspended",
-      body: `Your account was suspended until ${formatDate(suspendDate)}.${suspendReason ? ` Reason: ${suspendReason}` : ""}`,
+      body: encodeNotification({ k: "account_suspended", date: suspendDate, reason: suspendReason || null }),
     });
     if (notifyErr) console.error("Failed to send suspension notification:", notifyErr);
   }
@@ -397,7 +398,7 @@ export function AdminPlayerProfile() {
     logAction(player.id, `Banned.${banReason ? ` Reason: ${banReason}` : ""}`);
     const { error: notifyErr } = await supabase.from("notifications").insert({
       recipient_id: player.id, type: "account_banned", title: "Account Banned",
-      body: `Your account has been permanently banned.${banReason ? ` Reason: ${banReason}` : ""}`,
+      body: encodeNotification({ k: "account_banned", reason: banReason || null }),
     });
     if (notifyErr) console.error("Failed to send ban notification:", notifyErr);
   }
@@ -450,7 +451,7 @@ export function AdminPlayerProfile() {
       : currentLabel
       ? {
           color: SENTIMENT_COLOR[LABEL_META[currentLabel.label].sentiment], icon: "flag",
-          tooltip: LABEL_META[currentLabel.label].name, opacity: currentLabel.opacity,
+          tooltip: labelName(currentLabel.label, t), opacity: currentLabel.opacity,
         }
       : null;
   const ringColor = skillRingColor;
@@ -580,11 +581,11 @@ export function AdminPlayerProfile() {
                   value={noteLabel}
                   options={[
                     { value: "", label: t.admin.noLabelOption },
-                    { value: "warning", label: "Warning", icon: noteLabelIcon("warning") },
-                    { value: "no_show", label: "No-show", icon: noteLabelIcon("no_show") },
-                    { value: "rude_behavior", label: "Disrespect", icon: noteLabelIcon("rude_behavior") },
-                    { value: "payment", label: "Payment", icon: noteLabelIcon("payment") },
-                    { value: "trustworthy", label: "Trust", icon: noteLabelIcon("trustworthy") },
+                    { value: "warning", label: labelName("warning", t), icon: noteLabelIcon("warning") },
+                    { value: "no_show", label: labelName("no_show", t), icon: noteLabelIcon("no_show") },
+                    { value: "rude_behavior", label: labelName("rude_behavior", t), icon: noteLabelIcon("rude_behavior") },
+                    { value: "payment", label: labelName("payment", t), icon: noteLabelIcon("payment") },
+                    { value: "trustworthy", label: labelName("trustworthy", t), icon: noteLabelIcon("trustworthy") },
                   ]}
                   onChange={v => setNoteLabel(v as TrustLabel | "")}
                   triggerClassName="w-48 h-11 flex items-center justify-between gap-1.5 bg-white/5 rounded-lg px-3 text-white/80 text-sm font-bold transition-colors hover:bg-white/10 hover:text-white focus:outline-none cursor-pointer"
@@ -622,7 +623,7 @@ export function AdminPlayerProfile() {
         </ConfirmModal>
       )}
 
-      <BackBar label="Back" />
+      <BackBar label={t.common.back} />
 
       {/* ── Avatar + identity ─────────────────────────────── */}
       <div className="flex flex-col items-center pt-8 pb-6 px-4">
@@ -768,7 +769,7 @@ export function AdminPlayerProfile() {
                         <span
                           className="ml-auto w-5 h-5 rounded-full flex items-center justify-center shrink-0"
                           style={{ background: `${SENTIMENT_COLOR[LABEL_META[n.label].sentiment]}26` }}
-                          title={LABEL_META[n.label].name}
+                          title={labelName(n.label, t)}
                         >
                           {LABEL_META[n.label].sentiment === "positive"
                             ? <ThumbsUp size={11} style={{ color: SENTIMENT_COLOR[LABEL_META[n.label].sentiment] }} />
@@ -967,7 +968,7 @@ export function AdminPlayerProfile() {
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold text-white">{t.admin.currentLabel}</div>
                 <div className="text-[11px] text-[#79828b]">
-                  {currentLabel ? `${LABEL_META[currentLabel.label].name} — set from a note, fades over 7 events` : t.admin.noLabelSet}
+                  {currentLabel ? t.admin.labelDecayNote(labelName(currentLabel.label, t)) : t.admin.noLabelSet}
                 </div>
               </div>
               {currentLabel && (

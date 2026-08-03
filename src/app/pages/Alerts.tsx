@@ -18,6 +18,7 @@ import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { Toast } from "../components/ui/Toast";
 import { FilterPill } from "../components/ui/FilterPill";
+import { encodeNotification, renderNotification } from "../lib/notificationText";
 
 type AlertType =
   | "moderator_swap_request" | "moderator_swap_accepted" | "moderator_swap_declined"
@@ -121,11 +122,12 @@ export function Alerts() {
 
   function toAlertItem(r: NotificationRow): AlertItem {
     const group = bucketFor(r.created_at);
+    const { title, description } = renderNotification(r.body, r.title, t);
     return {
       id: r.id,
       type: r.type,
-      title: r.title,
-      description: r.body,
+      title,
+      description,
       time: formatTime(r.created_at, group, locale),
       unread: !r.read,
       eventId: r.event_id ?? undefined,
@@ -140,7 +142,7 @@ export function Alerts() {
       .map(group => ({ group, items: buckets[group] }))
       .filter(g => g.items.length > 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows]);
+  }, [rows, t, locale]);
 
   const totalUnread = rows.filter(r => !r.read).length;
 
@@ -180,9 +182,9 @@ export function Alerts() {
         await supabase.from("moderator_swap_requests").update({ status: "accepted", responded_at: new Date().toISOString() }).eq("id", swapId);
         const { error: notifyErr } = await supabase.from("notifications").insert([
           { recipient_id: swap.from_admin_id, type: "moderator_swap_accepted", title: "Swap Successful",
-            body: `Your moderator swap for "${swap.events?.title}" was accepted.`, event_id: swap.event_id, related_id: swapId },
+            body: encodeNotification({ k: "swap_accepted", role: "initiator", eventTitle: swap.events?.title ?? "" }), event_id: swap.event_id, related_id: swapId },
           { recipient_id: swap.to_admin_id, type: "moderator_swap_accepted", title: "Swap Successful",
-            body: `You are now the moderator for "${swap.events?.title}".`, event_id: swap.event_id, related_id: swapId },
+            body: encodeNotification({ k: "swap_accepted", role: "recipient", eventTitle: swap.events?.title ?? "" }), event_id: swap.event_id, related_id: swapId },
         ]);
         if (notifyErr) console.error("Failed to send swap-accepted notifications:", notifyErr);
         fireToast(t.alerts.swapAccepted, "success");
@@ -198,7 +200,7 @@ export function Alerts() {
     const { error: notifyErr1 } = await supabase.from("notifications").insert({
       recipient_id: swap.from_admin_id, type: "moderator_swap_declined",
       title: "Swap Could Not Be Completed",
-      body: `The moderator swap for "${swap.events?.title}" could not be completed.`,
+      body: encodeNotification({ k: "swap_failed", eventTitle: swap.events?.title ?? "" }),
       event_id: swap.event_id, related_id: swapId,
     });
     if (notifyErr1) console.error("Failed to send swap-failed notification:", notifyErr1);
@@ -223,7 +225,7 @@ export function Alerts() {
     await supabase.from("moderator_swap_requests").update({ status: "declined", responded_at: new Date().toISOString() }).eq("id", swapId);
     const { error: notifyErr2 } = await supabase.from("notifications").insert({
       recipient_id: swap.from_admin_id, type: "moderator_swap_declined", title: "Swap Declined",
-      body: `Your moderator swap request for "${swap.events?.title}" was declined.`,
+      body: encodeNotification({ k: "swap_declined", eventTitle: swap.events?.title ?? "" }),
       event_id: swap.event_id, related_id: swapId,
     });
     if (notifyErr2) console.error("Failed to send swap-declined notification:", notifyErr2);

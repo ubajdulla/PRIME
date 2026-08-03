@@ -22,6 +22,7 @@ import { Toast } from "../../components/ui/Toast";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../lib/AuthContext";
 import { shortDate, isPastDate, isRosterLocked } from "../../lib/eventDate";
+import { encodeNotification } from "../../lib/notificationText";
 import { PublishEventModal } from "../../components/PublishEventModal";
 import { useWaterRipple, RippleLayer } from "../../components/ui/useWaterRipple";
 import { useLang } from "../../i18n";
@@ -332,7 +333,7 @@ export function AdminEventDetail() {
       const { error: notifyErr } = await supabase.from("notifications").insert(
         recipientIds.map(recipientId => ({
           recipient_id: recipientId, type: "event_canceled", title: "Event Canceled",
-          body: `"${event!.title}" (${shortDate(event!.event_date, t, true)}, ${event!.event_time}) was canceled by the organizer.`,
+          body: encodeNotification({ k: "event_canceled", eventTitle: event!.title, date: event!.event_date, time: event!.event_time }),
           event_id: event!.id,
         }))
       );
@@ -413,7 +414,7 @@ export function AdminEventDetail() {
       recipient_id: toAdminId,
       type: "moderator_swap_request",
       title: "Moderator Swap Request",
-      body: `${authProfile?.name ?? "The previous admin"} wants to swap moderator duties with you for "${event.title}".`,
+      body: encodeNotification({ k: "swap_request", adminName: authProfile?.name ?? null, eventTitle: event.title }),
       event_id: event.id,
       related_id: data.id,
     });

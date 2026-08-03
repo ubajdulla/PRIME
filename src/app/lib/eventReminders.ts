@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient";
+import { encodeNotification } from "./notificationText";
 
 function eventStartsAt(eventDate: string, eventTime: string): Date {
   const start = eventTime.split(" - ")[0]?.trim() ?? "00:00";
@@ -45,13 +46,13 @@ export async function checkEventReminders(userId: string) {
   const toInsert = upcoming
     .filter(e => !already.has(e.id))
     .map(e => {
-      const dayLabel = e.event_date === todayStr ? "Today" : "Tomorrow";
+      const day: "today" | "tomorrow" = e.event_date === todayStr ? "today" : "tomorrow";
       const startTime = e.event_time.split(" - ")[0]?.trim() ?? e.event_time;
       return {
         recipient_id: userId,
         type: "event_reminder",
-        title: `Game ${dayLabel}`,
-        body: `"${e.title}" starts at ${startTime} at ${e.location} - don't forget!`,
+        title: `Game ${day === "today" ? "Today" : "Tomorrow"}`,
+        body: encodeNotification({ k: "event_reminder", day, eventTitle: e.title, time: startTime, location: e.location }),
         event_id: e.id,
       };
     });

@@ -18,6 +18,9 @@ export interface Dict {
     notFound: string;
     selectDate: string;
     reasonPlaceholder: string;
+    justNow: string;
+    hoursAgo: (n: number) => string;
+    daysAgo: (n: number) => string;
   };
   home: {
     eventsFeed: string;
@@ -75,6 +78,32 @@ export interface Dict {
     swapAccepted: string;
     swapDeclined: string;
     swapFailed: string;
+    notif: {
+      swapAcceptedTitle: string;
+      swapAcceptedInitiatorBody: (eventTitle: string) => string;
+      swapAcceptedRecipientBody: (eventTitle: string) => string;
+      swapFailedTitle: string;
+      swapFailedBody: (eventTitle: string) => string;
+      swapDeclinedTitle: string;
+      swapDeclinedBody: (eventTitle: string) => string;
+      swapRequestTitle: string;
+      swapRequestBody: (adminName: string, eventTitle: string) => string;
+      previousAdmin: string;
+      reminderTitle: (dayLabel: string) => string;
+      reminderBody: (eventTitle: string, time: string, location: string) => string;
+      eventCanceledTitle: string;
+      eventCanceledBody: (eventTitle: string, date: string, time: string) => string;
+      eventUpdatedTitle: string;
+      eventUpdatedBody: (eventTitle: string, changes: string) => string;
+      changeDateTime: (date: string, time: string) => string;
+      changeLocation: (location: string) => string;
+      capacityTitle: string;
+      capacityBody: (eventTitle: string, prevCapacity: number, newCapacity: number, count: number) => string;
+      suspendedTitle: string;
+      suspendedBody: (date: string, reason: string | null) => string;
+      bannedTitle: string;
+      bannedBody: (reason: string | null) => string;
+    };
   };
   profile: {
     position: string;
@@ -209,6 +238,29 @@ export interface Dict {
     nothingSearched: string;
     noCategoryMatch: string;
     inLabel: string;
+    total: string;
+    unknownPlayer: string;
+    statusAll: string;
+    statusPaymentPending: string;
+    statusWarnings: string;
+    statusNoShow: string;
+    statusDisrespect: string;
+    statusTrust: string;
+    statusNoLabel: string;
+    activityBanned: string;
+    activityUnbanned: string;
+    activitySuspended: string;
+    activitySuspensionLifted: string;
+    activityVerified: string;
+    activityVerificationRevoked: string;
+    activitySkillChange: string;
+    activityLabelCleared: string;
+    activityNote: string;
+    labelWarning: string;
+    labelNoShow: string;
+    labelDisrespect: string;
+    labelPayment: string;
+    labelTrust: string;
 
     // Event detail
     eventNotFound: string;
@@ -269,6 +321,7 @@ export interface Dict {
     permanentlyBanned: string;
     unban: string;
     currentLabel: string;
+    labelDecayNote: (name: string) => string;
     noLabelSet: string;
     clear: string;
     changeSkillTitle: string;

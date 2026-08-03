@@ -16,7 +16,7 @@ import { ContactRow } from "../components/ui/ContactRow";
 import { DateOfBirthRow } from "../components/ui/DateOfBirthRow";
 import { EditToggleButtons } from "../components/ui/EditToggleButtons";
 import { StatusBadge } from "../components/ui/StatusBadge";
-import { LABEL_META, SENTIMENT_COLOR, type TrustLabel } from "../lib/trustLabel";
+import { LABEL_META, SENTIMENT_COLOR, labelName, type TrustLabel } from "../lib/trustLabel";
 
 type EventRow = { id: string; title: string; event_date: string; event_time: string; location: string; status: string };
 type NoteRow = { id: string; author_name: string; body: string; created_at: string; label: TrustLabel | null };
@@ -397,7 +397,7 @@ export function Profile() {
                       <span
                         className="ml-auto w-5 h-5 rounded-full flex items-center justify-center shrink-0"
                         style={{ background: `${SENTIMENT_COLOR[LABEL_META[n.label].sentiment]}26` }}
-                        title={LABEL_META[n.label].name}
+                        title={labelName(n.label, t)}
                       >
                         {LABEL_META[n.label].sentiment === "positive"
                           ? <ThumbsUp size={11} style={{ color: SENTIMENT_COLOR[LABEL_META[n.label].sentiment] }} />

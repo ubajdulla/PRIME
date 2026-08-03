@@ -5,12 +5,12 @@ import type { LucideIcon } from "lucide-react";
 import { FilterPill } from "../../components/ui/FilterPill";
 import { TrustDot } from "../../components/ui/TrustDot";
 import { VerifiedBadge } from "../../components/ui/VerifiedBadge";
-import { LABEL_META, SENTIMENT_COLOR, effectiveLabel } from "../../lib/trustLabel";
+import { LABEL_META, SENTIMENT_COLOR, effectiveLabel, labelName } from "../../lib/trustLabel";
 import { navDir } from "../../lib/navDir";
 import { useHorizontalSwipe } from "../../lib/useHorizontalSwipe";
 import { supabase } from "../../lib/supabaseClient";
 import { levelLabel, positionLabel } from "../../data/adminData";
-import { useLang } from "../../i18n";
+import { useLang, type Dict } from "../../i18n";
 
 const LEVELS = ["PRIME", "Pro", "Advanced", "Intermediate", "Beginner", "Rookie"] as const;
 const CATEGORIES = ["Admin", ...LEVELS] as const;
@@ -109,12 +109,12 @@ function FadeIn({ children }: { children: React.ReactNode }) {
   );
 }
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, t: Dict): string {
   const ms = Date.now() - new Date(iso).getTime();
   const h = Math.floor(ms / 3_600_000);
-  if (h < 1) return "just now";
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+  if (h < 1) return t.common.justNow;
+  if (h < 24) return t.common.hoursAgo(h);
+  return t.common.daysAgo(Math.floor(h / 24));
 }
 
 type ActivityKind = { Icon: LucideIcon; color: string; title: string; strong?: boolean };
@@ -125,27 +125,36 @@ type ActivityKind = { Icon: LucideIcon; color: string; title: string; strong?: b
 // icon/color instead of every action reading as identical plain text.
 // `strong` marks the ones serious enough to get a solid-fill badge instead
 // of a tinted one (currently just Banned).
-function classifyActivity(n: NoteRow): ActivityKind {
+function classifyActivity(n: NoteRow, t: Dict): ActivityKind {
   if (n.label) {
     const meta = LABEL_META[n.label as keyof typeof LABEL_META];
-    return { Icon: Flag, color: SENTIMENT_COLOR[meta.sentiment], title: meta.name };
+    return { Icon: Flag, color: SENTIMENT_COLOR[meta.sentiment], title: labelName(n.label as keyof typeof LABEL_META, t) };
   }
   const b = n.body;
-  if (b.startsWith("Banned"))              return { Icon: OctagonX, color: "#ef4444", title: "Banned", strong: true };
-  if (b === "Unbanned")                    return { Icon: CheckCircle2, color: "#4dcd5e", title: "Unbanned" };
-  if (b.startsWith("Suspended until"))     return { Icon: Clock, color: "#eab308", title: "Suspended" };
-  if (b === "Suspension lifted")           return { Icon: CheckCircle2, color: "#4dcd5e", title: "Suspension Lifted" };
-  if (b === "Verified")                    return { Icon: BadgeCheck, color: "#3897f0", title: "Verified" };
-  if (b === "Verification revoked")        return { Icon: BadgeCheck, color: "#79828b", title: "Verification Revoked" };
-  if (b.startsWith("Skill level changed")) return { Icon: ChevronDown, color: "#a855f7", title: "Skill Change" };
-  if (b.startsWith("Label cleared"))       return { Icon: Flag, color: "#79828b", title: "Label Cleared" };
-  return { Icon: MessageSquare, color: "#462ed1", title: "Note" };
+  if (b.startsWith("Banned"))              return { Icon: OctagonX, color: "#ef4444", title: t.admin.activityBanned, strong: true };
+  if (b === "Unbanned")                    return { Icon: CheckCircle2, color: "#4dcd5e", title: t.admin.activityUnbanned };
+  if (b.startsWith("Suspended until"))     return { Icon: Clock, color: "#eab308", title: t.admin.activitySuspended };
+  if (b === "Suspension lifted")           return { Icon: CheckCircle2, color: "#4dcd5e", title: t.admin.activitySuspensionLifted };
+  if (b === "Verified")                    return { Icon: BadgeCheck, color: "#3897f0", title: t.admin.activityVerified };
+  if (b === "Verification revoked")        return { Icon: BadgeCheck, color: "#79828b", title: t.admin.activityVerificationRevoked };
+  if (b.startsWith("Skill level changed")) return { Icon: ChevronDown, color: "#a855f7", title: t.admin.activitySkillChange };
+  if (b.startsWith("Label cleared"))       return { Icon: Flag, color: "#79828b", title: t.admin.activityLabelCleared };
+  return { Icon: MessageSquare, color: "#462ed1", title: t.admin.activityNote };
 }
 
 export function AdminPlayers() {
   const navigate = useNavigate();
   const { t } = useLang();
   const catLabel = (c: Category): string => (c === "Admin" ? t.nav.admin : levelLabel(c, t));
+  const STATUS_LABEL: Record<Status, string> = {
+    "All": t.admin.statusAll,
+    "Payment Pending": t.admin.statusPaymentPending,
+    "Warnings": t.admin.statusWarnings,
+    "No-show": t.admin.statusNoShow,
+    "Disrespect": t.admin.statusDisrespect,
+    "Trust": t.admin.statusTrust,
+    "No Label": t.admin.statusNoLabel,
+  };
   const searchRef = useRef<HTMLInputElement>(null);
   // Same drag-to-scroll behavior as the Home event feed filter bar, copied
   // 1:1 so both bars feel like the same component everywhere in the app.
@@ -370,7 +379,7 @@ export function AdminPlayers() {
     >
       <div className="flex items-center justify-between mb-4">
         <h1 className="font-black italic text-2xl text-white uppercase tracking-widest">{t.admin.players}</h1>
-        <span className="text-[#79828b] text-xs font-bold">{players.length} total</span>
+        <span className="text-[#79828b] text-xs font-bold">{players.length} {t.admin.total}</span>
       </div>
 
       {/* Search — shrinks to make room for a round × once focused */}
@@ -434,7 +443,7 @@ export function AdminPlayers() {
               }}
             >
               {STATUSES.map(s => (
-                <FilterPill key={s} label={s} active={status === s} onClick={() => setStatus(s)} />
+                <FilterPill key={s} label={STATUS_LABEL[s]} active={status === s} onClick={() => setStatus(s)} />
               ))}
             </div>
           </div>
@@ -448,15 +457,15 @@ export function AdminPlayers() {
                 <div className="flex flex-col gap-2">
                   {activity.map(n => {
                     const target = players.find(p => p.id === n.player_id);
-                    const { color, title } = classifyActivity(n);
+                    const { color, title } = classifyActivity(n, t);
                     return (
                       <PlayerActivityCard
                         key={n.id}
                         avatar={target?.avatar ?? null}
-                        name={target?.name ?? "a player"}
+                        name={target?.name ?? t.admin.unknownPlayer}
                         color={color}
                         title={title}
-                        subtitle={`${n.author_name} · ${timeAgo(n.created_at)}`}
+                        subtitle={`${n.author_name} · ${timeAgo(n.created_at, t)}`}
                         onClick={target ? () => goToPlayer(target) : undefined}
                       />
                     );
@@ -483,7 +492,7 @@ export function AdminPlayers() {
                   {statusFiltered.map(p => {
                     const n = latestLabelNoteByPlayer.get(p.id);
                     if (!n) return null;
-                    const { color, title } = classifyActivity(n);
+                    const { color, title } = classifyActivity(n, t);
                     return (
                       <PlayerActivityCard
                         key={p.id}
@@ -491,7 +500,7 @@ export function AdminPlayers() {
                         name={p.name}
                         color={color}
                         title={title}
-                        subtitle={`${n.author_name} · ${timeAgo(n.created_at)}`}
+                        subtitle={`${n.author_name} · ${timeAgo(n.created_at, t)}`}
                         onClick={() => goToPlayer(p)}
                       />
                     );

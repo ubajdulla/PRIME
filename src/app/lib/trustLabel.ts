@@ -1,3 +1,5 @@
+import type { Dict } from "../i18n/types";
+
 // Keys are stored in the DB (player_notes.label, profiles.trust_label) and
 // are check-constrained there (031_note_label_payment.sql) - renaming a key
 // would silently orphan every existing note with that value, so only the
@@ -5,6 +7,8 @@
 // shown as "Disrespect", trustworthy as "Trust").
 export type TrustLabel = "no_show" | "rude_behavior" | "trustworthy" | "warning" | "payment";
 
+// `name` stays as an English fallback (used by anything that can't easily
+// reach the i18n dict); prefer labelName(label, t) wherever `t` is in scope.
 export const LABEL_META: Record<TrustLabel, { name: string; sentiment: "negative" | "positive" | "warning" }> = {
   warning:       { name: "Warning",     sentiment: "warning" },
   no_show:       { name: "No-show",     sentiment: "negative" },
@@ -12,6 +16,18 @@ export const LABEL_META: Record<TrustLabel, { name: string; sentiment: "negative
   payment:       { name: "Payment",     sentiment: "negative" },
   trustworthy:   { name: "Trust",       sentiment: "positive" },
 };
+
+const LABEL_KEY: Record<TrustLabel, "labelWarning" | "labelNoShow" | "labelDisrespect" | "labelPayment" | "labelTrust"> = {
+  warning: "labelWarning",
+  no_show: "labelNoShow",
+  rude_behavior: "labelDisrespect",
+  payment: "labelPayment",
+  trustworthy: "labelTrust",
+};
+
+export function labelName(label: TrustLabel, t: Dict): string {
+  return t.admin[LABEL_KEY[label]];
+}
 
 export const SENTIMENT_COLOR: Record<"negative" | "positive" | "warning", string> = {
   negative: "#ef4444",

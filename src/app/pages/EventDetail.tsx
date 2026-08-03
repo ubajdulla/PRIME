@@ -336,7 +336,7 @@ export function EventDetail() {
   if (notFound || !event) {
     return (
       <div className="min-h-full bg-[#181818] text-white">
-        <BackBar label="Events" to="/" />
+        <BackBar label={t.nav.events} to="/" />
         <div className="px-4 py-16 text-center text-[#79828b] text-sm">{t.common.nothingHere}</div>
       </div>
     );
@@ -409,7 +409,7 @@ return (
       )}
 
 
-      <BackBar label="Events" to="/">
+      <BackBar label={t.nav.events} to="/">
         <button
           onClick={() => {
             const url = window.location.href;

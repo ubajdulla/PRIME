@@ -9,7 +9,7 @@ import { DropdownPanel } from "../../components/ui/DropdownMenu";
 import { useAuth } from "../../lib/AuthContext";
 import { supabase } from "../../lib/supabaseClient";
 import { categoryImage } from "../../lib/eventImages";
-import { shortDate } from "../../lib/eventDate";
+import { encodeNotification, type EventChange } from "../../lib/notificationText";
 import { useWaterRipple, RippleLayer } from "../../components/ui/useWaterRipple";
 import { useLang } from "../../i18n";
 
@@ -134,12 +134,12 @@ export function AdminCreateEvent() {
     payload: { title: string; event_date: string; event_time: string; location: string },
     prev: { date: string; time: string; location: string },
   ) {
-    const changes: string[] = [];
+    const changes: EventChange[] = [];
     if (prev.date !== payload.event_date || prev.time !== payload.event_time) {
-      changes.push(`now ${shortDate(payload.event_date, t)}, ${payload.event_time.split(" - ")[0]}`);
+      changes.push({ type: "date", date: payload.event_date, time: payload.event_time.split(" - ")[0] });
     }
     if (prev.location !== payload.location) {
-      changes.push(`now at ${payload.location}`);
+      changes.push({ type: "loc", location: payload.location });
     }
     if (!changes.length) return;
 
@@ -154,7 +154,7 @@ export function AdminCreateEvent() {
     const { error } = await supabase.from("notifications").insert(
       recipientIds.map(recipient_id => ({
         recipient_id, type: "event_updated", title: "Event Updated",
-        body: `"${payload.title}" changed — ${changes.join(", ")}.`,
+        body: encodeNotification({ k: "event_updated", eventTitle: payload.title, changes }),
         event_id: eventId,
       }))
     );
@@ -176,7 +176,7 @@ export function AdminCreateEvent() {
 
     const { error } = await supabase.from("notifications").insert({
       recipient_id: moderatorId, type: "capacity_increased", title: "Waitlist Spots Opened",
-      body: `"${title}" capacity went from ${prevCapacity} to ${newCapacity} - ${count} player${count === 1 ? "" : "s"} on the waitlist could now fit. Promote them from the waitlist tab.`,
+      body: encodeNotification({ k: "capacity_increased", eventTitle: title, prevCapacity, newCapacity, count }),
       event_id: eventId,
     });
     if (error) console.error("Failed to send capacity-increase notification:", error);
