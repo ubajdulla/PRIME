@@ -71,6 +71,12 @@ export interface Dict {
     markRead: string;
     accept: string;
     decline: string;
+    select: string;
+    cancelSelect: string;
+    deleteLabel: string;
+    deleteConfirmTitle: (n: number) => string;
+    deleteConfirmSub: string;
+    deletedMany: (n: number) => string;
     swapUnavailable: string;
     today: string;
     yesterday: string;

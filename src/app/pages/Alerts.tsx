@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import {
   Bell,
+  Mail,
+  MailOpen,
   CheckCircle2,
   XCircle,
   ArrowLeftRight,
@@ -12,13 +14,19 @@ import {
   AlertTriangle,
   OctagonX,
   UserPlus,
+  Check,
+  Trash2,
 } from "lucide-react";
 import { useLang } from "../i18n";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { Toast } from "../components/ui/Toast";
 import { FilterPill } from "../components/ui/FilterPill";
+import { ConfirmModal, type ModalOrigin } from "../components/ui/Modal";
+import { useWaterRipple, RippleLayer } from "../components/ui/useWaterRipple";
 import { encodeNotification, renderNotification } from "../lib/notificationText";
+
+const RETENTION_DAYS = 14;
 
 type AlertType =
   | "moderator_swap_request" | "moderator_swap_accepted" | "moderator_swap_declined"
@@ -49,23 +57,23 @@ type NotificationRow = {
 
 const TYPE_CONFIG: Record<
   AlertType,
-  { icon: React.ComponentType<{ size?: number; className?: string }>; bg: string; color: string; linkPrefix: "/admin/events/" | "/events/" }
+  { icon: React.ComponentType<{ size?: number; className?: string }>; bg: string; color: string; stripe: string; linkPrefix: "/admin/events/" | "/events/" }
 > = {
-  moderator_swap_request:   { icon: ArrowLeftRight, bg: "bg-[#462ed1]/15", color: "text-[#462ed1]", linkPrefix: "/admin/events/" },
-  moderator_swap_accepted:  { icon: CheckCircle2,   bg: "bg-[#22c55e]/15", color: "text-[#22c55e]", linkPrefix: "/admin/events/" },
-  moderator_swap_declined:  { icon: XCircle,        bg: "bg-[#ef4444]/15", color: "text-[#ef4444]", linkPrefix: "/admin/events/" },
-  event_canceled:           { icon: Ban,            bg: "bg-[#ef4444]/15", color: "text-[#ef4444]", linkPrefix: "/events/" },
-  event_reminder:           { icon: Clock,          bg: "bg-[#3897f0]/15", color: "text-[#3897f0]", linkPrefix: "/events/" },
-  event_updated:            { icon: CalendarClock,  bg: "bg-[#eab308]/15", color: "text-[#eab308]", linkPrefix: "/events/" },
-  account_suspended:        { icon: AlertTriangle,  bg: "bg-[#eab308]/15", color: "text-[#eab308]", linkPrefix: "/events/" },
-  account_banned:           { icon: OctagonX,       bg: "bg-[#ef4444]/15", color: "text-[#ef4444]", linkPrefix: "/events/" },
-  capacity_increased:       { icon: UserPlus,       bg: "bg-[#22c55e]/15", color: "text-[#22c55e]", linkPrefix: "/admin/events/" },
+  moderator_swap_request:   { icon: ArrowLeftRight, bg: "bg-[#462ed1]/15", color: "text-[#462ed1]", stripe: "#462ed1", linkPrefix: "/admin/events/" },
+  moderator_swap_accepted:  { icon: CheckCircle2,   bg: "bg-[#22c55e]/15", color: "text-[#22c55e]", stripe: "#22c55e", linkPrefix: "/admin/events/" },
+  moderator_swap_declined:  { icon: XCircle,        bg: "bg-[#ef4444]/15", color: "text-[#ef4444]", stripe: "#ef4444", linkPrefix: "/admin/events/" },
+  event_canceled:           { icon: Ban,            bg: "bg-[#ef4444]/15", color: "text-[#ef4444]", stripe: "#ef4444", linkPrefix: "/events/" },
+  event_reminder:           { icon: Clock,          bg: "bg-[#3897f0]/15", color: "text-[#3897f0]", stripe: "#3897f0", linkPrefix: "/events/" },
+  event_updated:            { icon: CalendarClock,  bg: "bg-[#eab308]/15", color: "text-[#eab308]", stripe: "#eab308", linkPrefix: "/events/" },
+  account_suspended:        { icon: AlertTriangle,  bg: "bg-[#eab308]/15", color: "text-[#eab308]", stripe: "#eab308", linkPrefix: "/events/" },
+  account_banned:           { icon: OctagonX,       bg: "bg-[#ef4444]/15", color: "text-[#ef4444]", stripe: "#ef4444", linkPrefix: "/events/" },
+  capacity_increased:       { icon: UserPlus,       bg: "bg-[#22c55e]/15", color: "text-[#22c55e]", stripe: "#22c55e", linkPrefix: "/admin/events/" },
 };
 
 // Fallback for notification rows whose type has since been retired (e.g. old
 // waitlist_promoted rows from before that type was removed) - render them
 // generically instead of crashing.
-const FALLBACK_CONFIG = { icon: Bell, bg: "bg-white/10", color: "text-white/70", linkPrefix: "/events/" } as const;
+const FALLBACK_CONFIG = { icon: Bell, bg: "bg-white/10", color: "text-white/70", stripe: "#79828b", linkPrefix: "/events/" } as const;
 
 type Filter = "all" | "unread";
 
@@ -93,6 +101,11 @@ export function Alerts() {
   const [rows, setRows] = useState<NotificationRow[]>([]);
   const [swapStatus, setSwapStatus] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error"; visible: boolean }>({ message: "", variant: "success", visible: false });
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteOrigin, setDeleteOrigin] = useState<ModalOrigin>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const deleteBtnRef = useRef<HTMLButtonElement>(null);
 
   function fireToast(message: string, variant: "success" | "error") {
     setToast({ message, variant, visible: true });
@@ -100,6 +113,10 @@ export function Alerts() {
 
   async function loadNotifications() {
     if (!authUser) return;
+    const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    // Purge anything past the retention window before reading - today/yesterday
+    // are always within it, so this only ever touches the "earlier" bucket.
+    await supabase.from("notifications").delete().eq("recipient_id", authUser.id).lt("created_at", cutoff);
     const { data } = await supabase
       .from("notifications")
       .select("id, type, title, body, event_id, related_id, read, created_at")
@@ -155,6 +172,37 @@ export function Alerts() {
     const ids = rows.filter(r => !r.read).map(r => r.id);
     setRows(prev => prev.map(r => ({ ...r, read: true })));
     if (ids.length) await supabase.from("notifications").update({ read: true }).in("id", ids);
+  }
+
+  function toggleSelectMode() {
+    setSelectMode(prev => !prev);
+    setSelectedIds(new Set());
+  }
+
+  function toggleSelected(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function openDeleteConfirm() {
+    const rect = deleteBtnRef.current?.getBoundingClientRect();
+    setDeleteOrigin(rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null);
+    setShowDeleteConfirm(true);
+  }
+
+  async function confirmDeleteSelected() {
+    const ids = [...selectedIds];
+    setRows(prev => prev.filter(r => !selectedIds.has(r.id)));
+    setShowDeleteConfirm(false);
+    setSelectMode(false);
+    setSelectedIds(new Set());
+    if (ids.length) {
+      await supabase.from("notifications").delete().in("id", ids);
+      fireToast(t.alerts.deletedMany(ids.length), "success");
+    }
   }
 
   async function acceptSwap(alert: AlertItem) {
@@ -249,27 +297,28 @@ export function Alerts() {
       <div className="w-full max-w-[640px] mx-auto flex flex-col pt-8 pb-10 px-4">
 
         {/* Header */}
-        <div className="flex items-center mb-6">
-          <h2 className="font-black italic text-white tracking-widest uppercase text-2xl">
-            {t.alerts.title}
-            {totalUnread > 0 && (
-              <span className="ml-2 inline-flex items-center justify-center text-[11px] font-bold bg-[#462ed1] text-white rounded-full w-5 h-5 not-italic tracking-normal align-middle">
-                {totalUnread}
-              </span>
-            )}
-          </h2>
-        </div>
+        <h2 className="font-black italic text-white tracking-widest uppercase text-2xl mb-6">
+          {t.alerts.title}
+          {totalUnread > 0 && (
+            <span className="ml-2 inline-flex items-center justify-center text-[11px] font-bold bg-[#462ed1] text-white rounded-full w-5 h-5 not-italic tracking-normal align-middle">
+              {totalUnread}
+            </span>
+          )}
+        </h2>
 
-        {/* Filter tabs */}
-        <div className="flex gap-2 mb-6">
-          {(["all", "unread"] as Filter[]).map(f => (
-            <FilterPill
-              key={f}
-              active={filter === f}
-              onClick={() => setFilter(f)}
-              label={f === "unread" && totalUnread > 0 ? t.alerts.unreadCount(totalUnread) : f === "unread" ? t.alerts.filterUnread : t.alerts.filterAll}
-            />
-          ))}
+        {/* Filter bar */}
+        <div className="flex items-center justify-between gap-3 mb-8">
+          <div className="flex gap-1 bg-[#212121] rounded-full p-1.5">
+            {(["all", "unread"] as Filter[]).map(f => (
+              <FilterPill
+                key={f}
+                active={filter === f}
+                onClick={() => setFilter(f)}
+                label={f === "unread" && totalUnread > 0 ? t.alerts.unreadCount(totalUnread) : f === "unread" ? t.alerts.filterUnread : t.alerts.filterAll}
+              />
+            ))}
+          </div>
+          <MarkAllReadButton totalUnread={totalUnread} onMarkAll={markAllRead} label={t.alerts.markAllRead} />
         </div>
 
         {/* Empty state */}
@@ -295,12 +344,14 @@ export function Alerts() {
                 <p className="text-[#79828b] text-[11px] font-bold uppercase tracking-widest">
                   {t.alerts[group]}
                 </p>
-                {idx === 0 && totalUnread > 0 && (
+                {idx === 0 && (
                   <button
-                    onClick={markAllRead}
-                    className="text-[#462ed1] text-[11px] font-bold hover:text-white transition-colors"
+                    onClick={toggleSelectMode}
+                    className={`text-[11px] font-bold uppercase tracking-wide transition-colors ${
+                      selectMode ? "text-[#462ed1]" : "text-[#79828b] hover:text-white"
+                    }`}
                   >
-                    {t.alerts.markAllRead}
+                    {selectMode ? t.alerts.cancelSelect : t.alerts.select}
                   </button>
                 )}
               </div>
@@ -317,6 +368,9 @@ export function Alerts() {
                     acceptLabel={t.alerts.accept}
                     declineLabel={t.alerts.decline}
                     unavailableLabel={t.alerts.swapUnavailable}
+                    selectMode={selectMode}
+                    selected={selectedIds.has(alert.id)}
+                    onToggleSelect={toggleSelected}
                   />
                 ))}
               </div>
@@ -325,12 +379,43 @@ export function Alerts() {
         </div>
 
       </div>
+
+      {selectMode && selectedIds.size > 0 && (
+        <button
+          ref={deleteBtnRef}
+          type="button"
+          aria-label={t.alerts.deleteLabel}
+          onClick={openDeleteConfirm}
+          className="fixed bottom-6 right-6 z-30 w-12 h-12 rounded-full bg-[#ef4444] flex items-center justify-center"
+        >
+          <Trash2 size={19} className="text-white" />
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#181818] border-2 border-[#181818] flex items-center justify-center text-[10px] font-bold text-white">
+            {selectedIds.size}
+          </span>
+        </button>
+      )}
+
+      {showDeleteConfirm && (
+        <ConfirmModal
+          origin={deleteOrigin}
+          icon={<Trash2 size={18} className="text-[#ef4444]" />}
+          iconBg="bg-[#ef4444]/10 border-[#ef4444]/30"
+          title={t.alerts.deleteConfirmTitle(selectedIds.size)}
+          sub={t.alerts.deleteConfirmSub}
+          cancelLabel={t.common.cancel}
+          onCancel={() => setShowDeleteConfirm(false)}
+          confirmLabel={t.alerts.deleteLabel}
+          confirmCls="bg-[#dc2626] text-white"
+          onConfirm={confirmDeleteSelected}
+        />
+      )}
     </div>
   );
 }
 
 function AlertRow({
   alert, swapStatus, onRead, onAccept, onDecline, markReadLabel, acceptLabel, declineLabel, unavailableLabel,
+  selectMode, selected, onToggleSelect,
 }: {
   alert: AlertItem;
   swapStatus: Record<string, string>;
@@ -341,16 +426,22 @@ function AlertRow({
   acceptLabel: string;
   declineLabel: string;
   unavailableLabel: string;
+  selectMode: boolean;
+  selected: boolean;
+  onToggleSelect: (id: string) => void;
 }) {
   const cfg = TYPE_CONFIG[alert.type] ?? FALLBACK_CONFIG;
   const Icon = cfg.icon;
   const isSwapRequest = alert.type === "moderator_swap_request";
   const swapState = alert.relatedId ? swapStatus[alert.relatedId] : undefined;
 
+  const isPendingSwap = isSwapRequest && swapState === "pending";
+
   const inner = (
-    <div className={`w-full flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03] ${
-      alert.unread ? "bg-[#462ed1]/5" : ""
-    }`}>
+    <div
+      className="w-full flex items-start gap-3 pl-[13px] pr-4 py-3.5 border-l-[3px] transition-colors hover:bg-white/[0.03]"
+      style={{ borderLeftColor: alert.unread ? cfg.stripe : "transparent" }}
+    >
       {/* Icon */}
       <div className={`mt-0.5 shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${cfg.bg}`}>
         <Icon size={18} className={cfg.color} />
@@ -365,50 +456,65 @@ function AlertRow({
           {alert.description}
         </p>
 
-        {isSwapRequest ? (
-          swapState === "pending" ? (
-            <div className="flex gap-2 mt-2">
+        {!selectMode && isSwapRequest && !isPendingSwap && (
+          <p className="mt-2 text-[#79828b] text-[11px] italic">{unavailableLabel}</p>
+        )}
+        {!selectMode && !isSwapRequest && alert.unread && (
+          <button
+            onClick={e => { e.preventDefault(); e.stopPropagation(); onRead(alert.id); }}
+            className="mt-2 text-[#462ed1] text-[11px] font-bold hover:text-white transition-colors"
+          >
+            {markReadLabel}
+          </button>
+        )}
+      </div>
+
+      {/* Right: a selection circle in select mode, otherwise time + accept/decline/chevron */}
+      {selectMode ? (
+        <div className="shrink-0 flex items-center ml-1 mt-0.5">
+          <span
+            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+              selected ? "bg-[#462ed1] border-[#462ed1]" : "border-white/20"
+            }`}
+          >
+            {selected && <Check size={12} className="text-white" strokeWidth={3} />}
+          </span>
+        </div>
+      ) : (
+        <div className="shrink-0 flex flex-col items-end gap-1.5 ml-1">
+          <span className="text-[#79828b] text-[10px] font-medium whitespace-nowrap">{alert.time}</span>
+          {isPendingSwap ? (
+            <div className="flex gap-2.5">
               <button
                 onClick={e => { e.preventDefault(); e.stopPropagation(); onAccept(alert); }}
-                className="px-3 py-1 rounded-full bg-[#22c55e]/15 text-[#22c55e] text-[11px] font-bold hover:bg-[#22c55e]/25 transition-colors"
+                className="text-[#22c55e] text-[11px] font-bold hover:text-white transition-colors"
               >
                 {acceptLabel}
               </button>
               <button
                 onClick={e => { e.preventDefault(); e.stopPropagation(); onDecline(alert); }}
-                className="px-3 py-1 rounded-full bg-[#ef4444]/15 text-[#ef4444] text-[11px] font-bold hover:bg-[#ef4444]/25 transition-colors"
+                className="text-[#79828b] text-[11px] font-bold hover:text-white transition-colors"
               >
                 {declineLabel}
               </button>
             </div>
           ) : (
-            <p className="mt-2 text-[#79828b] text-[11px] italic">{unavailableLabel}</p>
-          )
-        ) : (
-          alert.unread && (
-            <button
-              onClick={e => { e.preventDefault(); e.stopPropagation(); onRead(alert.id); }}
-              className="mt-2 text-[#462ed1] text-[11px] font-bold hover:text-white transition-colors"
-            >
-              {markReadLabel}
-            </button>
-          )
-        )}
-      </div>
-
-      {/* Right: time + unread dot */}
-      <div className="shrink-0 flex flex-col items-end gap-1.5 ml-1">
-        <span className="text-[#79828b] text-[10px] font-medium whitespace-nowrap">{alert.time}</span>
-        {alert.unread ? (
-          <span className="w-2 h-2 rounded-full bg-[#462ed1]" />
-        ) : (
-          <ChevronRight size={14} className="text-white/20" />
-        )}
-      </div>
+            !alert.unread && alert.eventId && <ChevronRight size={14} className="text-white/20" />
+          )}
+        </div>
+      )}
     </div>
   );
 
   const dividerClass = "relative before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden";
+
+  if (selectMode) {
+    return (
+      <div role="button" onClick={() => onToggleSelect(alert.id)} className={`block w-full text-left cursor-pointer ${dividerClass}`}>
+        {inner}
+      </div>
+    );
+  }
 
   return alert.eventId ? (
     <Link to={`${cfg.linkPrefix}${alert.eventId}`} state={{ hub: "alerts" }} className={`block ${dividerClass}`}>
@@ -416,5 +522,47 @@ function AlertRow({
     </Link>
   ) : (
     <div className={dividerClass}>{inner}</div>
+  );
+}
+
+function MarkAllReadButton({ totalUnread, onMarkAll, label }: { totalUnread: number; onMarkAll: () => void; label: string }) {
+  const [opening, setOpening] = useState(false);
+  const ripple = useWaterRipple();
+
+  function handleClick() {
+    if (totalUnread === 0 || opening) return;
+    setOpening(true);
+    window.setTimeout(() => onMarkAll(), 220);
+    window.setTimeout(() => setOpening(false), 900);
+  }
+
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={totalUnread === 0}
+      onClick={handleClick}
+      onPointerDown={ripple.onPointerDown}
+      className="relative overflow-hidden shrink-0 w-9 h-9 rounded-full bg-[#212121] flex items-center justify-center transition-opacity disabled:opacity-30"
+    >
+      <span className="relative w-4 h-4 block">
+        <Mail
+          size={16}
+          className={`absolute inset-0 text-[#462ed1] transition-all duration-300 ease-in-out ${
+            opening ? "opacity-0 -translate-y-1" : "opacity-100 translate-y-0"
+          }`}
+        />
+        <MailOpen
+          size={16}
+          className={`absolute inset-0 text-[#462ed1] transition-all duration-300 ease-in-out ${
+            opening ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"
+          }`}
+        />
+      </span>
+      {totalUnread > 0 && (
+        <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-[#462ed1]" />
+      )}
+      <RippleLayer ripples={ripple.ripples} />
+    </button>
   );
 }

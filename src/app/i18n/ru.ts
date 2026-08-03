@@ -1,5 +1,15 @@
 import type { Dict } from "./types";
 
+// Russian has three plural forms for "notification(s)" depending on the last
+// digit(s) of n - "1 уведомление", "2 уведомления", "5 уведомлений".
+function ruNotifWord(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return "уведомление";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "уведомления";
+  return "уведомлений";
+}
+
 export const ru: Dict = {
   nav: {
     events: "События",
@@ -73,6 +83,12 @@ export const ru: Dict = {
     markRead: "Отметить как прочитанное",
     accept: "Принять",
     decline: "Отклонить",
+    select: "Выбрать",
+    cancelSelect: "Отмена",
+    deleteLabel: "Удалить",
+    deleteConfirmTitle: (n) => `Удалить ${n} ${ruNotifWord(n)}?`,
+    deleteConfirmSub: "Это действие нельзя отменить.",
+    deletedMany: (n) => `Удалено: ${n} ${ruNotifWord(n)}`,
     swapUnavailable: "Этот запрос больше недоступен",
     today: "Сегодня",
     yesterday: "Вчера",
