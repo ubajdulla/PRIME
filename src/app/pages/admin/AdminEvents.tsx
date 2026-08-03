@@ -53,9 +53,17 @@ export function AdminEvents() {
   useEffect(() => {
     let active = true;
     async function load() {
+      // Past events (status='upcoming' whose date has passed) older than 4
+      // weeks aren't fetched - this table has no upper bound otherwise and
+      // would keep growing forever. Drafts/canceled are exempt (any date,
+      // including deliberately past-dated test events) since they never
+      // move into the "Past" tab in the first place - see filterGroup below.
+      const cutoff = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000);
+      const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, "0")}-${String(cutoff.getDate()).padStart(2, "0")}`;
       const { data } = await supabase
         .from("events")
         .select("id, title, event_date, event_time, location, price, price_label, capacity, category, status, published_at, moderator:profiles!moderator_id(name, avatar), event_participants(payment_status)")
+        .or(`event_date.gte.${cutoffStr},status.neq.upcoming`)
         .order("event_date", { ascending: false });
       if (!active) return;
 

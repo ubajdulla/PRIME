@@ -57,9 +57,8 @@ function CategoryIcon({ category, size = 20 }: { category: Category; size?: numb
   );
 }
 
-const STATUSES = ["All", "Payment Pending", "Warnings", "No-show", "Disrespect", "Trust", "Newbie"] as const;
+const STATUSES = ["All", "Payment Pending", "Warnings", "No-show", "Disrespect", "Trust"] as const;
 type Status = typeof STATUSES[number];
-const NEWBIE_DAYS = 14;
 
 // "Recently searched" is a per-admin browsing convenience, not roster data -
 // kept in localStorage instead of a table so looking someone up doesn't
@@ -85,9 +84,8 @@ type PlayerRow = {
   telegram: string | null;
   is_admin: boolean; is_verified: boolean; visible_trust_label: string | null;
   is_suspended: boolean; is_banned: boolean; trust_label: string | null; trust_label_set_at_events: number | null;
-  created_at: string;
 };
-type Player = PlayerRow & { eventsJoined: number; hasUnpaid: boolean };
+type Player = PlayerRow & { eventsJoined: number };
 
 type NoteRow = { id: string; player_id: string; author_id: string | null; author_name: string; body: string; label: string | null; created_at: string };
 
@@ -162,6 +160,7 @@ export function AdminPlayers() {
 
   const [players, setPlayers] = useState<Player[]>([]);
   const [activity, setActivity] = useState<NoteRow[]>([]);
+  const [labelNotes, setLabelNotes] = useState<NoteRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [focused, setFocused]     = useState(false);
@@ -188,36 +187,39 @@ export function AdminPlayers() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [{ data, error }, { data: noteRows, error: noteErr }] = await Promise.all([
+      const [{ data, error }, { data: noteRows, error: noteErr }, { data: labelRows, error: labelErr }] = await Promise.all([
         supabase.from("profiles").select(
-          "id, name, avatar, position, skill_level, telegram, is_admin, is_verified, visible_trust_label, is_suspended, is_banned, trust_label, trust_label_set_at_events, created_at, event_participants(payment_status)"
+          "id, name, avatar, position, skill_level, telegram, is_admin, is_verified, visible_trust_label, is_suspended, is_banned, trust_label, trust_label_set_at_events, event_participants(id)"
         ),
         supabase.from("player_notes").select("id, player_id, author_id, author_name, body, label, created_at").order("created_at", { ascending: false }).limit(8),
+        // The note that set a player's currently-active trust_label is always
+        // their most recent labeled note (addNote() in AdminPlayerProfile.tsx
+        // overwrites trust_label every time a labeled note is added) - fetching
+        // every labeled note lets each status tab show the exact note (author +
+        // timestamp) behind that player's current label, same as the Recent
+        // Admin Activity card, instead of a different summary.
+        supabase.from("player_notes").select("id, player_id, author_id, author_name, body, label, created_at").not("label", "is", null).order("created_at", { ascending: false }).limit(500),
       ]);
       if (error) console.error("Failed to load players:", error);
       if (noteErr) console.error("Failed to load recent activity:", noteErr);
+      if (labelErr) console.error("Failed to load labeled notes:", labelErr);
       setPlayers((data ?? []).map((p) => {
-        const { event_participants, ...rest } = p as PlayerRow & { event_participants: { payment_status: string }[] };
+        const { event_participants, ...rest } = p as PlayerRow & { event_participants: { id: string }[] };
         return {
           ...rest,
           eventsJoined: event_participants?.length ?? 0,
-          hasUnpaid: (event_participants ?? []).some(e => e.payment_status === "unpaid"),
         };
       }));
       setActivity((noteRows as NoteRow[]) ?? []);
+      setLabelNotes((labelRows as NoteRow[]) ?? []);
       setLoading(false);
     })();
   }, []);
 
-  function isNewbie(p: Player) {
-    return (Date.now() - new Date(p.created_at).getTime()) / 86_400_000 <= NEWBIE_DAYS;
-  }
-
   function matchesStatus(p: Player, s: Status) {
     if (s === "All") return true;
     const eff = effectiveLabel(p.trust_label, p.trust_label_set_at_events, p.eventsJoined);
-    if (s === "Newbie")          return isNewbie(p);
-    if (s === "Payment Pending") return p.hasUnpaid;
+    if (s === "Payment Pending") return eff?.label === "payment";
     if (s === "Warnings")        return eff?.label === "warning";
     if (s === "No-show")         return eff?.label === "no_show";
     if (s === "Disrespect")      return eff?.label === "rude_behavior";
@@ -254,11 +256,53 @@ export function AdminPlayers() {
   }
 
   const statusFiltered = players.filter(p => matchesStatus(p, status)).sort(byName);
+  // labelNotes is ordered newest-first, so the first note seen per player here
+  // is their most recent labeled note - which addNote() guarantees is the one
+  // that set their current trust_label.
+  const latestLabelNoteByPlayer = new Map<string, NoteRow>();
+  for (const n of labelNotes) if (!latestLabelNoteByPlayer.has(n.player_id)) latestLabelNoteByPlayer.set(n.player_id, n);
   const categoryFiltered = category
     ? players.filter(p => (category === "Admin" ? p.is_admin : p.skill_level === category) && matchesSearch(p)).sort(byName)
     : [];
   const searchResults = search.trim() ? players.filter(matchesSearch).sort(byName) : [];
   const recentPlayers = getRecentIds().map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p);
+
+  // Shared by "Recent Admin Activity" and every trust-label status filter
+  // (Warnings, No-show, Disrespect, Trust, Payment Pending) — same card
+  // either way: a name paired with the reason it's on this list, not the
+  // generic player row (avatar + skill + event count) used elsewhere.
+  function PlayerActivityCard({ avatar, name, color, title, subtitle, onClick }: {
+    avatar: string | null; name: string; color: string; title: string; subtitle: React.ReactNode; onClick?: () => void;
+  }) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={!onClick}
+        className="flex items-stretch w-full text-left rounded-2xl bg-[#212121] overflow-hidden transition-colors disabled:cursor-default focus:outline-none"
+      >
+        {/* Severity stripe — the one colored element on the card, always there */}
+        <span className="w-[3px] shrink-0" style={{ background: color }} />
+
+        <div className="flex items-center gap-3 px-3 py-3 flex-1 min-w-0">
+          <div className="shrink-0">
+            {avatar
+              ? <img src={avatar} alt={name} className="w-10 h-10 rounded-full object-cover border-2 border-[#181818]" />
+              : <div className="w-10 h-10 rounded-full bg-white/5 border-2 border-[#181818]" />}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] leading-snug truncate flex items-center gap-1.5">
+              <span className="font-bold text-white">{name}</span>
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
+              <span className="font-bold text-white">{title}</span>
+            </p>
+            <p className="text-[11px] text-[#79828b] mt-0.5 truncate">{subtitle}</p>
+          </div>
+        </div>
+      </button>
+    );
+  }
 
   function PlayerRowButton({ p }: { p: Player }) {
     const eff = effectiveLabel(p.visible_trust_label, p.trust_label_set_at_events, p.eventsJoined);
@@ -266,7 +310,7 @@ export function AdminPlayers() {
       <button
         type="button"
         onClick={() => goToPlayer(p)}
-        className="flex items-center gap-3 px-4 py-3 w-full text-left transition-colors hover:bg-white/[0.07] focus:outline-none border-t border-white/[0.05] first:border-t-0"
+        className="relative flex items-center gap-3 px-4 py-3 w-full text-left transition-colors hover:bg-white/[0.07] focus:outline-none before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden"
       >
         <div className="relative shrink-0">
           {p.avatar
@@ -295,7 +339,7 @@ export function AdminPlayers() {
       return <p className="text-[#79828b] text-sm text-center py-6">{empty}</p>;
     }
     return (
-      <div className="bg-[#212121] rounded-2xl border border-white/5 overflow-hidden">
+      <div className="bg-[#212121] rounded-2xl overflow-hidden">
         {list.map(p => <PlayerRowButton key={p.id} p={p} />)}
       </div>
     );
@@ -385,34 +429,15 @@ export function AdminPlayers() {
                     const target = players.find(p => p.id === n.player_id);
                     const { color, title } = classifyActivity(n);
                     return (
-                      <button
+                      <PlayerActivityCard
                         key={n.id}
-                        type="button"
-                        onClick={() => target && goToPlayer(target)}
-                        disabled={!target}
-                        className="flex items-stretch w-full text-left rounded-2xl border border-white/5 bg-[#212121] overflow-hidden transition-colors disabled:cursor-default focus:outline-none"
-                      >
-                        {/* Severity stripe — the one colored element on the card, always there */}
-                        <span className="w-[3px] shrink-0" style={{ background: color }} />
-
-                        <div className="flex items-center gap-3 px-3 py-3 flex-1 min-w-0">
-                          {/* Target player's real photo */}
-                          <div className="shrink-0">
-                            {target?.avatar
-                              ? <img src={target.avatar} alt={target.name} className="w-10 h-10 rounded-full object-cover border-2 border-[#181818]" />
-                              : <div className="w-10 h-10 rounded-full bg-white/5 border-2 border-[#181818]" />}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[13px] leading-snug truncate flex items-center gap-1.5">
-                              <span className="font-bold text-white">{target?.name ?? "a player"}</span>
-                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
-                              <span className="font-bold text-white">{title}</span>
-                            </p>
-                            <p className="text-[11px] text-[#79828b] mt-0.5 truncate">{n.author_name} · {timeAgo(n.created_at)}</p>
-                          </div>
-                        </div>
-                      </button>
+                        avatar={target?.avatar ?? null}
+                        name={target?.name ?? "a player"}
+                        color={color}
+                        title={title}
+                        subtitle={`${n.author_name} · ${timeAgo(n.created_at)}`}
+                        onClick={target ? () => goToPlayer(target) : undefined}
+                      />
                     );
                   })}
                 </div>
@@ -423,7 +448,28 @@ export function AdminPlayers() {
               <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">
                 {statusFiltered.length} match{statusFiltered.length === 1 ? "" : "es"}
               </h2>
-              <PlayerList list={statusFiltered} empty="No players match this status" />
+              {!loading && statusFiltered.length === 0 ? (
+                <p className="text-[#79828b] text-sm text-center py-6">No players match this status</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {statusFiltered.map(p => {
+                    const n = latestLabelNoteByPlayer.get(p.id);
+                    if (!n) return null;
+                    const { color, title } = classifyActivity(n);
+                    return (
+                      <PlayerActivityCard
+                        key={p.id}
+                        avatar={p.avatar}
+                        name={p.name}
+                        color={color}
+                        title={title}
+                        subtitle={`${n.author_name} · ${timeAgo(n.created_at)}`}
+                        onClick={() => goToPlayer(p)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </section>
           )}
         </FadeIn>

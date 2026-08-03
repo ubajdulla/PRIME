@@ -19,7 +19,14 @@ interface ProfileRowProps {
   verified?: boolean;
   trustLabel?: string | null;
   onClick?: () => void;
+  // When true, only the avatar navigates to the profile - the rest of the
+  // row (name, trailing actions) stays inert. Needed anywhere `trailing`
+  // holds its own interactive button: making the whole row a <button> would
+  // nest a <button> inside a <button>, which browsers handle inconsistently
+  // (the outer row swallows the inner button's click).
+  avatarOnly?: boolean;
   variant?: "card" | "row";
+  divider?: boolean;
   className?: string;
 }
 
@@ -35,35 +42,59 @@ export function ProfileRow({
   verified,
   trustLabel,
   onClick,
+  avatarOnly = false,
   variant = "row",
+  divider = false,
   className = "",
 }: ProfileRowProps) {
   const clickable = !!onClick;
-  const Tag = clickable ? "button" : "div";
-  const shellClass = variant === "card" ? "bg-[#212121] border border-white/5 rounded-xl p-2.5" : "p-2.5";
-  const hoverClass = clickable ? `cursor-pointer hover:bg-white/[0.07] ${variant === "card" ? "rounded-xl" : ""}` : "";
+  const rowClickable = clickable && !avatarOnly;
+  const Tag = rowClickable ? "button" : "div";
+  const shellClass = variant === "card" ? "bg-[#212121] rounded-xl p-2.5" : "p-2.5";
+  // The background-hover cue stays even in avatarOnly mode (nice on the
+  // card variant), just without `cursor-pointer` - the row itself no longer
+  // performs a click action, only the avatar button nested inside it does.
+  const hoverClass = clickable ? `hover:bg-white/[0.07] ${rowClickable ? "cursor-pointer" : ""} ${variant === "card" ? "rounded-xl" : ""}` : "";
+  const dividerClass = divider ? "relative before:absolute before:top-0 before:left-2.5 before:right-2.5 before:h-px before:bg-white/[0.06] first:before:hidden" : "";
+
+  const avatarInner = (
+    <>
+      {avatar ? (
+        <img src={avatar} alt={avatarAlt} className="w-full h-full rounded-full object-cover border border-white/10" />
+      ) : (
+        <div className="w-full h-full rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+          <User size={Math.round(avatarSize * 0.4)} className="text-white/30" />
+        </div>
+      )}
+      {checkmark && (
+        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#462ed1] rounded-full flex items-center justify-center border-2 border-[#212121]">
+          <CheckCircle2 size={10} className="text-white" strokeWidth={3} />
+        </div>
+      )}
+      {verified !== undefined && <VerifiedBadge verified={verified} size={13} ringClassName="border-[#212121]" />}
+      {trustLabel !== undefined && <TrustDot label={trustLabel} size={10} ringClassName="border-[#212121]" />}
+    </>
+  );
 
   return (
     <Tag
-      {...(clickable ? { type: "button" as const, onClick } : {})}
-      className={`flex items-center gap-3 w-full text-left transition-colors focus:outline-none ${shellClass} ${hoverClass} ${className}`}
+      {...(rowClickable ? { type: "button" as const, onClick } : {})}
+      className={`flex items-center gap-3 w-full text-left transition-colors focus:outline-none ${shellClass} ${hoverClass} ${dividerClass} ${className}`}
     >
-      <div className="relative shrink-0" style={{ width: avatarSize, height: avatarSize }}>
-        {avatar ? (
-          <img src={avatar} alt={avatarAlt} className="w-full h-full rounded-full object-cover border border-white/10" />
-        ) : (
-          <div className="w-full h-full rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-            <User size={Math.round(avatarSize * 0.4)} className="text-white/30" />
-          </div>
-        )}
-        {checkmark && (
-          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#462ed1] rounded-full flex items-center justify-center border-2 border-[#212121]">
-            <CheckCircle2 size={10} className="text-white" strokeWidth={3} />
-          </div>
-        )}
-        {verified !== undefined && <VerifiedBadge verified={verified} size={13} ringClassName="border-[#212121]" />}
-        {trustLabel !== undefined && <TrustDot label={trustLabel} size={10} ringClassName="border-[#212121]" />}
-      </div>
+      {avatarOnly && clickable ? (
+        <button
+          type="button"
+          onClick={e => { e.stopPropagation(); onClick(); }}
+          className="relative shrink-0 rounded-full transition-opacity hover:opacity-80"
+          style={{ width: avatarSize, height: avatarSize }}
+        >
+          {avatarInner}
+        </button>
+      ) : (
+        <div className="relative shrink-0" style={{ width: avatarSize, height: avatarSize }}>
+          {avatarInner}
+        </div>
+      )}
       <div className="flex-1 min-w-0">
         {eyebrow && <div className="text-[10px] font-bold text-[#79828b] uppercase tracking-widest leading-tight">{eyebrow}</div>}
         {primary}

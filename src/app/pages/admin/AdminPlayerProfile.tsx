@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
+import { formatDistanceToNowStrict } from "date-fns";
 import {
   Send, Instagram, Calendar, MapPin,
   BadgeCheck, Clock,
@@ -236,7 +237,16 @@ export function AdminPlayerProfile() {
 
   const player = profile;
   const displaySkill = player.skill_level;
-  const ringColor    = dotColor(displaySkill);
+  const skillRingColor = dotColor(displaySkill);
+  // Status takes priority over the skill-tier ring when active - a
+  // suspension/ban is more urgent to surface than skill color right now.
+  const statusRingColor = player.is_banned ? "#ef4444" : player.is_suspended ? "#eab308" : null;
+  const ringColor = statusRingColor ?? skillRingColor;
+  const statusTooltip = player.is_banned
+    ? `Banned${player.ban_reason ? ` — ${player.ban_reason}` : ""}`
+    : player.is_suspended && player.suspended_until
+    ? `Suspended — ${formatDistanceToNowStrict(new Date(player.suspended_until))} left${player.suspend_reason ? ` — ${player.suspend_reason}` : ""}`
+    : "";
 
   const upcomingEvents = events.filter(e => e.status === "upcoming" && !isPastDate(e.event_date));
   const pastEvents     = events.filter(e => isPastDate(e.event_date));
@@ -379,6 +389,11 @@ export function AdminPlayerProfile() {
     if (!r.ok) { fireToast(r.error ?? "Failed to suspend", "error"); return; }
     fireToast(`Suspended until ${formatDate(suspendDate)}`);
     logAction(player.id, `Suspended until ${formatDate(suspendDate)}.${suspendReason ? ` Reason: ${suspendReason}` : ""}`);
+    const { error: notifyErr } = await supabase.from("notifications").insert({
+      recipient_id: player.id, type: "account_suspended", title: "You've Been Suspended",
+      body: `Your account was suspended until ${formatDate(suspendDate)}.${suspendReason ? ` Reason: ${suspendReason}` : ""}`,
+    });
+    if (notifyErr) console.error("Failed to send suspension notification:", notifyErr);
   }
 
   async function confirmBan() {
@@ -387,6 +402,11 @@ export function AdminPlayerProfile() {
     if (!r.ok) { fireToast(r.error ?? "Failed to ban", "error"); return; }
     fireToast("Player banned");
     logAction(player.id, `Banned.${banReason ? ` Reason: ${banReason}` : ""}`);
+    const { error: notifyErr } = await supabase.from("notifications").insert({
+      recipient_id: player.id, type: "account_banned", title: "Account Banned",
+      body: `Your account has been permanently banned.${banReason ? ` Reason: ${banReason}` : ""}`,
+    });
+    if (notifyErr) console.error("Failed to send ban notification:", notifyErr);
   }
 
   async function confirmSkillChange() {
@@ -602,6 +622,20 @@ export function AdminPlayerProfile() {
               <User size={36} className="text-white/20" />
             </div>
           )}
+          {/* Status corner badge - opposite corner from the camera button.
+              Ring + this icon carry the suspended/banned state now instead
+              of a pill row below the name, so nothing shifts layout when
+              status changes. Hover for a native tooltip with the reason
+              and, for suspensions, how long is left. */}
+          {statusRingColor && (
+            <span
+              title={statusTooltip}
+              className="absolute bottom-0.5 left-0.5 w-7 h-7 rounded-full border-2 border-[#181818] flex items-center justify-center pointer-events-auto"
+              style={{ background: statusRingColor }}
+            >
+              {player.is_banned ? <OctagonX size={13} className="text-white" /> : <Clock size={13} className="text-white" />}
+            </span>
+          )}
           {/* Admin-only override: tap to replace this player's photo, same
               upload path and badge styling as their own Profile page avatar picker. */}
           <span className="absolute bottom-0.5 right-0.5 w-7 h-7 rounded-full bg-[#462ed1] border-2 border-[#181818] flex items-center justify-center pointer-events-none">
@@ -615,16 +649,6 @@ export function AdminPlayerProfile() {
         </div>
         <span className={`text-sm font-medium mb-2 ${SKILL_COLOR[displaySkill] ?? "text-white"}`}>{displaySkill}</span>
         <div className="flex items-center gap-2 flex-wrap justify-center">
-          {player.is_banned && (
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ef4444]/10 border border-[#ef4444]/25 text-[#ef4444] text-xs font-bold">
-              <OctagonX size={11} /> Banned
-            </span>
-          )}
-          {player.is_suspended && !player.is_banned && (
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#eab308]/10 border border-[#eab308]/25 text-[#eab308] text-xs font-bold">
-              <Clock size={11} /> Suspended until {formatDate(player.suspended_until ?? "")}
-            </span>
-          )}
           {currentLabel && (
             <span
               className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
@@ -812,10 +836,10 @@ export function AdminPlayerProfile() {
         {/* ── Admin Actions ─────────────────────────────────── */}
         <section>
           <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2 px-1">Admin</h2>
-          <div className="bg-[#212121] rounded-xl overflow-hidden divide-y divide-white/[0.06]">
+          <div className="bg-[#212121] rounded-xl overflow-hidden">
 
             {/* Skill Level */}
-            <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="relative flex items-center gap-3 px-4 py-3.5 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden">
               <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0">
                 <span className={`text-[10px] font-black ${SKILL_COLOR[displaySkill] ?? "text-white"}`}>
                   {displaySkill.slice(0, 3).toUpperCase()}
@@ -844,7 +868,7 @@ export function AdminPlayerProfile() {
             )}
 
             {/* Verification */}
-            <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="relative flex items-center gap-3 px-4 py-3.5 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${player.is_verified ? "bg-[#3897f0]" : "bg-white/5"}`}>
                 <BadgeCheck size={16} className={player.is_verified ? "text-white" : "text-[#79828b]"} />
               </div>
@@ -866,23 +890,30 @@ export function AdminPlayerProfile() {
                 <TapConfirmButton
                   label="Verify" fillCls="bg-[#3897f0]"
                   onConfirm={async () => {
-                    const r = await patchProfile({ is_verified: true });
+                    // Verified players can't be suspended - verifying a
+                    // currently-suspended player lifts the suspension in
+                    // the same patch, same "one status overrides the other"
+                    // pattern confirmBan already uses against is_suspended.
+                    const wasSuspended = player.is_suspended;
+                    const r = await patchProfile({ is_verified: true, is_suspended: false, suspended_until: null, suspend_reason: null });
                     if (!r.ok) { fireToast(r.error ?? "Failed to verify", "error"); return; }
                     fireToast("Player verified");
-                    logAction(player.id, "Verified");
+                    logAction(player.id, wasSuspended ? "Verified (suspension lifted)" : "Verified");
                   }}
                 />
               )}
             </div>
 
             {/* Suspension */}
-            <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="relative flex items-center gap-3 px-4 py-3.5 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${player.is_suspended ? "bg-[#eab308]/15" : "bg-white/5"}`}>
                 <Clock size={16} className={player.is_suspended ? "text-[#eab308]" : "text-[#79828b]"} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold text-white">Suspension</div>
-                <div className="text-[11px] text-[#79828b]">{player.is_suspended ? `Until ${formatDate(player.suspended_until ?? "")}` : "Not suspended"}</div>
+                <div className="text-[11px] text-[#79828b]">
+                  {player.is_suspended ? `Until ${formatDate(player.suspended_until ?? "")}` : player.is_verified ? "Verified players can't be suspended" : "Not suspended"}
+                </div>
               </div>
               {player.is_suspended ? (
                 <TapConfirmButton
@@ -895,7 +926,8 @@ export function AdminPlayerProfile() {
                   }}
                 />
               ) : (
-                <button ref={suspendBtnRef} onClick={openSuspendModal} disabled={player.is_banned || hierarchyLocked}
+                <button ref={suspendBtnRef} onClick={openSuspendModal} disabled={player.is_banned || player.is_verified || hierarchyLocked}
+                  title={player.is_verified ? "Verified players can't be suspended" : undefined}
                   className="w-24 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/70 text-[11px] font-black uppercase tracking-wider hover:bg-white/10 hover:text-white transition-colors focus:outline-none shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
                   Suspend
                 </button>
@@ -903,7 +935,7 @@ export function AdminPlayerProfile() {
             </div>
 
             {/* Ban */}
-            <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="relative flex items-center gap-3 px-4 py-3.5 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${player.is_banned ? "bg-[#ef4444]/15" : "bg-white/5"}`}>
                 <OctagonX size={16} className={player.is_banned ? "text-[#ef4444]" : "text-[#79828b]"} />
               </div>
@@ -930,7 +962,7 @@ export function AdminPlayerProfile() {
             </div>
 
             {/* Current Label — set only by picking a reason on a new note, not from here */}
-            <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="relative flex items-center gap-3 px-4 py-3.5 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden">
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
                 style={{ background: currentLabel ? `${SENTIMENT_COLOR[LABEL_META[currentLabel.label].sentiment]}26` : "rgba(255,255,255,.05)", opacity: currentLabel?.opacity ?? 1 }}
@@ -990,8 +1022,8 @@ export function AdminPlayerProfile() {
             </div>
           ) : (
             <div className="bg-[#212121] rounded-xl overflow-hidden">
-              {pastEvents.slice(0, 7).map((e, i) => (
-                <Link key={e.id} to={`/admin/events/${e.id}`} className={`flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors ${i > 0 ? "border-t border-white/[0.06]" : ""}`}>
+              {pastEvents.slice(0, 7).map((e) => (
+                <Link key={e.id} to={`/admin/events/${e.id}`} className="relative flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden">
                   <span className="text-sm text-white/75 truncate">{e.title}</span>
                   <span className="text-xs text-[#aaa] shrink-0 ml-3">{formatDate(e.event_date)}</span>
                 </Link>

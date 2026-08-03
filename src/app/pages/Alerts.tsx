@@ -7,7 +7,11 @@ import {
   ArrowLeftRight,
   ChevronRight,
   Ban,
-  UserCheck,
+  Clock,
+  CalendarClock,
+  AlertTriangle,
+  OctagonX,
+  UserPlus,
 } from "lucide-react";
 import { useLang } from "../i18n";
 import { useAuth } from "../lib/AuthContext";
@@ -17,7 +21,8 @@ import { FilterPill } from "../components/ui/FilterPill";
 
 type AlertType =
   | "moderator_swap_request" | "moderator_swap_accepted" | "moderator_swap_declined"
-  | "event_canceled" | "waitlist_promoted";
+  | "event_canceled" | "event_reminder" | "event_updated" | "capacity_increased"
+  | "account_suspended" | "account_banned";
 
 interface AlertItem {
   id: string;
@@ -49,8 +54,17 @@ const TYPE_CONFIG: Record<
   moderator_swap_accepted:  { icon: CheckCircle2,   bg: "bg-[#22c55e]/15", color: "text-[#22c55e]", linkPrefix: "/admin/events/" },
   moderator_swap_declined:  { icon: XCircle,        bg: "bg-[#ef4444]/15", color: "text-[#ef4444]", linkPrefix: "/admin/events/" },
   event_canceled:           { icon: Ban,            bg: "bg-[#ef4444]/15", color: "text-[#ef4444]", linkPrefix: "/events/" },
-  waitlist_promoted:        { icon: UserCheck,      bg: "bg-[#22c55e]/15", color: "text-[#22c55e]", linkPrefix: "/events/" },
+  event_reminder:           { icon: Clock,          bg: "bg-[#3897f0]/15", color: "text-[#3897f0]", linkPrefix: "/events/" },
+  event_updated:            { icon: CalendarClock,  bg: "bg-[#eab308]/15", color: "text-[#eab308]", linkPrefix: "/events/" },
+  account_suspended:        { icon: AlertTriangle,  bg: "bg-[#eab308]/15", color: "text-[#eab308]", linkPrefix: "/events/" },
+  account_banned:           { icon: OctagonX,       bg: "bg-[#ef4444]/15", color: "text-[#ef4444]", linkPrefix: "/events/" },
+  capacity_increased:       { icon: UserPlus,       bg: "bg-[#22c55e]/15", color: "text-[#22c55e]", linkPrefix: "/admin/events/" },
 };
+
+// Fallback for notification rows whose type has since been retired (e.g. old
+// waitlist_promoted rows from before that type was removed) - render them
+// generically instead of crashing.
+const FALLBACK_CONFIG = { icon: Bell, bg: "bg-white/10", color: "text-white/70", linkPrefix: "/events/" } as const;
 
 type Filter = "all" | "unread";
 
@@ -287,7 +301,7 @@ export function Alerts() {
                   </button>
                 )}
               </div>
-              <div className="flex flex-col rounded-2xl bg-[#212121] overflow-hidden divide-y divide-white/5">
+              <div className="flex flex-col rounded-2xl bg-[#212121] overflow-hidden">
                 {items.map(alert => (
                   <AlertRow
                     key={alert.id}
@@ -325,7 +339,7 @@ function AlertRow({
   declineLabel: string;
   unavailableLabel: string;
 }) {
-  const cfg = TYPE_CONFIG[alert.type];
+  const cfg = TYPE_CONFIG[alert.type] ?? FALLBACK_CONFIG;
   const Icon = cfg.icon;
   const isSwapRequest = alert.type === "moderator_swap_request";
   const swapState = alert.relatedId ? swapStatus[alert.relatedId] : undefined;
@@ -391,11 +405,13 @@ function AlertRow({
     </div>
   );
 
+  const dividerClass = "relative before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden";
+
   return alert.eventId ? (
-    <Link to={`${cfg.linkPrefix}${alert.eventId}`} state={{ hub: "alerts" }} className="block">
+    <Link to={`${cfg.linkPrefix}${alert.eventId}`} state={{ hub: "alerts" }} className={`block ${dividerClass}`}>
       {inner}
     </Link>
   ) : (
-    <div>{inner}</div>
+    <div className={dividerClass}>{inner}</div>
   );
 }

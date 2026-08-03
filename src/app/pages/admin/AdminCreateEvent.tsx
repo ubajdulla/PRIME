@@ -9,6 +9,7 @@ import { DropdownPanel } from "../../components/ui/DropdownMenu";
 import { useAuth } from "../../lib/AuthContext";
 import { supabase } from "../../lib/supabaseClient";
 import { categoryImage } from "../../lib/eventImages";
+import { shortDate } from "../../lib/eventDate";
 import { useWaterRipple, RippleLayer } from "../../components/ui/useWaterRipple";
 
 const CATEGORIES = ["GAMES", "TOURNAMENT", "TRAININGS", "BEACH", "EVENTS"];
@@ -45,6 +46,11 @@ export function AdminCreateEvent() {
   const [titleTouched, setTitleTouched] = useState(false);
   const [locations, setLocations] = useState<string[]>([]);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  // Snapshot of the published event as loaded, so handleSave can tell whether
+  // date/time/location actually changed and roster players need a heads-up -
+  // status is included since only an already-visible ("upcoming") event has
+  // a roster worth notifying (a draft has no participants yet).
+  const [original, setOriginal] = useState<{ status: string; date: string; time: string; location: string; capacity: number; moderatorId: string } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -89,6 +95,7 @@ export function AdminCreateEvent() {
         endH: endTime.h, endM: endTime.m,
         attachmentUrl: data.attachment_url ?? "", attachmentName: data.attachment_name ?? "",
       });
+      setOriginal({ status: data.status, date: data.event_date ?? "", time: data.event_time ?? "", location: data.location ?? "", capacity: data.capacity ?? 0, moderatorId: data.moderator_id });
       setLoadingEdit(false);
     })();
     return () => { active = false; };
@@ -116,6 +123,61 @@ export function AdminCreateEvent() {
     const { data } = supabase.storage.from("event-attachments").getPublicUrl(path);
     setF(p => ({ ...p, attachmentUrl: data.publicUrl, attachmentName: file.name }));
     setUploadingAttachment(false);
+  }
+
+  // Only date/time/location are worth a push - title/price/description edits
+  // don't change whether a player can actually show up.
+  async function notifyRosterOfChange(
+    eventId: string,
+    payload: { title: string; event_date: string; event_time: string; location: string },
+    prev: { date: string; time: string; location: string },
+  ) {
+    const changes: string[] = [];
+    if (prev.date !== payload.event_date || prev.time !== payload.event_time) {
+      changes.push(`now ${shortDate(payload.event_date)}, ${payload.event_time.split(" - ")[0]}`);
+    }
+    if (prev.location !== payload.location) {
+      changes.push(`now at ${payload.location}`);
+    }
+    if (!changes.length) return;
+
+    const { data: rows } = await supabase
+      .from("event_participants")
+      .select("player_id")
+      .eq("event_id", eventId)
+      .not("player_id", "is", null);
+    const recipientIds = (rows ?? []).map(r => r.player_id as string);
+    if (!recipientIds.length) return;
+
+    const { error } = await supabase.from("notifications").insert(
+      recipientIds.map(recipient_id => ({
+        recipient_id, type: "event_updated", title: "Event Updated",
+        body: `"${payload.title}" changed — ${changes.join(", ")}.`,
+        event_id: eventId,
+      }))
+    );
+    if (error) console.error("Failed to send event-update notifications:", error);
+  }
+
+  // Raising capacity doesn't auto-promote anyone off the waitlist (promotion
+  // stays a deliberate admin action, addToRosterFromWaitlist() in
+  // AdminEventDetail.tsx) - so without this, opened-up spots go unnoticed
+  // until the moderator happens to check the waitlist tab themselves.
+  async function notifyModeratorOfCapacityIncrease(eventId: string, title: string, moderatorId: string, prevCapacity: number, newCapacity: number) {
+    if (newCapacity <= prevCapacity) return;
+    const { count } = await supabase
+      .from("event_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", eventId)
+      .eq("kind", "waitlist");
+    if (!count) return;
+
+    const { error } = await supabase.from("notifications").insert({
+      recipient_id: moderatorId, type: "capacity_increased", title: "Waitlist Spots Opened",
+      body: `"${title}" capacity went from ${prevCapacity} to ${newCapacity} - ${count} player${count === 1 ? "" : "s"} on the waitlist could now fit. Promote them from the waitlist tab.`,
+      event_id: eventId,
+    });
+    if (error) console.error("Failed to send capacity-increase notification:", error);
   }
 
   async function handleSave() {
@@ -152,6 +214,10 @@ export function AdminCreateEvent() {
       const { error } = await supabase.from("events").update(payload).eq("id", editId);
       setSaving(false);
       if (error) { triggerShake(error.message); return; }
+      if (original && original.status === "upcoming") {
+        await notifyRosterOfChange(editId!, payload, original);
+        await notifyModeratorOfCapacityIncrease(editId!, payload.title, original.moderatorId, original.capacity, capacityNum);
+      }
       setDone(true);
       setTimeout(() => navigate(`/admin/events/${editId}`), 1200);
       return;

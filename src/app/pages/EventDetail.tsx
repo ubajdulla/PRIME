@@ -362,7 +362,7 @@ return (
             {isRequestOnly
               ? t.event.requestDesc
               : isFull
-                ? "This event is full — you'll join the waitlist and get notified if a spot opens up."
+                ? "This event is full — you'll join the waitlist and move up automatically if a spot opens up."
                 : t.event.joinDesc}
           </p>
 
@@ -453,12 +453,12 @@ return (
           {/* Info Panel */}
           <div className="relative">
             {event.level && <LevelBookmark level={event.level} insufficient={isRequestOnly} />}
-            <div className="bg-[#212121] border border-white/5 rounded-2xl divide-y divide-white/5 overflow-hidden">
-              <div className="flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors">
+            <div className="bg-[#212121] rounded-2xl overflow-hidden">
+              <div className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
                 <Calendar size={16} className={theme.primary} />
                 <span className="text-sm font-semibold text-white/90">{shortDate(event.event_date, true)} · {event.event_time}</span>
               </div>
-              <div className="flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors">
+              <div className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
                 <Ticket size={16} className={theme.primary} />
                 <span className="text-sm font-semibold text-white/90">{event.price_label ?? "FREE"}</span>
               </div>
@@ -466,7 +466,7 @@ return (
                 href={`https://www.google.com/maps/search/${encodeURIComponent(event.location)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors"
+                className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden"
               >
                 <MapPin size={16} className={theme.primary} />
                 <span className="text-sm font-semibold text-white/90 truncate">
@@ -474,7 +474,7 @@ return (
                 </span>
               </a>
               {event.description && (
-                <div className="p-3 hover:bg-white/[0.07] transition-colors">
+                <div className="relative p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
                   <p className="text-[#79828b] text-xs leading-relaxed">{event.description}</p>
                 </div>
               )}
@@ -484,7 +484,7 @@ return (
                   target="_blank"
                   rel="noopener noreferrer"
                   download={event.attachment_name ?? undefined}
-                  className="flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors"
+                  className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden"
                 >
                   <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center shrink-0">
                     <FileText size={13} className="text-white/60" />
@@ -559,7 +559,7 @@ return (
           {roster.length === 0 ? (
             <p className="text-[#79828b] text-sm py-4 text-center">No one has joined yet — be the first!</p>
           ) : (
-            <div className="bg-[#212121] border border-white/5 rounded-2xl divide-y divide-white/5 overflow-hidden">
+            <div className="bg-[#212121] rounded-2xl overflow-hidden">
               {roster.map((player) => {
                 const clickable = isLoggedIn && !player.isGuest;
                 const isMe = player.id === authUser?.id;
@@ -571,6 +571,7 @@ return (
                     avatarAlt={player.name}
                     verified={player.verified}
                     trustLabel={player.trustLabel}
+                    divider
                     onClick={clickable ? () => { navDir.forward(); navigate(playerProfilePath(player.id), { state: { hub } }); } : undefined}
                     primary={
                       requiresTeamName ? (
@@ -607,26 +608,26 @@ return (
 
           {/* Waitlist */}
           {isLoggedIn && waitlist.length > 0 && (() => {
-            const renderRow = (player: WaitlistEntry, withTopBorder: boolean) => {
+            const renderRow = (player: WaitlistEntry) => {
               const isMe = player.id === authUser?.id;
               return (
-                <div key={player.id} className={withTopBorder ? "border-t border-white/[0.05]" : ""}>
-                  <ProfileRow
-                    avatar={player.avatar}
-                    avatarAlt={player.name}
-                    verified={player.verified}
-                    trustLabel={player.trustLabel}
-                    onClick={() => { if (isMe) navigate("/profile", { state: { hub } }); else { navDir.forward(); navigate(playerProfilePath(player.id), { state: { hub } }); } }}
-                    primary={
-                      <span className={`font-bold text-sm block truncate ${isMe ? theme.primary : "text-white"}`}>{player.name}</span>
-                    }
-                    trailing={
-                      isMe && (
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#79828b] shrink-0">{t.event.you}</span>
-                      )
-                    }
-                  />
-                </div>
+                <ProfileRow
+                  key={player.id}
+                  avatar={player.avatar}
+                  avatarAlt={player.name}
+                  verified={player.verified}
+                  trustLabel={player.trustLabel}
+                  divider
+                  onClick={() => { if (isMe) navigate("/profile", { state: { hub } }); else { navDir.forward(); navigate(playerProfilePath(player.id), { state: { hub } }); } }}
+                  primary={
+                    <span className={`font-bold text-sm block truncate ${isMe ? theme.primary : "text-white"}`}>{player.name}</span>
+                  }
+                  trailing={
+                    isMe && (
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#79828b] shrink-0">{t.event.you}</span>
+                    )
+                  }
+                />
               );
             };
 
@@ -634,8 +635,8 @@ return (
               return (
                 <div className="mt-4 mb-4">
                   <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">{t.event.waitlist}</p>
-                  <div className="bg-[#212121] border border-white/5 rounded-xl overflow-hidden">
-                    {renderRow(waitlist[0], false)}
+                  <div className="bg-[#212121] rounded-xl overflow-hidden">
+                    {renderRow(waitlist[0])}
                   </div>
                 </div>
               );
@@ -644,7 +645,7 @@ return (
             return (
               <div className="mt-4 mb-4">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">{t.event.waitlist}</p>
-                <div ref={waitlistBoxRef} className="bg-[#212121] border border-white/5 rounded-xl overflow-hidden">
+                <div ref={waitlistBoxRef} className="bg-[#212121] rounded-xl overflow-hidden">
                   {/* Avatar stack + count stays put whether collapsed or expanded - only
                       the chevron and the rows below react to waitlistOpen. */}
                   <button onClick={() => setWaitlistOpen(v => !v)} className="w-full flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-white/[0.07] transition-colors">
@@ -678,8 +679,8 @@ return (
                   <div
                     className={`grid transition-[grid-template-rows] duration-200 ease-in-out ${waitlistOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
                   >
-                    <div ref={waitlistRowsRef} className="overflow-hidden min-h-0">
-                      {waitlist.map(player => renderRow(player, true))}
+                    <div ref={waitlistRowsRef} className="relative overflow-hidden min-h-0 before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06]">
+                      {waitlist.map(player => renderRow(player))}
                     </div>
                   </div>
                 </div>

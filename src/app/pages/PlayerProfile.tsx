@@ -200,12 +200,12 @@ export function PlayerProfile() {
             </div>
           ) : (
             <div className="bg-[#212121] rounded-xl overflow-hidden">
-              {pastEvents.map((e, i) => (
+              {pastEvents.map((e) => (
                 <Link
                   key={e.id}
                   to={`/events/${e.id}`}
                   state={{ hub }}
-                  className={`flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors ${i > 0 ? "border-t border-white/[0.06]" : ""}`}
+                  className="relative flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden"
                 >
                   <span className="text-sm text-white/75 truncate">{e.title}</span>
                   <span className="text-xs text-[#aaa] shrink-0 ml-3">{shortDate(e.event_date, true)}</span>

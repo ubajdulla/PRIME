@@ -269,12 +269,6 @@ export function AdminEventDetail() {
     ]);
     setWaitlist(prev => prev.filter(p => p.id !== playerId));
     setRoster(prev => [...prev, { id: player.id, name: player.name, avatar: player.avatar, position: player.position, teamName: player.teamName, paymentStatus: "unpaid" }]);
-    const { error: notifyErr } = await supabase.from("notifications").insert({
-      recipient_id: playerId, type: "waitlist_promoted", title: "You're In!",
-      body: `A spot opened up in "${event!.title}" — you've been moved from the waitlist to the roster.`,
-      event_id: event!.id,
-    });
-    if (notifyErr) console.error("Failed to send waitlist-promotion notification:", notifyErr);
   }
 
   async function updatePosition(rowId: string, position: string) {
@@ -545,6 +539,7 @@ export function AdminEventDetail() {
               checkmark
               variant="card"
               className="shadow-sm"
+              avatarOnly
               onClick={() => { navDir.forward(); navigate(`/admin/player/${event.moderator_id}`); }}
               trailing={
                 authUser?.id !== event.moderator_id ? undefined : pendingSwap ? (
@@ -605,21 +600,21 @@ export function AdminEventDetail() {
           {/* Info panel */}
           <div className="relative">
             {event.level && <LevelBookmark level={event.level} />}
-            <div className="bg-[#212121] border border-white/5 rounded-2xl divide-y divide-white/5 overflow-hidden">
-              <div className="flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors">
+            <div className="bg-[#212121] rounded-2xl overflow-hidden">
+              <div className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
                 <Calendar size={16} className="text-[#462ed1]" />
                 <span className="text-sm font-semibold text-white/90">{shortDate(event.event_date, true)} · {event.event_time}</span>
               </div>
-              <div className="flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors">
+              <div className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
                 <Ticket size={16} className="text-[#462ed1]" />
                 <span className="text-sm font-semibold text-white/90">{event.price_label ?? "FREE"}</span>
               </div>
-              <div className="flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors">
+              <div className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
                 <MapPin size={16} className="text-[#462ed1]" />
                 <span className="text-sm font-semibold text-white/90 truncate">{event.location}</span>
               </div>
               {event.description && (
-                <div className="p-3 hover:bg-white/[0.07] transition-colors">
+                <div className="relative p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
                   <p className="text-[#79828b] text-xs leading-relaxed">{event.description}</p>
                 </div>
               )}
@@ -629,7 +624,7 @@ export function AdminEventDetail() {
                   target="_blank"
                   rel="noopener noreferrer"
                   download={event.attachment_name ?? undefined}
-                  className="flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors"
+                  className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden"
                 >
                   <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center shrink-0">
                     <FileText size={13} className="text-white/60" />
@@ -644,7 +639,7 @@ export function AdminEventDetail() {
 
         {/* ── PAYMENTS (first) ─────────────────────────────────── */}
         {event.price > 0 && (
-          <div className="bg-[#212121] rounded-xl p-4 border border-white/5 mb-5">
+          <div className="bg-[#212121] rounded-xl p-4 mb-5">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[#79828b] text-[11px] font-black uppercase tracking-widest">Payments</span>
               <span className="text-white font-black text-sm">
@@ -797,29 +792,32 @@ export function AdminEventDetail() {
           </div>
 
           {/* Roster list */}
-          <div className="bg-[#212121] border border-white/5 rounded-2xl mb-8">
+          <div className="bg-[#212121] rounded-2xl mb-8">
             {roster.length === 0 && (
               <p className="text-[#79828b] text-sm text-center py-6">No players on roster yet</p>
             )}
             {roster.map((player, i) => (
               <div key={player.id} className="relative">
                 <div
-                  onClick={player.isGuest ? undefined : () => openProfile(player)}
-                  className={`flex items-center gap-2 p-3 transition-colors hover:bg-white/[0.07] ${player.isGuest ? "" : "cursor-pointer"} ${i > 0 ? "border-t border-white/[0.05]" : ""} ${i === 0 ? "rounded-t-2xl" : ""} ${i === roster.length - 1 ? "rounded-b-2xl" : ""}`}
+                  className={`relative flex items-center gap-2 p-3 transition-colors hover:bg-white/[0.07] ${i > 0 ? "before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06]" : ""} ${i === 0 ? "rounded-t-2xl" : ""} ${i === roster.length - 1 ? "rounded-b-2xl" : ""}`}
                 >
                   {player.isGuest ? (
                     player.avatar
                       ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full object-cover border border-white/10 shrink-0" />
                       : <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0"><User size={16} className="text-white/30" /></div>
                   ) : (
-                    <div className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => openProfile(player)}
+                      className="relative shrink-0 rounded-full transition-opacity hover:opacity-80"
+                    >
                       {player.avatar
                         ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full object-cover border border-white/10" />
                         : <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
                       }
                       <VerifiedBadge verified={player.verified} size={13} ringClassName="border-[#212121]" />
                       <TrustDot label={player.trustLabel} size={10} ringClassName="border-[#212121]" />
-                    </div>
+                    </button>
                   )}
                   <div className="flex-1 min-w-0">
                     {event.category === "TOURNAMENT" ? (
@@ -925,13 +923,17 @@ export function AdminEventDetail() {
             )}
             {waitlist.map(player => (
               <div key={player.id} className="relative">
-                <div onClick={() => openProfile(player)} className="flex items-center gap-2 p-3 bg-[#212121] border border-white/5 rounded-xl transition-colors hover:bg-white/[0.07] cursor-pointer">
-                  <div className="shrink-0">
+                <div className="flex items-center gap-2 p-3 bg-[#212121] rounded-xl transition-colors hover:bg-white/[0.07]">
+                  <button
+                    type="button"
+                    onClick={() => openProfile(player)}
+                    className="shrink-0 rounded-full transition-opacity hover:opacity-80"
+                  >
                     {player.avatar
                       ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#181818] object-cover" />
                       : <div className="w-10 h-10 rounded-full border-2 border-[#181818] bg-white/5 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
                     }
-                  </div>
+                  </button>
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-white text-sm truncate">{player.name}</div>
                   </div>
@@ -995,13 +997,17 @@ export function AdminEventDetail() {
             )}
             {requests.map(player => (
               <div key={player.id} className="relative">
-                <div onClick={() => openProfile(player)} className="flex items-center gap-2 p-3 bg-[#212121] border border-white/5 rounded-xl transition-colors hover:bg-white/[0.07] cursor-pointer">
-                  <div className="shrink-0">
+                <div className="flex items-center gap-2 p-3 bg-[#212121] rounded-xl transition-colors hover:bg-white/[0.07]">
+                  <button
+                    type="button"
+                    onClick={() => openProfile(player)}
+                    className="shrink-0 rounded-full transition-opacity hover:opacity-80"
+                  >
                     {player.avatar
                       ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#181818] object-cover" />
                       : <div className="w-10 h-10 rounded-full border-2 border-[#181818] bg-white/5 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
                     }
-                  </div>
+                  </button>
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-white text-sm truncate">{player.name}</div>
                   </div>

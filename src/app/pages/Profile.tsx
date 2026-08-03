@@ -15,7 +15,6 @@ import { DropdownPanel, DropdownItem, ConfirmDropdownItem } from "../components/
 import { ContactRow } from "../components/ui/ContactRow";
 import { DateOfBirthRow } from "../components/ui/DateOfBirthRow";
 import { EditToggleButtons } from "../components/ui/EditToggleButtons";
-import { ModAvatarIcon } from "../components/ui/ModAvatarIcon";
 import { LABEL_META, SENTIMENT_COLOR, type TrustLabel } from "../lib/trustLabel";
 
 const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
@@ -166,6 +165,15 @@ export function Profile() {
   if (!profile) return null;
 
   const skillStyle = SKILL_STYLE[profile.skill_level] ?? SKILL_STYLE.Rookie;
+  // Status ring + corner icon instead of a separate label row - matches
+  // AdminPlayerProfile.tsx, and means the avatar itself carries the state
+  // instead of something that appears/disappears and shifts the page.
+  const statusRingColor = profile.is_banned ? "#ef4444" : profile.is_suspended ? "#eab308" : null;
+  const statusTooltip = profile.is_banned
+    ? `Banned${profile.ban_reason ? ` — ${profile.ban_reason}` : ""}`
+    : profile.is_suspended && profile.suspended_until
+    ? `Suspended — ${formatDistanceToNowStrict(new Date(profile.suspended_until))} left${profile.suspend_reason ? ` — ${profile.suspend_reason}` : ""}`
+    : "";
 
   return (
     <div className="min-h-full bg-[#181818] pb-4 font-sans">
@@ -173,24 +181,33 @@ export function Profile() {
       {/* ── Profile identity ── */}
       <div className="flex flex-col items-center pt-8 pb-6 px-4">
 
-        {/* Avatar — always tappable. Suspended/banned gets the exact same
-            grayscale-avatar-with-icon-wash treatment as the admin's
-            Suspend/Ban confirm modal, so it reads as the same status. */}
+        {/* Avatar — always tappable. Suspended/banned shows as a ring +
+            corner badge instead of swapping the whole avatar, so status
+            reads consistently with AdminPlayerProfile.tsx. */}
         <label className="relative cursor-pointer mb-4 w-28 h-28">
-          {profile.is_banned ? (
-            <ModAvatarIcon avatar={profile.avatar} tint="bg-[#7f1d1d]/75" icon={<OctagonX size={32} className="text-white" />} />
-          ) : profile.is_suspended ? (
-            <ModAvatarIcon avatar={profile.avatar} tint="bg-[#b45309]/75" icon={<Clock size={32} className="text-white" />} />
-          ) : profile.avatar ? (
+          {profile.avatar ? (
             <img
               src={profile.avatar}
               alt=""
               className={`w-28 h-28 rounded-full object-cover bg-[#212121] ${uploadingAvatar ? "opacity-50" : ""}`}
+              style={statusRingColor ? { boxShadow: `0 0 0 3px ${statusRingColor}` } : undefined}
             />
           ) : (
-            <div className={`w-28 h-28 rounded-full bg-[#212121] flex items-center justify-center ${uploadingAvatar ? "opacity-50" : ""}`}>
+            <div
+              className={`w-28 h-28 rounded-full bg-[#212121] flex items-center justify-center ${uploadingAvatar ? "opacity-50" : ""}`}
+              style={statusRingColor ? { boxShadow: `0 0 0 3px ${statusRingColor}` } : undefined}
+            >
               <User size={44} className="text-[#79828b]" />
             </div>
+          )}
+          {statusRingColor && (
+            <span
+              title={statusTooltip}
+              className="absolute bottom-0.5 left-0.5 w-7 h-7 rounded-full border-2 border-[#181818] flex items-center justify-center"
+              style={{ background: statusRingColor }}
+            >
+              {profile.is_banned ? <OctagonX size={13} className="text-white" /> : <Clock size={13} className="text-white" />}
+            </span>
           )}
           <span className="absolute bottom-0.5 right-0.5 w-7 h-7 rounded-full bg-[#462ed1] border-2 border-[#181818] flex items-center justify-center pointer-events-none">
             <Camera size={13} className="text-white" />
@@ -436,12 +453,12 @@ export function Profile() {
             <Empty />
           ) : (
             <div className="bg-[#212121] rounded-xl overflow-hidden">
-              {pastEvents.slice(0, 7).map((e, i) => (
+              {pastEvents.slice(0, 7).map((e) => (
                 <Link
                   key={e.id}
                   to={`/events/${e.id}`}
                   state={{ hub: "profile" }}
-                  className={`flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors ${i > 0 ? "border-t border-white/[0.06]" : ""}`}
+                  className={`relative flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden`}
                 >
                   <span className="text-sm text-white/75 truncate">{e.title}</span>
                   <span className="text-xs text-[#aaa] shrink-0 ml-3">{shortDate(e.event_date, true)}</span>

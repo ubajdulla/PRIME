@@ -8,6 +8,7 @@ import { getHub } from "../lib/hub";
 import { DropdownPanel } from "../components/ui/DropdownMenu";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
+import { checkEventReminders } from "../lib/eventReminders";
 import { useKeyboardInset } from "../lib/useKeyboardInset";
 import { useModalOpen } from "../lib/useModalOpen";
 
@@ -66,6 +67,12 @@ export function MainLayout() {
       .eq("recipient_id", user.id).eq("read", false)
       .then(({ count }) => setUnreadAlerts(count ?? 0));
   }, [user?.id, location.pathname]);
+
+  // Once per session, not per navigation - checking is a couple of light
+  // queries, no need to repeat it on every route change.
+  useEffect(() => {
+    if (user) checkEventReminders(user.id);
+  }, [user?.id]);
 
   useLayoutEffect(() => {
     mainRef.current?.scrollTo(0, 0);

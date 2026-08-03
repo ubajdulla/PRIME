@@ -24,11 +24,11 @@ const STATUS_TREATMENT: Record<DisplayStatus, {
   opacity: string;
   strikethrough?: boolean;
 }> = {
-  upcoming:  { label: null,          labelColor: "",              border: "border border-white/5",                opacity: "opacity-100" },
+  upcoming:  { label: null,          labelColor: "",              border: "",                opacity: "opacity-100" },
   scheduled: { label: "Scheduled",   labelColor: "text-[#a855f7]", border: "border border-dashed border-[#a855f7]/25", opacity: "opacity-100" },
   draft:     { label: null,          labelColor: "text-white",     icon: PenLine, border: "border border-dashed border-white/15", opacity: "opacity-90" },
-  past:      { label: null,          labelColor: "",              border: "border border-white/5",                opacity: "opacity-60" },
-  canceled:  { label: "Canceled",    labelColor: "text-[#ef4444]", border: "border border-white/5",                opacity: "opacity-55", strikethrough: true },
+  past:      { label: null,          labelColor: "",              border: "",                opacity: "opacity-60" },
+  canceled:  { label: "Canceled",    labelColor: "text-[#ef4444]", border: "",                opacity: "opacity-55", strikethrough: true },
 };
 
 const czk = (n: number) => n.toLocaleString("cs-CZ") + " CZK";
@@ -155,7 +155,7 @@ export function AdminEventCard({
       </div>
 
       {/* Footer: moderator + arrow */}
-      <div className="flex items-center gap-3 px-4 py-3 border-t border-white/5">
+      <div className="relative flex items-center gap-3 px-4 py-3 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06]">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           {event.moderatorAvatar ? (
             <img
