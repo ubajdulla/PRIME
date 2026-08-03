@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import {
   Send, Instagram, Calendar, MapPin,
-  CheckCircle2, BadgeCheck, Clock,
+  BadgeCheck, Clock,
   OctagonX, Lock, Globe, ChevronDown,
   Phone, Mail, User, Pencil, Flag,
   MoreVertical, Trash2, ThumbsUp, Camera,
@@ -603,15 +603,10 @@ export function AdminPlayerProfile() {
               <User size={36} className="text-white/20" />
             </div>
           )}
-          {player.is_verified && (
-            <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#462ed1] rounded-full flex items-center justify-center border-[3px] border-[#181818]">
-              <CheckCircle2 size={14} className="text-white" strokeWidth={2.5} />
-            </div>
-          )}
           {/* Admin-only override: tap to replace this player's photo, same
-              upload path as their own Profile page avatar picker. */}
-          <span className="absolute top-0 right-0 w-7 h-7 rounded-full bg-white/10 border-2 border-[#181818] flex items-center justify-center pointer-events-none">
-            <Camera size={12} className="text-white" />
+              upload path and badge styling as their own Profile page avatar picker. */}
+          <span className="absolute bottom-0.5 right-0.5 w-7 h-7 rounded-full bg-[#462ed1] border-2 border-[#181818] flex items-center justify-center pointer-events-none">
+            <Camera size={13} className="text-white" />
           </span>
           <input type="file" accept="image/*" className="hidden" disabled={uploadingAvatar} onChange={handleAvatar} />
         </label>
