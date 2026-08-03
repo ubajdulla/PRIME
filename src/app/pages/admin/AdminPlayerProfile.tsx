@@ -89,7 +89,9 @@ export function AdminPlayerProfile() {
   const banBtnRef = useRef<HTMLButtonElement>(null);
 
   const [showSkillConfirm,  setShowSkillConfirm]  = useState(false);
+  const [skillOrigin,       setSkillOrigin]       = useState<ModalOrigin>(null);
   const [pendingSkill,      setPendingSkill]      = useState<SkillLevel | "">("");
+  const skillFieldRef = useRef<HTMLDivElement>(null);
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
@@ -419,6 +421,8 @@ export function AdminPlayerProfile() {
 
   function openSkillPicker(val: string) {
     if (!val || val === displaySkill) return;
+    const rect = skillFieldRef.current?.getBoundingClientRect();
+    setSkillOrigin(rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null);
     setPendingSkill(val as SkillLevel); setShowSkillConfirm(true);
   }
 
@@ -430,7 +434,10 @@ export function AdminPlayerProfile() {
 
       {/* ── Modals ─────────────────────────────────────────── */}
       {showSkillConfirm && (
-        <ConfirmModal icon={<ChevronDown size={18} className="text-[#a855f7]" />} iconBg="bg-[#a855f7]/10 border-[#a855f7]/20"
+        <ConfirmModal
+          origin={skillOrigin}
+          icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[#6b21a8]/75" icon={<ChevronDown size={18} className="text-white" />} />}
+          iconBg="border-[#a855f7]/25"
           title="Change Skill Level?" sub={`${displaySkill} → ${pendingSkill}`}
           body={<>This will move <span className="text-white font-bold">{player.name}</span> to the <span className="text-white font-bold">{pendingSkill}</span> group.</>}
           cancelLabel="Cancel" onCancel={() => { setShowSkillConfirm(false); setPendingSkill(""); }}
@@ -845,7 +852,7 @@ export function AdminPlayerProfile() {
                 <div className="text-sm font-bold text-white">Skill Level</div>
                 <div className="text-[11px] text-[#79828b]">Current: {displaySkill}</div>
               </div>
-              <div className="shrink-0">
+              <div className="shrink-0" ref={skillFieldRef}>
                 <SelectField
                   value={displaySkill}
                   options={skillOptions}
