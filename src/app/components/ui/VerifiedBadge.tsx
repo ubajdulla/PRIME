@@ -1,4 +1,4 @@
-import { CheckCircle2 } from "lucide-react";
+import { BadgeCheck } from "lucide-react";
 
 interface VerifiedBadgeProps {
   verified: boolean | null | undefined;
@@ -18,7 +18,7 @@ export function VerifiedBadge({ verified, size = 16, ringClassName = "border-[#1
       className={`absolute -right-0.5 -bottom-0.5 bg-[#462ed1] rounded-full flex items-center justify-center border-2 ${ringClassName}`}
       style={{ width: size, height: size }}
     >
-      <CheckCircle2 size={iconSize} className="text-white" strokeWidth={2.5} />
+      <BadgeCheck size={iconSize} className="text-white" strokeWidth={2.5} />
     </div>
   );
 }
