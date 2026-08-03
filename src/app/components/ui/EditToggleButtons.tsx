@@ -18,7 +18,7 @@ export function EditToggleButtons({
   saveLabel?: string;
 }) {
   return (
-    <div className="grid items-center">
+    <div className="grid items-center justify-items-end">
       <div
         className={`col-start-1 row-start-1 flex items-center gap-3 transition-all duration-200 ease-out ${
           editing ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1 pointer-events-none"
