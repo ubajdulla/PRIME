@@ -773,34 +773,37 @@ export function AdminPlayerProfile() {
                             : <Flag size={11} style={{ color: SENTIMENT_COLOR[LABEL_META[n.label].sentiment] }} />}
                         </span>
                       )}
-                      {!n.is_legacy && (
-                        <div className={`relative shrink-0 ${n.label ? "" : "ml-auto"}`}>
-                          <button
-                            type="button"
-                            onMouseDown={e => e.stopPropagation()}
-                            onClick={() => setOpenNoteMenuId(v => v === n.id ? null : n.id)}
-                            className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors ${openNoteMenuId === n.id ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/10 hover:text-white"}`}
-                          >
-                            <MoreVertical size={14} />
-                          </button>
-                          {openNoteMenuId === n.id && (
-                            <div onMouseDown={e => e.stopPropagation()} className="absolute right-0 top-full mt-1.5 z-30 w-44">
-                              <DropdownPanel>
-                                <div className="flex flex-col">
-                                  <DropdownItem icon={<Pencil size={14} />} label="Edit" onClick={() => openNoteEdit(n)} />
-                                  <ConfirmDropdownItem
-                                    icon={<Trash2 size={14} />} label="Remove" variant="destructive"
-                                    armed={deleteArmedId === n.id}
-                                    onArm={() => setDeleteArmedId(n.id)}
-                                    onConfirm={() => deleteNote(n.id)}
-                                    onDisarm={() => setDeleteArmedId(null)}
-                                  />
-                                </div>
-                              </DropdownPanel>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {/* Legacy notes (015_player_notes.sql - carried over from the old
+                          single admin_note column) have no known author, so there's
+                          nothing to Edit, but they can still be Removed like any other
+                          note - the delete policy (028_player_notes_delete.sql) already
+                          covers them, this menu was just never shown for them. */}
+                      <div className={`relative shrink-0 ${n.label ? "" : "ml-auto"}`}>
+                        <button
+                          type="button"
+                          onMouseDown={e => e.stopPropagation()}
+                          onClick={() => setOpenNoteMenuId(v => v === n.id ? null : n.id)}
+                          className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors ${openNoteMenuId === n.id ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/10 hover:text-white"}`}
+                        >
+                          <MoreVertical size={14} />
+                        </button>
+                        {openNoteMenuId === n.id && (
+                          <div onMouseDown={e => e.stopPropagation()} className="absolute right-0 top-full mt-1.5 z-30 w-44">
+                            <DropdownPanel>
+                              <div className="flex flex-col">
+                                {!n.is_legacy && <DropdownItem icon={<Pencil size={14} />} label="Edit" onClick={() => openNoteEdit(n)} />}
+                                <ConfirmDropdownItem
+                                  icon={<Trash2 size={14} />} label="Remove" variant="destructive"
+                                  armed={deleteArmedId === n.id}
+                                  onArm={() => setDeleteArmedId(n.id)}
+                                  onConfirm={() => deleteNote(n.id)}
+                                  onDisarm={() => setDeleteArmedId(null)}
+                                />
+                              </div>
+                            </DropdownPanel>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <p className={`text-sm text-white/80 leading-relaxed whitespace-pre-wrap break-words ${isLong && !isExpanded ? "line-clamp-4" : ""}`}>
                       {n.body}
