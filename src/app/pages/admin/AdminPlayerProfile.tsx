@@ -13,6 +13,7 @@ import { Toast } from "../../components/ui/Toast";
 import { SelectField } from "../../components/ui/SelectField";
 import { DatePickerField } from "../../components/ui/DatePickerField";
 import { ContactRow } from "../../components/ui/ContactRow";
+import { DateOfBirthRow } from "../../components/ui/DateOfBirthRow";
 import { ConfirmModal, type ModalOrigin } from "../../components/ui/Modal";
 import { TapConfirmButton } from "../../components/ui/TapConfirmButton";
 import { DropdownPanel, DropdownItem, ConfirmDropdownItem } from "../../components/ui/DropdownMenu";
@@ -283,16 +284,6 @@ export function AdminPlayerProfile() {
     fireToast("Details updated");
   }
 
-  function calcAge(birthDate: string): number | null {
-    if (!birthDate) return null;
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const m = today.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-    return age;
-  }
-
   async function addNote() {
     const body = noteDraft.trim();
     if (!body || savingNote) return;
@@ -436,12 +427,12 @@ export function AdminPlayerProfile() {
       {showSkillConfirm && (
         <ConfirmModal
           origin={skillOrigin}
-          icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[#6b21a8]/75" icon={<ChevronDown size={18} className="text-white" />} />}
-          iconBg="border-[#a855f7]/25"
+          icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[#462ed1]/75" icon={<ChevronDown size={18} className="text-white" />} />}
+          iconBg="border-[#462ed1]/25"
           title="Change Skill Level?" sub={`${displaySkill} → ${pendingSkill}`}
           body={<>This will move <span className="text-white font-bold">{player.name}</span> to the <span className="text-white font-bold">{pendingSkill}</span> group.</>}
           cancelLabel="Cancel" onCancel={() => { setShowSkillConfirm(false); setPendingSkill(""); }}
-          confirmLabel="Confirm" confirmCls="bg-[#a855f7] text-white"
+          confirmLabel="Confirm" confirmCls="bg-[#462ed1] text-white"
           onConfirm={confirmSkillChange} />
       )}
       {/* Suspend modal */}
@@ -667,7 +658,7 @@ export function AdminPlayerProfile() {
               </button>
             )}
           </div>
-          <div className="bg-[#212121] rounded-xl overflow-hidden">
+          <div className={`bg-[#212121] rounded-xl overflow-hidden border transition-colors duration-300 ${editingDetails ? "border-[#462ed1]/30" : "border-transparent"}`}>
             <ContactRow
               editing={editingDetails}
               icon={<User size={15} className="text-[#462ed1]" />} iconBg="bg-[#462ed1]/15"
@@ -675,31 +666,12 @@ export function AdminPlayerProfile() {
               onChange={v => setDetailsField("name", v)}
             />
 
-            {/* Date of Birth — needs a calendar picker, not a plain-text row */}
-            <div className="flex items-center gap-3 px-4 h-[56px] shrink-0 border-t border-white/[0.06]">
-              <div className="w-8 h-8 rounded-full bg-[#462ed1]/15 flex items-center justify-center shrink-0">
-                <Calendar size={15} className="text-[#462ed1]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[11px] text-[#aaa] mb-0.5 h-[13px]">Date of Birth</div>
-                <div className="flex items-center h-5">
-                  {editingDetails ? (
-                    <DatePickerField
-                      value={detailsDraft.birthDate}
-                      onChange={v => setDetailsField("birthDate", v)}
-                      triggerClassName="flex items-center gap-1 text-white text-sm leading-5 focus:outline-none"
-                    />
-                  ) : player.birth_date ? (
-                    <div className="text-sm text-white leading-5 truncate">
-                      {formatDate(player.birth_date)}
-                      <span className="text-[#79828b] ml-1.5">· {calcAge(player.birth_date)}</span>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-[#79828b] leading-5">—</div>
-                  )}
-                </div>
-              </div>
-            </div>
+            <DateOfBirthRow
+              editing={editingDetails}
+              value={player.birth_date}
+              draftValue={detailsDraft.birthDate}
+              onChange={v => setDetailsField("birthDate", v)}
+            />
 
             <ContactRow
               editing={editingDetails}

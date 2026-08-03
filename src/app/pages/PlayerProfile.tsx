@@ -147,7 +147,7 @@ export function PlayerProfile() {
               )}
               {player.instagram && player.show_instagram !== false && (
                 <a href={`https://instagram.com/${player.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer"
-                  className={`flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] active:bg-white/5 transition-colors ${player.telegram && player.show_telegram !== false ? "border-t border-white/[0.06]" : ""}`}>
+                  className={`relative flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] active:bg-white/5 transition-colors ${player.telegram && player.show_telegram !== false ? "before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06]" : ""}`}>
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888] flex items-center justify-center shrink-0">
                     <Instagram size={14} className="text-white" />
                   </div>

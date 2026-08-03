@@ -13,6 +13,7 @@ import {
 import { SelectField } from "../components/ui/SelectField";
 import { DropdownPanel, DropdownItem, ConfirmDropdownItem } from "../components/ui/DropdownMenu";
 import { ContactRow } from "../components/ui/ContactRow";
+import { DateOfBirthRow } from "../components/ui/DateOfBirthRow";
 import { ModAvatarIcon } from "../components/ui/ModAvatarIcon";
 import { LABEL_META, SENTIMENT_COLOR, type TrustLabel } from "../lib/trustLabel";
 
@@ -23,6 +24,7 @@ type NoteRow = { id: string; author_name: string; body: string; created_at: stri
 
 type ContactDraft = {
   name: string;
+  birthDate: string;
   phone: string;
   email: string;
   telegram: string;
@@ -41,7 +43,7 @@ export function Profile() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<ContactDraft>({
-    name: "", phone: "", email: "", telegram: "", instagram: "",
+    name: "", birthDate: "", phone: "", email: "", telegram: "", instagram: "",
   });
 
   const [upcomingEvents, setUpcomingEvents] = useState<{ event: EventRow; pending: boolean }[]>([]);
@@ -106,6 +108,7 @@ export function Profile() {
     if (!profile) return;
     setDraft({
       name:      profile.name ?? "",
+      birthDate: profile.birth_date ?? "",
       phone:     profile.phone ?? "",
       email:     profile.email ?? "",
       telegram:  profile.telegram ?? "",
@@ -127,11 +130,12 @@ export function Profile() {
     setError(null);
     setSaving(true);
     await updateProfile({
-      name:      draft.name,
-      phone:     draft.phone,
-      email:     draft.email,
-      telegram:  draft.telegram,
-      instagram: draft.instagram,
+      name:       draft.name,
+      birth_date: draft.birthDate || null,
+      phone:      draft.phone,
+      email:      draft.email,
+      telegram:   draft.telegram,
+      instagram:  draft.instagram,
     });
     setSaving(false);
     setEditingContact(false);
@@ -280,7 +284,7 @@ export function Profile() {
             )}
           </div>
 
-          <div className="bg-[#212121] rounded-xl overflow-hidden">
+          <div className={`bg-[#212121] rounded-xl overflow-hidden border transition-colors duration-300 ${editingContact ? "border-[#462ed1]/30" : "border-transparent"}`}>
 
             {/* Name row */}
             <ContactRow
@@ -291,6 +295,13 @@ export function Profile() {
               displayValue={profile.name}
               editValue={draft.name}
               onChange={v => setDraftField("name", v)}
+            />
+
+            <DateOfBirthRow
+              editing={editingContact}
+              value={profile.birth_date}
+              draftValue={draft.birthDate}
+              onChange={v => setDraftField("birthDate", v)}
             />
 
             <ContactRow

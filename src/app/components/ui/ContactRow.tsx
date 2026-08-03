@@ -27,7 +27,7 @@ export function ContactRow({
   const isHidden = showToOthers === false;
   const shownValue = isHidden ? HIDDEN_MASK : (displayValue || "—");
   return (
-    <div className="flex items-center gap-3 px-4 h-[56px] shrink-0 border-t border-white/[0.06] first:border-t-0">
+    <div className="relative flex items-center gap-3 px-4 h-[56px] shrink-0 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden">
       <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}>
         {icon}
       </div>
