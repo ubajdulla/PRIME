@@ -14,6 +14,7 @@ import { SelectField } from "../components/ui/SelectField";
 import { DropdownPanel, DropdownItem, ConfirmDropdownItem } from "../components/ui/DropdownMenu";
 import { ContactRow } from "../components/ui/ContactRow";
 import { DateOfBirthRow } from "../components/ui/DateOfBirthRow";
+import { EditToggleButtons } from "../components/ui/EditToggleButtons";
 import { ModAvatarIcon } from "../components/ui/ModAvatarIcon";
 import { LABEL_META, SENTIMENT_COLOR, type TrustLabel } from "../lib/trustLabel";
 
@@ -233,58 +234,50 @@ export function Profile() {
         <section>
           <div className="flex items-center justify-between h-8 mb-2">
             <SectionLabel>{t.profile.contact}</SectionLabel>
-            {editingContact ? (
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={cancelContactEdit}
-                  className="text-sm text-[#aaa] font-medium active:opacity-60 transition-opacity"
-                >
-                  {t.common.cancel}
-                </button>
-                <button
-                  onClick={saveContact}
-                  disabled={saving}
-                  className="text-sm text-[#462ed1] font-medium active:opacity-70 transition-opacity disabled:opacity-50"
-                >
-                  {saving ? "…" : t.common.save}
-                </button>
-              </div>
-            ) : (
-              <div className="relative">
-                <button
-                  onMouseDown={e => e.stopPropagation()}
-                  onClick={() => setMenuOpen(v => !v)}
-                  className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${menuOpen ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
-                >
-                  <MoreVertical size={16} />
-                </button>
-                {menuOpen && (
-                  <div onMouseDown={e => e.stopPropagation()} className="absolute right-0 top-full mt-1.5 z-20 w-56">
-                    <DropdownPanel>
-                      <div className="flex flex-col">
-                        <DropdownItem
-                          icon={<Pencil size={14} />}
-                          label={t.profile.editDetails}
-                          onClick={() => { openContactEdit(); setMenuOpen(false); }}
-                        />
-                        <ConfirmDropdownItem
-                          icon={<LogOut size={14} />}
-                          label={t.profile.logOut}
-                          variant="destructive"
-                          armed={logoutArmed}
-                          onArm={() => setLogoutArmed(true)}
-                          onConfirm={async () => { await signOut(); navigate("/signin"); }}
-                          onDisarm={() => setLogoutArmed(false)}
-                        />
-                      </div>
-                    </DropdownPanel>
-                  </div>
-                )}
-              </div>
-            )}
+            <EditToggleButtons
+              editing={editingContact}
+              onCancel={cancelContactEdit}
+              onSave={saveContact}
+              saving={saving}
+              cancelLabel={t.common.cancel}
+              saveLabel={t.common.save}
+              idle={
+                <div className="relative">
+                  <button
+                    onMouseDown={e => e.stopPropagation()}
+                    onClick={() => setMenuOpen(v => !v)}
+                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${menuOpen ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
+                  >
+                    <MoreVertical size={16} />
+                  </button>
+                  {menuOpen && (
+                    <div onMouseDown={e => e.stopPropagation()} className="absolute right-0 top-full mt-1.5 z-20 w-56">
+                      <DropdownPanel>
+                        <div className="flex flex-col">
+                          <DropdownItem
+                            icon={<Pencil size={14} />}
+                            label={t.profile.editDetails}
+                            onClick={() => { openContactEdit(); setMenuOpen(false); }}
+                          />
+                          <ConfirmDropdownItem
+                            icon={<LogOut size={14} />}
+                            label={t.profile.logOut}
+                            variant="destructive"
+                            armed={logoutArmed}
+                            onArm={() => setLogoutArmed(true)}
+                            onConfirm={async () => { await signOut(); navigate("/signin"); }}
+                            onDisarm={() => setLogoutArmed(false)}
+                          />
+                        </div>
+                      </DropdownPanel>
+                    </div>
+                  )}
+                </div>
+              }
+            />
           </div>
 
-          <div className={`bg-[#212121] rounded-xl overflow-hidden border transition-colors duration-300 ${editingContact ? "border-[#462ed1]/30" : "border-transparent"}`}>
+          <div className="bg-[#212121] rounded-xl overflow-hidden">
 
             {/* Name row */}
             <ContactRow

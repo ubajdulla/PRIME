@@ -35,21 +35,32 @@ export function DateOfBirthRow({
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-[11px] text-[#aaa] mb-0.5 h-[13px]">Date of Birth</div>
-        <div className="flex items-center h-5">
-          {editing ? (
+        <div className="grid h-5">
+          <div
+            className={`col-start-1 row-start-1 flex items-center transition-all duration-200 ease-out ${
+              editing ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1 pointer-events-none"
+            }`}
+          >
             <DatePickerField
               value={draftValue}
               onChange={onChange}
               triggerClassName="flex items-center gap-1 text-white text-sm leading-5 focus:outline-none"
             />
-          ) : value ? (
-            <div className="text-sm text-white leading-5 truncate">
-              {formatDate(value)}
-              <span className="text-[#79828b] ml-1.5">· {calcAge(value)}</span>
-            </div>
-          ) : (
-            <div className="text-sm text-[#79828b] leading-5">—</div>
-          )}
+          </div>
+          <div
+            className={`col-start-1 row-start-1 flex items-center transition-all duration-200 ease-out ${
+              editing ? "opacity-0 translate-y-1 pointer-events-none" : "opacity-100 translate-y-0"
+            }`}
+          >
+            {value ? (
+              <div className="text-sm text-white leading-5 truncate">
+                {formatDate(value)}
+                <span className="text-[#79828b] ml-1.5">· {calcAge(value)}</span>
+              </div>
+            ) : (
+              <div className="text-sm text-[#79828b] leading-5">—</div>
+            )}
+          </div>
         </div>
       </div>
     </div>

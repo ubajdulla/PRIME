@@ -14,6 +14,7 @@ import { SelectField } from "../../components/ui/SelectField";
 import { DatePickerField } from "../../components/ui/DatePickerField";
 import { ContactRow } from "../../components/ui/ContactRow";
 import { DateOfBirthRow } from "../../components/ui/DateOfBirthRow";
+import { EditToggleButtons } from "../../components/ui/EditToggleButtons";
 import { ConfirmModal, type ModalOrigin } from "../../components/ui/Modal";
 import { TapConfirmButton } from "../../components/ui/TapConfirmButton";
 import { DropdownPanel, DropdownItem, ConfirmDropdownItem } from "../../components/ui/DropdownMenu";
@@ -646,19 +647,19 @@ export function AdminPlayerProfile() {
         <section>
           <div className="flex items-center justify-between h-8 mb-2 px-1">
             <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Info</h2>
-            {editingDetails ? (
-              <div className="flex items-center gap-3">
-                <button onClick={() => setEditingDetails(false)} className="text-sm text-[#aaa] font-medium active:opacity-60 transition-opacity">Cancel</button>
-                <button onClick={saveDetails} className="text-sm text-[#462ed1] font-medium active:opacity-70 transition-opacity">Save</button>
-              </div>
-            ) : (
-              <button onClick={openDetailsEdit}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-[#79828b] hover:bg-white/20 hover:text-white transition-colors">
-                <Pencil size={16} />
-              </button>
-            )}
+            <EditToggleButtons
+              editing={editingDetails}
+              onCancel={() => setEditingDetails(false)}
+              onSave={saveDetails}
+              idle={
+                <button onClick={openDetailsEdit}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-[#79828b] hover:bg-white/20 hover:text-white transition-colors">
+                  <Pencil size={16} />
+                </button>
+              }
+            />
           </div>
-          <div className={`bg-[#212121] rounded-xl overflow-hidden border transition-colors duration-300 ${editingDetails ? "border-[#462ed1]/30" : "border-transparent"}`}>
+          <div className="bg-[#212121] rounded-xl overflow-hidden">
             <ContactRow
               editing={editingDetails}
               icon={<User size={15} className="text-[#462ed1]" />} iconBg="bg-[#462ed1]/15"
