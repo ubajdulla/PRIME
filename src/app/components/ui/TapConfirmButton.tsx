@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useWaterRipple, RippleLayer } from "./useWaterRipple";
+import { useLang } from "../../i18n";
 
 // Fixed-size action pill that arms on first tap and fires on the second -
 // no modal needed for actions that don't need extra input (verify, lift
@@ -10,7 +11,7 @@ import { useWaterRipple, RippleLayer } from "./useWaterRipple";
 // or on any tap/scroll elsewhere.
 export function TapConfirmButton({
   label,
-  confirmLabel = "Confirm",
+  confirmLabel,
   fillCls,
   armedTextCls = "text-white",
   idleCls = "bg-white/5 text-white/70 hover:bg-white/10",
@@ -27,6 +28,8 @@ export function TapConfirmButton({
   disabled?: boolean;
   className?: string;
 }) {
+  const { t } = useLang();
+  const resolvedConfirmLabel = confirmLabel ?? t.common.confirm;
   const [armed, setArmed] = useState(false);
   const ripple = useWaterRipple();
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -65,7 +68,7 @@ export function TapConfirmButton({
         className={`absolute inset-0 ${fillCls} transition-transform duration-300 ease-out ${armed ? "translate-x-0" : "translate-x-full"}`}
       />
       <span className={`relative z-10 transition-colors duration-200 ${armed ? armedTextCls : ""}`}>
-        {armed ? confirmLabel : label}
+        {armed ? resolvedConfirmLabel : label}
       </span>
       <RippleLayer ripples={ripple.ripples} />
     </button>
