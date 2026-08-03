@@ -24,6 +24,7 @@ import { useAuth } from "../../lib/AuthContext";
 import { shortDate, isPastDate, isRosterLocked } from "../../lib/eventDate";
 import { PublishEventModal } from "../../components/PublishEventModal";
 import { useWaterRipple, RippleLayer } from "../../components/ui/useWaterRipple";
+import { useLang } from "../../i18n";
 
 type EventRow = {
   id: string;
@@ -54,6 +55,7 @@ const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocke
 export function AdminEventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useLang();
   const { user: authUser, profile: authProfile } = useAuth();
   const statusRipple = useWaterRipple();
 
@@ -198,9 +200,9 @@ export function AdminEventDetail() {
   if (notFound || !event) {
     return (
       <div>
-        <BackBar label="Events" to="/admin/events" />
+        <BackBar label={t.nav.events} to="/admin/events" />
         <div className="flex items-center justify-center min-h-[60vh] text-[#79828b]">
-          <p className="font-bold">Event not found</p>
+          <p className="font-bold">{t.admin.eventNotFound}</p>
         </div>
       </div>
     );
@@ -489,20 +491,20 @@ export function AdminEventDetail() {
       )}
 
       {/* BackBar with share button */}
-      <BackBar label="Events" to="/admin/events">
+      <BackBar label={t.nav.events} to="/admin/events">
         <button
           onClick={() => {
             const url = `${window.location.origin}/events/${event.id}`;
             if (navigator.share) {
               navigator.share({ title: event.title, url });
             } else {
-              navigator.clipboard.writeText(url).then(() => fireToast("Link Copied!", "copied"));
+              navigator.clipboard.writeText(url).then(() => fireToast(t.common.linkCopied, "copied"));
             }
           }}
           className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
         >
           <Share2 size={16} />
-          <span>Share</span>
+          <span>{t.event.share}</span>
         </button>
       </BackBar>
 
@@ -522,7 +524,7 @@ export function AdminEventDetail() {
             <button
               onClick={() => navigate(`/admin/events/${event.id}/edit`)}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-[#79828b] hover:text-white hover:bg-white/10 transition-colors shrink-0"
-              title="Edit event"
+              title={t.admin.editEvent}
             >
               <Pencil size={14} />
             </button>
@@ -532,9 +534,9 @@ export function AdminEventDetail() {
           <div className="relative mb-4">
             <ProfileRow
               avatar={event.moderator?.avatar ?? null}
-              avatarAlt={event.moderator?.name ?? "Moderator"}
+              avatarAlt={event.moderator?.name ?? t.event.moderator}
               avatarSize={44}
-              eyebrow="Moderator"
+              eyebrow={t.event.moderator}
               primary={<span className="text-white font-bold text-sm">{event.moderator?.name ?? "—"}</span>}
               checkmark
               variant="card"
@@ -545,7 +547,7 @@ export function AdminEventDetail() {
                 authUser?.id !== event.moderator_id ? undefined : pendingSwap ? (
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-black uppercase tracking-wider text-[#eab308] px-2 py-1 bg-[#eab308]/10 rounded-full whitespace-nowrap">
-                      Swap Pending
+                      {t.admin.swapPending}
                     </span>
                     <button
                       onClick={cancelSwap}
@@ -573,7 +575,7 @@ export function AdminEventDetail() {
                 className="bg-[#212121] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] w-64 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
               >
                 {otherAdmins.length === 0 && (
-                  <p className="text-[#79828b] text-xs text-center py-6 px-4">No other admins available</p>
+                  <p className="text-[#79828b] text-xs text-center py-6 px-4">{t.admin.noOtherAdmins}</p>
                 )}
                 {otherAdmins.map(a => (
                   <button
@@ -629,7 +631,7 @@ export function AdminEventDetail() {
                   <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center shrink-0">
                     <FileText size={13} className="text-white/60" />
                   </div>
-                  <span className="text-sm font-semibold text-white/90 truncate flex-1">{event.attachment_name ?? "Attachment"}</span>
+                  <span className="text-sm font-semibold text-white/90 truncate flex-1">{event.attachment_name ?? t.admin.attachment}</span>
                   <Download size={14} className="text-[#79828b] shrink-0" />
                 </a>
               )}
@@ -641,7 +643,7 @@ export function AdminEventDetail() {
         {event.price > 0 && (
           <div className="bg-[#212121] rounded-xl p-4 mb-5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[#79828b] text-[11px] font-black uppercase tracking-widest">Payments</span>
+              <span className="text-[#79828b] text-[11px] font-black uppercase tracking-widest">{t.admin.payments}</span>
               <span className="text-white font-black text-sm">
                 {collectedCZK.toLocaleString()} / {(event.capacity * event.price).toLocaleString()} CZK
               </span>
@@ -664,7 +666,7 @@ export function AdminEventDetail() {
           <div className="flex justify-between items-center mb-3 px-1">
             <h2 className="font-bold text-lg text-white">
               {totalPlayers}{" "}
-              <span className="text-[#79828b]">/ {event.capacity} Players</span>
+              <span className="text-[#79828b]">/ {event.capacity} {t.admin.players}</span>
             </h2>
 
             {/* Status CTA + actions dropdown */}
@@ -679,7 +681,7 @@ export function AdminEventDetail() {
                     : `hover:bg-[currentColor]/20 ${getStatusStyle(badgeStatus)}`
                 }`}
               >
-                <span>{isDraft ? "Publish" : isScheduled ? "Scheduled" : badgeLabel}</span>
+                <span>{isDraft ? t.admin.publish : isScheduled ? t.admin.scheduled : badgeLabel}</span>
                 <ChevronDown size={14} className={`transition-transform duration-200 shrink-0 ${showActionDropdown ? "rotate-180" : ""}`} />
                 <RippleLayer ripples={statusRipple.ripples} />
               </button>
@@ -688,27 +690,27 @@ export function AdminEventDetail() {
                 <div className="absolute right-0 top-full mt-1.5 z-20 w-48">
                   <DropdownPanel>
                     {isDraft && (
-                      <DropdownItem icon={<Send size={14} />} label="Publish…" onClick={openPublishModal} />
+                      <DropdownItem icon={<Send size={14} />} label={t.admin.publishDots} onClick={openPublishModal} />
                     )}
                     {isScheduled && (
                       <>
-                        <DropdownItem icon={<Send size={14} />} label="Publish Now" onClick={publishNow} />
-                        <DropdownItem icon={<Calendar size={14} />} label="Reschedule…" onClick={openPublishModal} />
+                        <DropdownItem icon={<Send size={14} />} label={t.admin.publishNow} onClick={publishNow} />
+                        <DropdownItem icon={<Calendar size={14} />} label={t.admin.reschedule} onClick={openPublishModal} />
                       </>
                     )}
                     {canJoinEvent && (
-                      <DropdownItem icon={<UserPlus size={14} />} label="Join Event" onClick={() => { joinAsModerator(); setShowActionDropdown(false); }} />
+                      <DropdownItem icon={<UserPlus size={14} />} label={t.admin.joinEvent} onClick={() => { joinAsModerator(); setShowActionDropdown(false); }} />
                     )}
                     {showLockToggle && (
                       <DropdownItem
                         icon={rosterLocked ? <Unlock size={14} /> : <Lock size={14} />}
-                        label={rosterLocked ? "Unlock Roster" : "Lock Roster"}
+                        label={rosterLocked ? t.admin.unlockRoster : t.admin.lockRoster}
                         onClick={toggleRosterLock}
                       />
                     )}
                     {canLeaveEvent && (
                       <ConfirmDropdownItem
-                        icon={<UserMinus size={14} />} label="Leave Event"
+                        icon={<UserMinus size={14} />} label={t.admin.leaveEvent}
                         armed={armedAction === "leave"} onArm={() => setArmedAction("leave")} onConfirm={leaveAsModerator}
                         onDisarm={() => setArmedAction(null)}
                       />
@@ -716,20 +718,20 @@ export function AdminEventDetail() {
                     {!isDraft && (
                       isCanceled ? (
                         <ConfirmDropdownItem
-                          variant="warning" icon={<RotateCcw size={14} />} label="Reactivate Event"
+                          variant="warning" icon={<RotateCcw size={14} />} label={t.admin.reactivateEvent}
                           armed={armedAction === "reactivate"} onArm={() => setArmedAction("reactivate")} onConfirm={reactivateEvent}
                           onDisarm={() => setArmedAction(null)}
                         />
                       ) : (
                         <ConfirmDropdownItem
-                          variant="warning" icon={<Ban size={14} />} label="Cancel Event"
+                          variant="warning" icon={<Ban size={14} />} label={t.admin.cancelEvent}
                           armed={armedAction === "cancel"} onArm={() => setArmedAction("cancel")} onConfirm={cancelEvent}
                           onDisarm={() => setArmedAction(null)}
                         />
                       )
                     )}
                     <ConfirmDropdownItem
-                      variant="destructive" icon={<Trash2 size={14} />} label="Delete Event"
+                      variant="destructive" icon={<Trash2 size={14} />} label={t.admin.deleteEvent}
                       armed={armedAction === "delete"} onArm={() => setArmedAction("delete")} onConfirm={deleteEvent}
                       onDisarm={() => setArmedAction(null)}
                     />
@@ -786,7 +788,7 @@ export function AdminEventDetail() {
                 disabled={addingGuests}
                 className="px-3 h-8 flex items-center justify-center gap-1 rounded-full border text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-white/5 border-white/10 text-[#79828b] hover:text-white hover:border-white/25 disabled:opacity-50"
               >
-                Add
+                {t.common.add}
               </button>
             </div>
           </div>
@@ -794,7 +796,7 @@ export function AdminEventDetail() {
           {/* Roster list */}
           <div className="bg-[#212121] rounded-2xl mb-8">
             {roster.length === 0 && (
-              <p className="text-[#79828b] text-sm text-center py-6">No players on roster yet</p>
+              <p className="text-[#79828b] text-sm text-center py-6">{t.admin.noRoster}</p>
             )}
             {roster.map((player, i) => (
               <div key={player.id} className="relative">
@@ -824,7 +826,7 @@ export function AdminEventDetail() {
                       editTeamNameId === player.id ? (
                         <div className="relative max-w-[220px]" onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
                           <label className="absolute -top-2 left-2.5 px-1 bg-[#212121] text-[9px] font-bold uppercase tracking-widest text-[#462ed1]">
-                            Team Name
+                            {t.event.teamName}
                           </label>
                           <input
                             autoFocus
@@ -839,10 +841,10 @@ export function AdminEventDetail() {
                       ) : (
                         <>
                           <div className={`font-bold text-sm truncate ${player.teamName ? "text-white" : "text-[#79828b]/50 italic font-normal"}`}>
-                            {player.teamName || "No team name set"}
+                            {player.teamName || t.admin.noTeamName}
                           </div>
                           <div className="text-[11px] text-[#79828b] uppercase tracking-wider truncate">
-                            Captain: {player.name}
+                            {t.admin.captain}: {player.name}
                           </div>
                         </>
                       )
@@ -880,9 +882,9 @@ export function AdminEventDetail() {
                   <DropdownPanel>
                       <div className="flex flex-col">
                         {event.category === "TOURNAMENT" && (
-                          <MenuAction icon={<Pencil size={14} />} label="Edit Team Name" onClick={() => { setEditTeamNameValue(player.teamName ?? ""); setEditTeamNameId(player.id); setOpenMenu(null); }} />
+                          <MenuAction icon={<Pencil size={14} />} label={t.admin.editTeamName} onClick={() => { setEditTeamNameValue(player.teamName ?? ""); setEditTeamNameId(player.id); setOpenMenu(null); }} />
                         )}
-                        {!player.isGuest && <MenuAction icon={<ArrowDownToLine size={14} />} label="Move to Waitlist" onClick={() => moveToWaitlist(player.id)} />}
+                        {!player.isGuest && <MenuAction icon={<ArrowDownToLine size={14} />} label={t.admin.moveToWaitlist} onClick={() => moveToWaitlist(player.id)} />}
                         <button
                           onClick={() => confirmRemoveId === player.id ? removeFromEvent(player.rowId) : setConfirmRemoveId(player.id)}
                           className={`relative flex items-center justify-between gap-3 w-full h-11 px-4 text-sm font-semibold text-left overflow-hidden focus:outline-none transition-colors ${
@@ -898,7 +900,7 @@ export function AdminEventDetail() {
                           <span className={`relative z-10 transition-colors duration-200 ${
                             confirmRemoveId === player.id ? "text-white" : "text-[#ef4444]"
                           }`}>
-                            {confirmRemoveId === player.id ? "Tap to Confirm" : "Remove Player"}
+                            {confirmRemoveId === player.id ? t.admin.tapToConfirm : t.admin.removePlayer}
                           </span>
                           <span className={`relative z-10 shrink-0 flex items-center justify-center [&>svg]:w-[18px] [&>svg]:h-[18px] transition-transform duration-300 ${
                             confirmRemoveId === player.id ? "text-white rotate-12" : "text-[#ef4444]"
@@ -915,11 +917,11 @@ export function AdminEventDetail() {
           </div>
 
           {/* ── WAITLIST ──────────────────────────────────────── */}
-          <SectionHeader label="Waitlist" count={String(waitlist.length)} />
+          <SectionHeader label={t.event.waitlist} count={String(waitlist.length)} />
 
           <div className="flex flex-col gap-2 mb-8">
             {waitlist.length === 0 && (
-              <p className="text-[#79828b] text-sm text-center py-6">No players on waitlist</p>
+              <p className="text-[#79828b] text-sm text-center py-6">{t.admin.noWaitlist}</p>
             )}
             {waitlist.map(player => (
               <div key={player.id} className="relative">
@@ -942,7 +944,7 @@ export function AdminEventDetail() {
                     className="w-[76px] h-8 flex items-center justify-center gap-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-[#462ed1] text-white hover:brightness-110"
                   >
                     <CheckCheck size={12} />
-                    Add
+                    {t.common.add}
                   </button>
                   <button
                     onMouseDown={e => e.stopPropagation()}
@@ -972,7 +974,7 @@ export function AdminEventDetail() {
                           <span className={`relative z-10 transition-colors duration-200 ${
                             confirmWaitlistRemId === player.id ? "text-white" : "text-[#ef4444]"
                           }`}>
-                            {confirmWaitlistRemId === player.id ? "Tap to Confirm" : "Remove from Waitlist"}
+                            {confirmWaitlistRemId === player.id ? t.admin.tapToConfirm : t.admin.removeFromWaitlist}
                           </span>
                           <span className={`relative z-10 shrink-0 flex items-center justify-center [&>svg]:w-[18px] [&>svg]:h-[18px] transition-transform duration-300 ${
                             confirmWaitlistRemId === player.id ? "text-white rotate-12" : "text-[#ef4444]"
@@ -989,11 +991,11 @@ export function AdminEventDetail() {
           </div>
 
           {/* ── PENDING REQUESTS ──────────────────────────────── */}
-          <SectionHeader label="Requests" count={String(requests.length)} accent={requests.length > 0 ? "yellow" : undefined} />
+          <SectionHeader label={t.admin.requests} count={String(requests.length)} accent={requests.length > 0 ? "yellow" : undefined} />
 
           <div className="flex flex-col gap-2 mb-3">
             {requests.length === 0 && (
-              <p className="text-[#79828b] text-sm text-center py-6">No pending requests</p>
+              <p className="text-[#79828b] text-sm text-center py-6">{t.admin.noPendingRequests}</p>
             )}
             {requests.map(player => (
               <div key={player.id} className="relative">
@@ -1016,7 +1018,7 @@ export function AdminEventDetail() {
                     className="w-[76px] h-8 flex items-center justify-center gap-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-[#462ed1] text-white hover:brightness-110"
                   >
                     <CheckCheck size={12} />
-                    Add
+                    {t.common.add}
                   </button>
                   <button
                     onMouseDown={e => e.stopPropagation()}
@@ -1046,7 +1048,7 @@ export function AdminEventDetail() {
                           <span className={`relative z-10 transition-colors duration-200 ${
                             confirmRejectId === player.id ? "text-white" : "text-[#ef4444]"
                           }`}>
-                            {confirmRejectId === player.id ? "Tap to Confirm" : "Reject Request"}
+                            {confirmRejectId === player.id ? t.admin.tapToConfirm : t.admin.rejectRequest}
                           </span>
                           <span className={`relative z-10 shrink-0 flex items-center justify-center [&>svg]:w-[18px] [&>svg]:h-[18px] transition-transform duration-300 ${
                             confirmRejectId === player.id ? "text-white rotate-12" : "text-[#ef4444]"

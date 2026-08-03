@@ -11,6 +11,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { categoryImage } from "../../lib/eventImages";
 import { shortDate } from "../../lib/eventDate";
 import { useWaterRipple, RippleLayer } from "../../components/ui/useWaterRipple";
+import { useLang } from "../../i18n";
 
 const CATEGORIES = ["GAMES", "TOURNAMENT", "TRAININGS", "BEACH", "EVENTS"];
 
@@ -33,6 +34,7 @@ const F_SEL   = "flex items-center justify-between gap-2 w-full text-white text-
 
 export function AdminCreateEvent() {
   const navigate = useNavigate();
+  const { t } = useLang();
   const { id: editId } = useParams<{ id: string }>();
   const { user: authUser } = useAuth();
   const isEditMode = !!editId;
@@ -245,7 +247,7 @@ export function AdminCreateEvent() {
           <Check size={28} className="text-[#4dcd5e]" />
         </div>
         <p className="text-white font-black text-lg uppercase tracking-widest">
-          {isEditMode ? "Changes Saved!" : "Draft Saved!"}
+          {isEditMode ? t.admin.changesSaved : t.admin.draftSaved}
         </p>
       </div>
     );
@@ -254,7 +256,7 @@ export function AdminCreateEvent() {
   return (
     <div className="bg-[var(--surface-0)] min-h-screen">
       <BackBar
-        label={isEditMode ? "Event" : "Events"}
+        label={isEditMode ? t.admin.eventLabel : t.nav.events}
         to={isEditMode ? `/admin/events/${editId}` : "/admin/events"}
       />
 
@@ -262,16 +264,16 @@ export function AdminCreateEvent() {
 
         {/* Title + Description */}
         <FieldGroup>
-          <Field label="Event Title">
+          <Field label={t.admin.eventTitle}>
             <input type="text" value={f.title} onChange={e => { setTitleTouched(true); s("title", e.target.value); }}
               placeholder="e.g. PRO-AM INVITATIONAL #13" className={F_INPUT} />
           </Field>
-          <Field label="Description">
+          <Field label={t.admin.description}>
             <textarea value={f.description} onChange={e => s("description", e.target.value)}
-              placeholder="Event details, rules, notes..." rows={2}
+              placeholder={t.admin.descriptionPlaceholder} rows={2}
               className={`${F_INPUT} resize-none`} />
           </Field>
-          <Field label="Attachment (PDF)">
+          <Field label={t.admin.attachmentPdf}>
             {f.attachmentName ? (
               <div className="flex items-center gap-2.5">
                 <FileText size={15} className="text-white/60 shrink-0" />
@@ -284,7 +286,7 @@ export function AdminCreateEvent() {
             ) : (
               <label className="flex items-center gap-2 text-[#79828b] text-sm font-bold cursor-pointer hover:text-white transition-colors">
                 <FileText size={15} />
-                <span>{uploadingAttachment ? "Uploading..." : "Upload PDF"}</span>
+                <span>{uploadingAttachment ? t.admin.uploading : t.admin.uploadPdf}</span>
                 <input type="file" accept="application/pdf" className="hidden" disabled={uploadingAttachment} onChange={handleAttachmentChange} />
               </label>
             )}
@@ -293,7 +295,7 @@ export function AdminCreateEvent() {
 
         {/* Image — auto-picked from category, no upload yet */}
         <div>
-          <span className="block text-[#79828b] text-[11px] font-black uppercase tracking-widest mb-2">Event Image</span>
+          <span className="block text-[#79828b] text-[11px] font-black uppercase tracking-widest mb-2">{t.admin.eventImage}</span>
           <div className="w-full h-28 rounded-2xl overflow-hidden bg-[var(--surface-1)] border border-white/10">
             <img src={image} alt="" className="w-full h-full object-cover" />
           </div>
@@ -301,11 +303,11 @@ export function AdminCreateEvent() {
 
         {/* Category + Level */}
         <FieldGroup className={`grid ${showLevel ? "grid-cols-2 divide-x divide-white/5" : "grid-cols-1"}`}>
-          <Field label="Category">
+          <Field label={t.admin.category}>
             <SelectField value={f.category} options={CATEGORIES} onChange={v => s("category", v)} triggerClassName={F_SEL} />
           </Field>
           {showLevel && (
-            <Field label="Level">
+            <Field label={t.admin.level}>
               <SelectField value={f.level} options={SKILL_ORDER} onChange={v => s("level", v)} triggerClassName={F_SEL} />
             </Field>
           )}
@@ -313,16 +315,16 @@ export function AdminCreateEvent() {
 
         {/* Scheduling — date, location, times, fee, capacity all together */}
         <FieldGroup>
-          <Field label="Date">
+          <Field label={t.event.date}>
             <DatePickerField value={f.date} onChange={v => s("date", v)} triggerClassName={F_SEL} />
           </Field>
 
-          <Field label="Location" className="relative">
+          <Field label={t.event.location} className="relative">
             <input type="text" value={f.location}
               onChange={e => { s("location", e.target.value); setLocationOpen(true); }}
               onFocus={() => setLocationOpen(true)}
               onBlur={() => setTimeout(() => setLocationOpen(false), 150)}
-              placeholder="Type or select venue..."
+              placeholder={t.admin.locationPlaceholder}
               className={`${F_INPUT} pr-6`} />
             <button type="button" onClick={() => setLocationOpen(v => !v)}
               className="absolute right-4 bottom-3 text-[#79828b] hover:text-white transition-colors focus:outline-none">
@@ -342,7 +344,7 @@ export function AdminCreateEvent() {
             )}
           </Field>
 
-          <Field label="Start Time">
+          <Field label={t.admin.startTime}>
             <div className="flex items-center gap-1">
               <div className="flex-1"><SelectField value={f.startH} options={HOURS} onChange={v => s("startH", v)} triggerClassName={F_SEL} /></div>
               <span className="text-[#79828b] font-bold text-sm shrink-0">:</span>
@@ -350,7 +352,7 @@ export function AdminCreateEvent() {
             </div>
           </Field>
 
-          <Field label="End Time">
+          <Field label={t.admin.endTime}>
             <div className="flex items-center gap-1">
               <div className="flex-1"><SelectField value={f.endH} options={HOURS} onChange={v => s("endH", v)} triggerClassName={F_SEL} /></div>
               <span className="text-[#79828b] font-bold text-sm shrink-0">:</span>
@@ -358,13 +360,13 @@ export function AdminCreateEvent() {
             </div>
           </Field>
 
-          <Field label="Entry Fee" className="relative">
+          <Field label={t.event.entryFee} className="relative">
             <input type="number" min="0" value={f.price} onChange={e => s("price", e.target.value)}
               placeholder="FREE" className={`${F_INPUT} pr-10`} />
             <span className="absolute right-4 bottom-3 text-[#79828b]/40 text-sm font-black pointer-events-none select-none">CZK</span>
           </Field>
 
-          <Field label="Max Players *" required>
+          <Field label={t.admin.maxPlayers} required>
             <input type="number" min="2" max="100" required value={f.capacity}
               onChange={e => s("capacity", e.target.value)}
               placeholder="12" className={F_INPUT} />
@@ -375,7 +377,7 @@ export function AdminCreateEvent() {
         <button type="button" onClick={handleSave} disabled={saving} onPointerDown={saveRipple.onPointerDown}
           onAnimationEnd={() => setShake(false)}
           className={`relative overflow-hidden w-full py-4 rounded-2xl font-bold text-base bg-[#462ed1] text-white focus:outline-none disabled:opacity-50 ${shake ? "animate-shake" : ""}`}>
-          {saving ? "…" : isEditMode ? "Save Changes" : "Save as Draft"}
+          {saving ? "…" : isEditMode ? t.admin.saveChanges : t.admin.saveDraft}
           <RippleLayer ripples={saveRipple.ripples} />
         </button>
 

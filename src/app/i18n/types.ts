@@ -9,8 +9,13 @@ export interface Dict {
     cancel: string;
     save: string;
     edit: string;
+    add: string;
+    back: string;
+    confirm: string;
+    remove: string;
     nothingHere: string;
     linkCopied: string;
+    notFound: string;
   };
   home: {
     eventsFeed: string;
@@ -78,7 +83,7 @@ export interface Dict {
     logOut: string;
     logOutTitle: string;
     logOutDesc: string;
-    editDetails: string;
+    edit: string;
   };
   event: {
     eventDetails: string;
@@ -159,14 +164,133 @@ export interface Dict {
     backToLoginBtn: string;
   };
   admin: {
+    // Overview (reserved for a future dashboard — not wired up yet)
     overview: string;
     upcomingEvents: string;
-    pendingRequests: string;
+    pendingRequests: (n: number) => string;
     activePlayers: string;
     collectedWeek: string;
     paid: string;
     unpaid: string;
-    pendingRequest: (n: number) => string;
+
+    // Events tab
+    createBtn: string;
+    filterActive: string;
+    filterPast: string;
+    noEventsFound: string;
+    roster: string;
+    scheduled: string;
+
+    // Players tab
+    players: string;
+    searchPlaceholder: string;
+    recentActivity: string;
+    nothingYet: string;
+    matches: (n: number) => string;
+    noLabelPlayers: string;
+    noStatusMatch: string;
+    results: string;
+    noSearchMatch: string;
+    recentlySearched: string;
+    nothingSearched: string;
+    noCategoryMatch: string;
+    inLabel: string;
+
+    // Event detail
+    eventNotFound: string;
+    editEvent: string;
+    swapPending: string;
+    noOtherAdmins: string;
+    attachment: string;
+    payments: string;
+    publish: string;
+    publishEventTitle: string;
+    publishDots: string;
+    publishNow: string;
+    reschedule: string;
+    joinEvent: string;
+    lockRoster: string;
+    unlockRoster: string;
+    leaveEvent: string;
+    reactivateEvent: string;
+    cancelEvent: string;
+    deleteEvent: string;
+    noRoster: string;
+    noTeamName: string;
+    captain: string;
+    tapToConfirm: string;
+    removePlayer: string;
+    moveToWaitlist: string;
+    editTeamName: string;
+    noWaitlist: string;
+    removeFromWaitlist: string;
+    requests: string;
+    noPendingRequests: string;
+    rejectRequest: string;
+
+    // Player profile
+    infoTab: string;
+    notesTab: string;
+    adminTab: string;
+    noNotes: string;
+    readMore: string;
+    showLess: string;
+    firstName: string;
+    skillLevel: string;
+    current: string;
+    identityVerified: string;
+    badgeVisible: string;
+    notVerified: string;
+    revoke: string;
+    verify: string;
+    suspension: string;
+    suspendedUntil: string;
+    cantBeSuspended: string;
+    notSuspended: string;
+    lift: string;
+    suspend: string;
+    ban: string;
+    notBanned: string;
+    permanentlyBanned: string;
+    unban: string;
+    currentLabel: string;
+    noLabelSet: string;
+    clear: string;
+    changeSkillTitle: string;
+    suspendPlayerTitle: string;
+    suspendPlayerSub: string;
+    reasonOptional: string;
+    banPlayerTitle: string;
+    banPlayerSub: string;
+    addNoteTitle: string;
+    editNoteTitle: string;
+    aboutPlayer: (name: string) => string;
+    addNotePlaceholder: string;
+    adminsOnly: string;
+    visibleToEveryone: string;
+    noLabelOption: string;
+    cantChangeSelf: string;
+    cantChangeAdmin: string;
+
+    // Create/edit event form
+    eventLabel: string;
+    eventTitle: string;
+    description: string;
+    descriptionPlaceholder: string;
+    attachmentPdf: string;
+    uploadPdf: string;
+    uploading: string;
+    eventImage: string;
+    category: string;
+    level: string;
+    startTime: string;
+    endTime: string;
+    locationPlaceholder: string;
+    maxPlayers: string;
+    saveChanges: string;
+    saveDraft: string;
+    changesSaved: string;
+    draftSaved: string;
   };
   days: {
     today: string;

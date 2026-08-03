@@ -1,17 +1,16 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { en } from "./en";
-import { cs } from "./cs";
 import { ru } from "./ru";
 import type { Dict } from "./types";
 
-export type Lang = "en" | "cs" | "ru";
+export type Lang = "en" | "ru";
 
-export const LANG_CYCLE: Lang[] = ["en", "cs", "ru"];
+export const LANG_CYCLE: Lang[] = ["en", "ru"];
 
-const DICTS: Record<Lang, Dict> = { en, cs, ru };
+const DICTS: Record<Lang, Dict> = { en, ru };
 
 function isValidLang(l: string): l is Lang {
-  return l === "en" || l === "cs" || l === "ru";
+  return l === "en" || l === "ru";
 }
 
 interface LangCtx {

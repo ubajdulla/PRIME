@@ -25,6 +25,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../lib/AuthContext";
 import { isPastDate } from "../../lib/eventDate";
 import { LABEL_META, SENTIMENT_COLOR, effectiveLabel, type TrustLabel } from "../../lib/trustLabel";
+import { useLang } from "../../i18n";
 
 const SUPERADMIN_EMAIL = "ubajdulla@seznam.cz";
 
@@ -73,6 +74,7 @@ type NoteRow = {
 
 export function AdminPlayerProfile() {
   const { playerId } = useParams<{ playerId: string }>();
+  const { t } = useLang();
   const { user: viewer, profile: viewerProfile } = useAuth();
 
   const [profile, setProfile] = useState<ProfileRow | null>(null);
@@ -228,7 +230,7 @@ export function AdminPlayerProfile() {
   if (!profile) {
     return (
       <div>
-        <BackBar label="Back" />
+        <BackBar label={t.common.back} />
         <div className="flex items-center justify-center min-h-[60vh] text-[#79828b]">
           <p className="font-bold">Player not found</p>
         </div>
@@ -463,10 +465,10 @@ export function AdminPlayerProfile() {
           origin={skillOrigin}
           icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[#462ed1]/75" icon={<ChevronDown size={18} className="text-white" />} />}
           iconBg="border-[#462ed1]/25"
-          title="Change Skill Level?" sub={`${displaySkill} → ${pendingSkill}`}
+          title={t.admin.changeSkillTitle} sub={`${displaySkill} → ${pendingSkill}`}
           body={<>This will move <span className="text-white font-bold">{player.name}</span> to the <span className="text-white font-bold">{pendingSkill}</span> group.</>}
-          cancelLabel="Cancel" onCancel={() => { setShowSkillConfirm(false); setPendingSkill(""); }}
-          confirmLabel="Confirm" confirmCls="bg-[#462ed1] text-white"
+          cancelLabel={t.common.cancel} onCancel={() => { setShowSkillConfirm(false); setPendingSkill(""); }}
+          confirmLabel={t.common.confirm} confirmCls="bg-[#462ed1] text-white"
           onConfirm={confirmSkillChange} />
       )}
       {/* Suspend modal */}
@@ -475,9 +477,9 @@ export function AdminPlayerProfile() {
           origin={suspendOrigin}
           icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[#b45309]/75" icon={<Clock size={18} className="text-white" />} />}
           iconBg="border-[#eab308]/25"
-          title="Suspend Player" sub="Can't join events until the date."
-          cancelLabel="Cancel" onCancel={() => { setShowSuspendModal(false); setSuspendDate(""); setSuspendReason(""); }}
-          confirmLabel="Suspend" confirmCls="bg-[#b45309] text-white"
+          title={t.admin.suspendPlayerTitle} sub={t.admin.suspendPlayerSub}
+          cancelLabel={t.common.cancel} onCancel={() => { setShowSuspendModal(false); setSuspendDate(""); setSuspendReason(""); }}
+          confirmLabel={t.admin.suspend} confirmCls="bg-[#b45309] text-white"
           confirmDisabled={!suspendDate} onConfirm={confirmSuspend}
         >
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.02]">
@@ -486,7 +488,7 @@ export function AdminPlayerProfile() {
                 <Calendar size={14} className="text-[#eab308]" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[10px] text-[#79828b] mb-0.5">Suspended until</div>
+                <div className="text-[10px] text-[#79828b] mb-0.5">{t.admin.suspendedUntil}</div>
                 <DatePickerField
                   value={suspendDate}
                   onChange={setSuspendDate}
@@ -499,7 +501,7 @@ export function AdminPlayerProfile() {
                 <Pencil size={14} className="text-[#eab308]" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[10px] text-[#79828b] mb-0.5">Reason <span className="font-normal">(optional)</span></div>
+                <div className="text-[10px] text-[#79828b] mb-0.5">{t.admin.reasonOptional}</div>
                 <input type="text" value={suspendReason} onChange={e => setSuspendReason(e.target.value)} placeholder="e.g. repeated no-show"
                   className="w-full bg-transparent text-white text-sm font-bold outline-none placeholder:text-[#79828b] placeholder:font-normal" />
               </div>
@@ -514,9 +516,9 @@ export function AdminPlayerProfile() {
           origin={banOrigin}
           icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[#7f1d1d]/75" icon={<OctagonX size={18} className="text-white" />} />}
           iconBg="border-[#ef4444]/30"
-          title="Ban Player?" sub="Permanent — cannot join any events."
-          cancelLabel="Cancel" onCancel={() => { setShowBanConfirm(false); setBanReason(""); }}
-          confirmLabel="Ban" confirmCls="bg-[#dc2626] text-white"
+          title={t.admin.banPlayerTitle} sub={t.admin.banPlayerSub}
+          cancelLabel={t.common.cancel} onCancel={() => { setShowBanConfirm(false); setBanReason(""); }}
+          confirmLabel={t.admin.ban} confirmCls="bg-[#dc2626] text-white"
           onConfirm={confirmBan}
         >
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
@@ -525,7 +527,7 @@ export function AdminPlayerProfile() {
                 <Pencil size={14} className="text-[#ef4444]" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[10px] text-[#79828b] mb-0.5">Reason <span className="font-normal">(optional)</span></div>
+                <div className="text-[10px] text-[#79828b] mb-0.5">{t.admin.reasonOptional}</div>
                 <input type="text" value={banReason} onChange={e => setBanReason(e.target.value)} placeholder="e.g. harassment"
                   className="w-full bg-transparent text-white text-sm font-bold outline-none placeholder:text-[#79828b] placeholder:font-normal" />
               </div>
@@ -544,9 +546,9 @@ export function AdminPlayerProfile() {
         <ConfirmModal
           icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[#462ed1]/75" icon={<Pencil size={18} className="text-white" />} />}
           iconBg="border-[#462ed1]/25"
-          title="Add Note" sub={`About ${player.name}`}
-          cancelLabel="Cancel" onCancel={() => { setAddingNote(false); setNoteDraft(""); setNoteLabel(""); }}
-          confirmLabel="Save" confirmDisabled={!noteDraft.trim() || savingNote}
+          title={t.admin.addNoteTitle} sub={t.admin.aboutPlayer(player.name)}
+          cancelLabel={t.common.cancel} onCancel={() => { setAddingNote(false); setNoteDraft(""); setNoteLabel(""); }}
+          confirmLabel={t.common.save} confirmDisabled={!noteDraft.trim() || savingNote}
           onConfirm={addNote}
         >
           <div className="flex flex-col gap-2">
@@ -558,14 +560,14 @@ export function AdminPlayerProfile() {
                 el.style.height = `${el.scrollHeight}px`;
               }}
               onKeyDown={handleNoteKeyDown}
-              placeholder="Add a note about this player… (Enter to save, Shift+Enter for new line)" rows={2}
+              placeholder={t.admin.addNotePlaceholder} rows={2}
               enterKeyHint="send"
               className="w-full max-h-[160px] bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-y-auto" />
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setNoteVisibility(v => v === "admin" ? "all" : "admin")}
-                title={noteVisibility === "admin" ? "Admins only" : "Visible to everyone"}
+                title={noteVisibility === "admin" ? t.admin.adminsOnly : t.admin.visibleToEveryone}
                 className={`relative w-[52px] h-[30px] rounded-full shrink-0 transition-colors ${noteVisibility === "all" ? "bg-[#462ed1]" : "bg-white/15"}`}
               >
                 <span className={`absolute top-[3px] w-6 h-6 rounded-full bg-white transition-all ${noteVisibility === "all" ? "left-[25px]" : "left-[3px]"}`} />
@@ -577,7 +579,7 @@ export function AdminPlayerProfile() {
                 <SelectField
                   value={noteLabel}
                   options={[
-                    { value: "", label: "No label" },
+                    { value: "", label: t.admin.noLabelOption },
                     { value: "warning", label: "Warning", icon: noteLabelIcon("warning") },
                     { value: "no_show", label: "No-show", icon: noteLabelIcon("no_show") },
                     { value: "rude_behavior", label: "Disrespect", icon: noteLabelIcon("rude_behavior") },
@@ -597,9 +599,9 @@ export function AdminPlayerProfile() {
 
       {editingNoteId && (
         <ConfirmModal
-          title="Edit Note"
-          cancelLabel="Cancel" onCancel={() => { setEditingNoteId(null); setEditNoteDraft(""); }}
-          confirmLabel="Save" confirmDisabled={!editNoteDraft.trim() || savingEditNote}
+          title={t.admin.editNoteTitle}
+          cancelLabel={t.common.cancel} onCancel={() => { setEditingNoteId(null); setEditNoteDraft(""); }}
+          confirmLabel={t.common.save} confirmDisabled={!editNoteDraft.trim() || savingEditNote}
           onConfirm={saveNoteEdit}
         >
           <textarea
@@ -660,7 +662,7 @@ export function AdminPlayerProfile() {
         {/* ── Info ─────────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between h-8 mb-2 px-1">
-            <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Info</h2>
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">{t.admin.infoTab}</h2>
             <EditToggleButtons
               editing={editingDetails}
               onCancel={() => setEditingDetails(false)}
@@ -677,7 +679,7 @@ export function AdminPlayerProfile() {
             <ContactRow
               editing={editingDetails}
               icon={<User size={15} className="text-[#462ed1]" />} iconBg="bg-[#462ed1]/15"
-              label="First Name" displayValue={player.name} editValue={detailsDraft.name}
+              label={t.admin.firstName} displayValue={player.name} editValue={detailsDraft.name}
               onChange={v => setDetailsField("name", v)}
             />
 
@@ -692,28 +694,28 @@ export function AdminPlayerProfile() {
               editing={editingDetails}
               href={`tel:${(player.phone ?? "").replace(/\s/g, "")}`}
               icon={<Phone size={15} className="text-[#462ed1]" />} iconBg="bg-[#462ed1]/15"
-              label="Phone" displayValue={player.phone ?? ""} editValue={detailsDraft.phone}
+              label={t.profile.phone} displayValue={player.phone ?? ""} editValue={detailsDraft.phone}
               onChange={v => setDetailsField("phone", v)}
             />
             <ContactRow
               editing={editingDetails}
               href={`mailto:${player.email ?? ""}`}
               icon={<Mail size={15} className="text-[#462ed1]" />} iconBg="bg-[#462ed1]/15"
-              label="Email" displayValue={player.email ?? ""} editValue={detailsDraft.email}
+              label={t.profile.email} displayValue={player.email ?? ""} editValue={detailsDraft.email}
               onChange={v => setDetailsField("email", v)}
             />
             <ContactRow
               editing={editingDetails}
               href={`https://t.me/${(player.telegram ?? "").replace("@", "")}`} external
               icon={<Send size={14} className="text-white -ml-0.5" />} iconBg="bg-[#462ed1]"
-              label="Telegram" displayValue={player.telegram ?? ""} editValue={detailsDraft.telegram}
+              label={t.profile.telegram} displayValue={player.telegram ?? ""} editValue={detailsDraft.telegram}
               onChange={v => setDetailsField("telegram", v)}
             />
             <ContactRow
               editing={editingDetails}
               href={`https://instagram.com/${(player.instagram ?? "").replace("@", "")}`} external
               icon={<Instagram size={14} className="text-white" />} iconBg="bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888]"
-              label="Instagram" displayValue={player.instagram ? `@${player.instagram.replace("@", "")}` : ""} editValue={detailsDraft.instagram}
+              label={t.profile.instagram} displayValue={player.instagram ? `@${player.instagram.replace("@", "")}` : ""} editValue={detailsDraft.instagram}
               onChange={v => setDetailsField("instagram", v)}
             />
           </div>
@@ -722,7 +724,7 @@ export function AdminPlayerProfile() {
         {/* ── Notes ────────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-2 px-1">
-            <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Notes</h2>
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">{t.admin.notesTab}</h2>
             {!addingNote && (
               <button
                 type="button"
@@ -743,7 +745,7 @@ export function AdminPlayerProfile() {
           </div>
 
           {notes.length === 0 ? (
-            <p className="mt-2 py-3 text-center text-sm text-[#79828b]">No notes yet</p>
+            <p className="mt-2 py-3 text-center text-sm text-[#79828b]">{t.admin.noNotes}</p>
           ) : (
             <div className="mt-2 flex flex-col gap-2">
               {notes.map(n => {
@@ -791,9 +793,9 @@ export function AdminPlayerProfile() {
                           <div onMouseDown={e => e.stopPropagation()} className="absolute right-0 top-full mt-1.5 z-30 w-44">
                             <DropdownPanel>
                               <div className="flex flex-col">
-                                {!n.is_legacy && <DropdownItem icon={<Pencil size={14} />} label="Edit" onClick={() => openNoteEdit(n)} />}
+                                {!n.is_legacy && <DropdownItem icon={<Pencil size={14} />} label={t.common.edit} onClick={() => openNoteEdit(n)} />}
                                 <ConfirmDropdownItem
-                                  icon={<Trash2 size={14} />} label="Remove" variant="destructive"
+                                  icon={<Trash2 size={14} />} label={t.common.remove} variant="destructive"
                                   armed={deleteArmedId === n.id}
                                   onArm={() => setDeleteArmedId(n.id)}
                                   onConfirm={() => deleteNote(n.id)}
@@ -815,7 +817,7 @@ export function AdminPlayerProfile() {
                           onClick={() => setExpandedNoteId(prev => prev === n.id ? null : n.id)}
                           className="text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors"
                         >
-                          {isExpanded ? "Show less" : "Read more"}
+                          {isExpanded ? t.admin.showLess : t.admin.readMore}
                         </button>
                       </div>
                     )}
@@ -828,7 +830,7 @@ export function AdminPlayerProfile() {
 
         {/* ── Admin Actions ─────────────────────────────────── */}
         <section>
-          <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2 px-1">Admin</h2>
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2 px-1">{t.admin.adminTab}</h2>
           <div className="bg-[#212121] rounded-xl overflow-hidden">
 
             {/* Skill Level */}
@@ -839,8 +841,8 @@ export function AdminPlayerProfile() {
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-white">Skill Level</div>
-                <div className="text-[11px] text-[#79828b]">Current: {displaySkill}</div>
+                <div className="text-sm font-bold text-white">{t.admin.skillLevel}</div>
+                <div className="text-[11px] text-[#79828b]">{t.admin.current}: {displaySkill}</div>
               </div>
               <div className="shrink-0" ref={skillFieldRef}>
                 <SelectField
@@ -856,7 +858,7 @@ export function AdminPlayerProfile() {
             </div>
             {hierarchyLocked && (
               <p className="px-4 pb-3 -mt-2 text-[10px] text-[#79828b]">
-                {isSelf ? "You can't change your own skill level, suspension or ban." : "Admins can't change another admin's skill level, suspension or ban."}
+                {isSelf ? t.admin.cantChangeSelf : t.admin.cantChangeAdmin}
               </p>
             )}
 
@@ -866,12 +868,12 @@ export function AdminPlayerProfile() {
                 <BadgeCheck size={16} className={player.is_verified ? "text-white" : "text-[#79828b]"} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-white">Identity Verified</div>
-                <div className="text-[11px] text-[#79828b]">{player.is_verified ? "Badge visible to all users" : "Not verified"}</div>
+                <div className="text-sm font-bold text-white">{t.admin.identityVerified}</div>
+                <div className="text-[11px] text-[#79828b]">{player.is_verified ? t.admin.badgeVisible : t.admin.notVerified}</div>
               </div>
               {player.is_verified ? (
                 <TapConfirmButton
-                  label="Revoke" fillCls="bg-[#3897f0]" disabled={player.is_admin}
+                  label={t.admin.revoke} fillCls="bg-[#3897f0]" disabled={player.is_admin}
                   onConfirm={async () => {
                     const r = await patchProfile({ is_verified: false });
                     if (!r.ok) { fireToast(r.error ?? "Failed to revoke", "error"); return; }
@@ -881,7 +883,7 @@ export function AdminPlayerProfile() {
                 />
               ) : (
                 <TapConfirmButton
-                  label="Verify" fillCls="bg-[#3897f0]"
+                  label={t.admin.verify} fillCls="bg-[#3897f0]"
                   onConfirm={async () => {
                     // Verified players can't be suspended - verifying a
                     // currently-suspended player lifts the suspension in
@@ -903,14 +905,14 @@ export function AdminPlayerProfile() {
                 <Clock size={16} className={player.is_suspended ? "text-[#eab308]" : "text-[#79828b]"} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-white">Suspension</div>
+                <div className="text-sm font-bold text-white">{t.admin.suspension}</div>
                 <div className="text-[11px] text-[#79828b]">
-                  {player.is_suspended ? `Until ${formatDate(player.suspended_until ?? "")}` : player.is_verified ? "Verified players can't be suspended" : "Not suspended"}
+                  {player.is_suspended ? `${t.admin.suspendedUntil} ${formatDate(player.suspended_until ?? "")}` : player.is_verified ? t.admin.cantBeSuspended : t.admin.notSuspended}
                 </div>
               </div>
               {player.is_suspended ? (
                 <TapConfirmButton
-                  label="Lift" fillCls="bg-[#4dcd5e]" armedTextCls="text-white" disabled={hierarchyLocked}
+                  label={t.admin.lift} fillCls="bg-[#4dcd5e]" armedTextCls="text-white" disabled={hierarchyLocked}
                   onConfirm={async () => {
                     const r = await patchProfile({ is_suspended: false, suspended_until: null, suspend_reason: null });
                     if (!r.ok) { fireToast(r.error ?? "Failed to lift suspension", "error"); return; }
@@ -920,9 +922,9 @@ export function AdminPlayerProfile() {
                 />
               ) : (
                 <button ref={suspendBtnRef} onClick={openSuspendModal} disabled={player.is_banned || player.is_verified || hierarchyLocked}
-                  title={player.is_verified ? "Verified players can't be suspended" : undefined}
+                  title={player.is_verified ? t.admin.cantBeSuspended : undefined}
                   className="w-24 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/70 text-[11px] font-black uppercase tracking-wider hover:bg-white/10 hover:text-white transition-colors focus:outline-none shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
-                  Suspend
+                  {t.admin.suspend}
                 </button>
               )}
             </div>
@@ -933,12 +935,12 @@ export function AdminPlayerProfile() {
                 <OctagonX size={16} className={player.is_banned ? "text-[#ef4444]" : "text-[#79828b]"} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-white">Ban</div>
-                <div className="text-[11px] text-[#79828b]">{player.is_banned ? "Permanently banned" : "Not banned"}</div>
+                <div className="text-sm font-bold text-white">{t.admin.ban}</div>
+                <div className="text-[11px] text-[#79828b]">{player.is_banned ? t.admin.permanentlyBanned : t.admin.notBanned}</div>
               </div>
               {player.is_banned ? (
                 <TapConfirmButton
-                  label="Unban" fillCls="bg-[#4dcd5e]" armedTextCls="text-white" disabled={hierarchyLocked}
+                  label={t.admin.unban} fillCls="bg-[#4dcd5e]" armedTextCls="text-white" disabled={hierarchyLocked}
                   onConfirm={async () => {
                     const r = await patchProfile({ is_banned: false, ban_reason: null });
                     if (!r.ok) { fireToast(r.error ?? "Failed to unban", "error"); return; }
@@ -949,7 +951,7 @@ export function AdminPlayerProfile() {
               ) : (
                 <button ref={banBtnRef} onClick={openBanModal} disabled={hierarchyLocked}
                   className="w-24 h-8 flex items-center justify-center rounded-full bg-[#ef4444]/10 text-[#ef4444] text-[11px] font-black uppercase tracking-wider hover:bg-[#ef4444]/20 transition-colors focus:outline-none shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
-                  Ban
+                  {t.admin.ban}
                 </button>
               )}
             </div>
@@ -963,14 +965,14 @@ export function AdminPlayerProfile() {
                 <Flag size={16} style={{ color: currentLabel ? SENTIMENT_COLOR[LABEL_META[currentLabel.label].sentiment] : "#79828b" }} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-white">Current Label</div>
+                <div className="text-sm font-bold text-white">{t.admin.currentLabel}</div>
                 <div className="text-[11px] text-[#79828b]">
-                  {currentLabel ? `${LABEL_META[currentLabel.label].name} — set from a note, fades over 7 events` : "None — pick a reason when adding a note"}
+                  {currentLabel ? `${LABEL_META[currentLabel.label].name} — set from a note, fades over 7 events` : t.admin.noLabelSet}
                 </div>
               </div>
               {currentLabel && (
                 <TapConfirmButton
-                  label="Clear" fillCls="bg-[#4dcd5e]" armedTextCls="text-white"
+                  label={t.admin.clear} fillCls="bg-[#4dcd5e]" armedTextCls="text-white"
                   onConfirm={async () => {
                     const r = await patchProfile({ trust_label: null, trust_label_set_at_events: null });
                     if (!r.ok) { fireToast(r.error ?? "Failed to clear label", "error"); return; }
@@ -986,10 +988,10 @@ export function AdminPlayerProfile() {
 
         {/* ── Upcoming Events ───────────────────────────────── */}
         <section>
-          <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2">Upcoming Events</h2>
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2">{t.profile.upcomingEvents}</h2>
           {upcomingEvents.length === 0 ? (
             <div className="bg-[#212121] rounded-xl py-6 flex items-center justify-center">
-              <span className="text-sm text-[#aaa]">Nothing here yet</span>
+              <span className="text-sm text-[#aaa]">{t.common.nothingHere}</span>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
@@ -1008,10 +1010,10 @@ export function AdminPlayerProfile() {
 
         {/* ── Past Events ───────────────────────────────────── */}
         <section>
-          <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2">Past Events</h2>
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2">{t.profile.pastEvents}</h2>
           {pastEvents.length === 0 ? (
             <div className="bg-[#212121] rounded-xl py-6 flex items-center justify-center">
-              <span className="text-sm text-[#aaa]">Nothing here yet</span>
+              <span className="text-sm text-[#aaa]">{t.common.nothingHere}</span>
             </div>
           ) : (
             <div className="bg-[#212121] rounded-xl overflow-hidden">

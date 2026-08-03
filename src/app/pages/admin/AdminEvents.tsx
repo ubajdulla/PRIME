@@ -9,13 +9,9 @@ import { supabase } from "../../lib/supabaseClient";
 import { relativeDay, shortDate, isPastDate } from "../../lib/eventDate";
 import { useHorizontalSwipe } from "../../lib/useHorizontalSwipe";
 import { navDir } from "../../lib/navDir";
+import { useLang } from "../../i18n";
 
 type FilterValue = "active" | "past";
-
-const FILTER_OPTIONS: { label: string; value: FilterValue }[] = [
-  { label: "Active", value: "active" },
-  { label: "Past",   value: "past" },
-];
 
 type EventRow = {
   id: string;
@@ -35,6 +31,11 @@ type EventRow = {
 
 export function AdminEvents() {
   const navigate = useNavigate();
+  const { t } = useLang();
+  const FILTER_OPTIONS: { label: string; value: FilterValue }[] = [
+    { label: t.admin.filterActive, value: "active" },
+    { label: t.admin.filterPast,   value: "past" },
+  ];
   const createRipple = useWaterRipple();
   const [filter, setFilter]         = useState<FilterValue>("active");
   const [showFilter, setShowFilter] = useState(false);
@@ -168,7 +169,7 @@ export function AdminEvents() {
           className="relative overflow-hidden flex items-center gap-2 h-11 bg-[#462ed1] text-white text-xs font-black uppercase tracking-widest px-4 rounded-full"
         >
           <Plus size={15} />
-          Create
+          {t.admin.createBtn}
           <RippleLayer ripples={createRipple.ripples} />
         </button>
       </div>
@@ -176,7 +177,7 @@ export function AdminEvents() {
       {/* Events list */}
       <div className="flex flex-col gap-3">
         {filtered.length === 0 && !loading && (
-          <p className="text-[#79828b] text-sm text-center py-10">No events found</p>
+          <p className="text-[#79828b] text-sm text-center py-10">{t.admin.noEventsFound}</p>
         )}
         {filtered.map(event => (
           <AdminEventCard

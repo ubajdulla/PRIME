@@ -2,10 +2,12 @@ import { Outlet, Navigate, NavLink, useLocation } from "react-router";
 import { CalendarDays, Users } from "lucide-react";
 import { navDir } from "../lib/navDir";
 import { useAuth } from "../lib/AuthContext";
+import { useLang } from "../i18n";
 
 export function AdminLayout() {
   const { pathname } = useLocation();
   const { isAdmin, loading } = useAuth();
+  const { t } = useLang();
   const segments = pathname.replace(/^\/admin\/?/, "").split("/").filter(Boolean);
   const isSubPage = segments.length >= 2;
 
@@ -17,8 +19,8 @@ export function AdminLayout() {
       {!isSubPage && (
         <div className="sticky top-0 z-10 bg-[#181818] border-b border-white/5 px-4">
           <div className="max-w-[640px] mx-auto flex">
-            <AdminTab to="/admin/events" label="Events" icon={<CalendarDays size={15} />} />
-            <AdminTab to="/admin/players" label="Players" icon={<Users size={15} />} />
+            <AdminTab to="/admin/events" label={t.nav.events} icon={<CalendarDays size={15} />} />
+            <AdminTab to="/admin/players" label={t.admin.players} icon={<Users size={15} />} />
           </div>
         </div>
       )}

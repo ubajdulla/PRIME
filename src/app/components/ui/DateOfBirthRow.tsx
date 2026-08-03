@@ -1,5 +1,6 @@
 import { Calendar } from "lucide-react";
 import { BirthDateField } from "./BirthDateField";
+import { useLang } from "../../i18n";
 
 function formatDate(d: string) {
   if (!d) return "";
@@ -28,13 +29,14 @@ export function DateOfBirthRow({
   draftValue: string;
   onChange: (v: string) => void;
 }) {
+  const { t } = useLang();
   return (
     <div className="relative flex items-center gap-3 px-4 h-[56px] shrink-0 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden">
       <div className="w-8 h-8 rounded-full bg-[#462ed1]/15 flex items-center justify-center shrink-0">
         <Calendar size={15} className="text-[#462ed1]" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[11px] text-[#aaa] mb-0.5 h-[13px]">Date of Birth</div>
+        <div className="text-[11px] text-[#aaa] mb-0.5 h-[13px]">{t.signin.birthDateLabel}</div>
         <div className="grid h-5">
           <div
             className={`col-start-1 row-start-1 flex items-center transition-opacity duration-200 ease-out ${
@@ -44,7 +46,7 @@ export function DateOfBirthRow({
             <BirthDateField
               value={draftValue}
               onChange={onChange}
-              placeholder="DD/MM/YYYY"
+              placeholder={t.signin.birthDatePlaceholder}
               inline
             />
           </div>

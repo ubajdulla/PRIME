@@ -14,7 +14,6 @@ import { useModalOpen } from "../lib/useModalOpen";
 
 const LANG_OPTIONS: { code: Lang; label: string }[] = [
   { code: "en", label: "English" },
-  { code: "cs", label: "Čeština" },
   { code: "ru", label: "Русский" },
 ];
 

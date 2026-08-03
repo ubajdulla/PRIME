@@ -4,6 +4,7 @@ import { addMonths, addDays, startOfMonth, endOfMonth, eachDayOfInterval, getDay
 import { DropdownPanel } from "./DropdownMenu";
 import { useWaterRipple, RippleLayer } from "./useWaterRipple";
 import { MiniDropdown, isInsidePortalDropdown } from "./MiniDropdown";
+import { useLang } from "../../i18n";
 
 export const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 const CHUNK = 12; // months loaded per scroll-edge trigger
@@ -71,6 +72,7 @@ export function CalendarPanel({
   minYear?: number;
   maxYear?: number;
 }) {
+  const { t } = useLang();
   const today = new Date();
   const anchor = startOfMonth(selected ?? today);
 
@@ -162,7 +164,7 @@ export function CalendarPanel({
             />
           </>
         ) : (
-          <span className="flex-1 text-white font-bold text-sm">Pick a date</span>
+          <span className="flex-1 text-white font-bold text-sm">{t.event.date}</span>
         )}
         <div className="flex items-center gap-1 shrink-0">
           <button
@@ -257,7 +259,7 @@ export function CalendarPanel({
           onPointerDown={todayRipple.onPointerDown}
           className="relative overflow-hidden w-full mt-3 py-2 text-[#462ed1] text-xs font-bold uppercase tracking-wider hover:bg-[var(--surface-active)] rounded-full transition-colors focus:outline-none"
         >
-          Today
+          {t.days.today}
           <RippleLayer ripples={todayRipple.ripples} />
         </button>
       )}

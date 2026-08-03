@@ -265,7 +265,7 @@ export function Profile() {
                         <div className="flex flex-col">
                           <DropdownItem
                             icon={<Pencil size={14} />}
-                            label={t.profile.editDetails}
+                            label={t.profile.edit}
                             onClick={() => { openContactEdit(); setMenuOpen(false); }}
                           />
                           <ConfirmDropdownItem

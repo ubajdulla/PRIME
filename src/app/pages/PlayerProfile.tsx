@@ -10,6 +10,7 @@ import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { shortDate, isPastDate } from "../lib/eventDate";
 import { getHub } from "../lib/hub";
+import { useLang } from "../i18n";
 
 const SKILL_COLOR: Record<string, string> = {
   PRIME:        "text-[#ccff00]",
@@ -34,6 +35,7 @@ export function PlayerProfile() {
   const { isLoggedIn, loading: authLoading } = useAuth();
   const location = useLocation();
   const hub = getHub(location);
+  const { t } = useLang();
 
   const [player, setPlayer] = useState<ProfileRow | null>(null);
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -63,7 +65,7 @@ export function PlayerProfile() {
   if (!player) {
     return (
       <div>
-        <BackBar label="Back" />
+        <BackBar label={t.common.back} />
         <div className="flex items-center justify-center min-h-[60vh] text-[#79828b]">
           <p className="font-bold">Player not found</p>
         </div>
@@ -79,7 +81,7 @@ export function PlayerProfile() {
 
   return (
     <div className="min-h-full bg-[#181818] pb-4 font-sans">
-      <BackBar label="Back" />
+      <BackBar label={t.common.back} />
 
       {/* Avatar + identity */}
       <div className="flex flex-col items-center pt-8 pb-6 px-4">
@@ -110,7 +112,7 @@ export function PlayerProfile() {
         {/* Position */}
         <div className="bg-[#212121] rounded-xl">
           <div className="flex items-center justify-between px-4 py-3.5">
-            <span className="text-sm text-[#aaa]">Position</span>
+            <span className="text-sm text-[#aaa]">{t.profile.position}</span>
             <span className="text-white text-sm font-bold">{player.position ?? "—"}</span>
           </div>
         </div>
@@ -130,7 +132,7 @@ export function PlayerProfile() {
         {((player.show_telegram !== false && player.telegram) || (player.show_instagram !== false && player.instagram)) && (
           <section>
             <div className="flex items-center justify-between mb-2 px-1">
-              <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">Contact</h2>
+              <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">{t.profile.contact}</h2>
             </div>
             <div className="bg-[#212121] rounded-xl overflow-hidden">
               {player.telegram && player.show_telegram !== false && (
@@ -140,7 +142,7 @@ export function PlayerProfile() {
                     <Send size={14} className="text-white -ml-0.5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[11px] text-[#aaa] mb-0.5">Telegram</div>
+                    <div className="text-[11px] text-[#aaa] mb-0.5">{t.profile.telegram}</div>
                     <div className="text-sm text-white">{player.telegram}</div>
                   </div>
                 </a>
@@ -152,7 +154,7 @@ export function PlayerProfile() {
                     <Instagram size={14} className="text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[11px] text-[#aaa] mb-0.5">Instagram</div>
+                    <div className="text-[11px] text-[#aaa] mb-0.5">{t.profile.instagram}</div>
                     <div className="text-sm text-white">@{player.instagram.replace("@", "")}</div>
                   </div>
                 </a>
@@ -163,10 +165,10 @@ export function PlayerProfile() {
 
         {/* Upcoming Events */}
         <section>
-          <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2">Upcoming Events</h2>
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2">{t.profile.upcomingEvents}</h2>
           {upcomingEvents.length === 0 ? (
             <div className="bg-[#212121] rounded-xl py-6 flex items-center justify-center">
-              <span className="text-sm text-[#aaa]">Nothing here yet</span>
+              <span className="text-sm text-[#aaa]">{t.common.nothingHere}</span>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
@@ -193,10 +195,10 @@ export function PlayerProfile() {
 
         {/* Past Events */}
         <section>
-          <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2">Past Events</h2>
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2">{t.profile.pastEvents}</h2>
           {pastEvents.length === 0 ? (
             <div className="bg-[#212121] rounded-xl py-6 flex items-center justify-center">
-              <span className="text-sm text-[#aaa]">Nothing here yet</span>
+              <span className="text-sm text-[#aaa]">{t.common.nothingHere}</span>
             </div>
           ) : (
             <div className="bg-[#212121] rounded-xl overflow-hidden">

@@ -6,6 +6,7 @@ import {
 } from "date-fns";
 import { ModalOverlay } from "./ui/Modal";
 import { useWaterRipple, RippleLayer } from "./ui/useWaterRipple";
+import { useLang } from "../i18n";
 
 const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const MONTHS_BEFORE = 3;
@@ -31,6 +32,7 @@ export function PublishEventModal({
   // of just fading in centered. Pass null/omit to fall back to a plain fade.
   origin?: { x: number; y: number } | null;
 }) {
+  const { t } = useLang();
   const initialDate = initial ? new Date(initial) : new Date();
   const today = new Date();
 
@@ -42,7 +44,7 @@ export function PublishEventModal({
   target.setHours(clampInt(hour, 0, 23), clampInt(minute, 0, 59), 0, 0);
 
   const isNow = target.getTime() <= Date.now();
-  const label = isNow ? "Publish Now" : `Schedule for ${format(target, "MMM d, HH:mm")}`;
+  const label = isNow ? t.admin.publishNow : `${t.admin.scheduled} — ${format(target, "MMM d, HH:mm")}`;
 
   // Continuous, no-buttons calendar - browse months by scrolling down, never by
   // clicking prev/next. Range is generous but fixed (no infinite loading) and
@@ -131,7 +133,7 @@ export function PublishEventModal({
             <X size={22} />
             <RippleLayer ripples={closeRipple.ripples} />
           </button>
-          <h3 className="font-black italic uppercase tracking-widest text-white text-sm">Publish Event</h3>
+          <h3 className="font-black italic uppercase tracking-widest text-white text-sm">{t.admin.publishEventTitle}</h3>
           <div className="flex items-center gap-1">
             <button
               onClick={() => scrollToMonth(monthIndex - 1)}

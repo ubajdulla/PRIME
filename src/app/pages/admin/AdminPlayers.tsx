@@ -9,6 +9,7 @@ import { LABEL_META, SENTIMENT_COLOR, effectiveLabel } from "../../lib/trustLabe
 import { navDir } from "../../lib/navDir";
 import { useHorizontalSwipe } from "../../lib/useHorizontalSwipe";
 import { supabase } from "../../lib/supabaseClient";
+import { useLang } from "../../i18n";
 
 const LEVELS = ["PRIME", "Pro", "Advanced", "Intermediate", "Beginner", "Rookie"] as const;
 const CATEGORIES = ["Admin", ...LEVELS] as const;
@@ -142,6 +143,7 @@ function classifyActivity(n: NoteRow): ActivityKind {
 
 export function AdminPlayers() {
   const navigate = useNavigate();
+  const { t } = useLang();
   const searchRef = useRef<HTMLInputElement>(null);
   // Same drag-to-scroll behavior as the Home event feed filter bar, copied
   // 1:1 so both bars feel like the same component everywhere in the app.
@@ -365,7 +367,7 @@ export function AdminPlayers() {
       {...swipeHandlers}
     >
       <div className="flex items-center justify-between mb-4">
-        <h1 className="font-black italic text-2xl text-white uppercase tracking-widest">Players</h1>
+        <h1 className="font-black italic text-2xl text-white uppercase tracking-widest">{t.admin.players}</h1>
         <span className="text-[#79828b] text-xs font-bold">{players.length} total</span>
       </div>
 
@@ -379,7 +381,7 @@ export function AdminPlayers() {
             value={search}
             onFocus={enterFocus}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search or tap to browse everyone..."
+            placeholder={t.admin.searchPlaceholder}
             className="w-full bg-[#212121] border border-white/10 rounded-full pl-11 pr-4 py-2.5 text-white text-sm font-bold placeholder:text-[#79828b]/60 focus:outline-none focus:border-[#462ed1]/50 transition-colors"
           />
         </div>
@@ -437,9 +439,9 @@ export function AdminPlayers() {
 
           {status === "All" ? (
             <section>
-              <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">Recent Admin Activity</h2>
+              <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">{t.admin.recentActivity}</h2>
               {activity.length === 0 ? (
-                <p className="text-[#79828b] text-sm text-center py-6">Nothing yet</p>
+                <p className="text-[#79828b] text-sm text-center py-6">{t.admin.nothingYet}</p>
               ) : (
                 <div className="flex flex-col gap-2">
                   {activity.map(n => {
@@ -463,17 +465,17 @@ export function AdminPlayers() {
           ) : status === "No Label" ? (
             <section>
               <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">
-                {statusFiltered.length} match{statusFiltered.length === 1 ? "" : "es"}
+                {t.admin.matches(statusFiltered.length)}
               </h2>
-              <PlayerList list={statusFiltered} empty="No players without a label" />
+              <PlayerList list={statusFiltered} empty={t.admin.noLabelPlayers} />
             </section>
           ) : (
             <section>
               <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">
-                {statusFiltered.length} match{statusFiltered.length === 1 ? "" : "es"}
+                {t.admin.matches(statusFiltered.length)}
               </h2>
               {!loading && statusFiltered.length === 0 ? (
-                <p className="text-[#79828b] text-sm text-center py-6">No players match this status</p>
+                <p className="text-[#79828b] text-sm text-center py-6">{t.admin.noStatusMatch}</p>
               ) : (
                 <div className="flex flex-col gap-2">
                   {statusFiltered.map(p => {
@@ -527,19 +529,19 @@ export function AdminPlayers() {
           {category ? (
             <section>
               <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">
-                {categoryFiltered.length} in {category}
+                {categoryFiltered.length} {t.admin.inLabel} {category}
               </h2>
-              <PlayerList list={categoryFiltered} empty="No players in this category" />
+              <PlayerList list={categoryFiltered} empty={t.admin.noCategoryMatch} />
             </section>
           ) : search.trim() ? (
             <section>
-              <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">Results</h2>
-              <PlayerList list={searchResults} empty="No players match" />
+              <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">{t.admin.results}</h2>
+              <PlayerList list={searchResults} empty={t.admin.noSearchMatch} />
             </section>
           ) : (
             <section key={recentTick}>
               <div className="flex items-center justify-between mb-2 px-0.5">
-                <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b]">Recently Searched</h2>
+                <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b]">{t.admin.recentlySearched}</h2>
                 {recentPlayers.length > 0 && (
                   <button
                     onClick={() => { clearRecent(); setRecentTick(t => t + 1); }}
@@ -551,9 +553,9 @@ export function AdminPlayers() {
                 )}
               </div>
               {recentPlayers.length === 0 ? (
-                <p className="text-[#79828b] text-sm text-center py-6">Nothing searched yet</p>
+                <p className="text-[#79828b] text-sm text-center py-6">{t.admin.nothingSearched}</p>
               ) : (
-                <PlayerList list={recentPlayers} empty="Nothing searched yet" />
+                <PlayerList list={recentPlayers} empty={t.admin.nothingSearched} />
               )}
             </section>
           )}

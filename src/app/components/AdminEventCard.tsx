@@ -1,6 +1,7 @@
 import { Calendar, Clock, MapPin, ChevronRight, User, Volleyball, Trophy, Dumbbell, Palmtree, PartyPopper, PenLine } from "lucide-react";
 import { getCategoryIconName, type EventStatus } from "../data/adminData";
 import { useWaterRipple, RippleLayer } from "./ui/useWaterRipple";
+import { useLang } from "../i18n";
 
 type DisplayStatus = EventStatus | "scheduled";
 
@@ -60,6 +61,7 @@ export function AdminEventCard({
   event: AdminEventCardData;
   onNavigate: (path: string) => void;
 }) {
+  const { t } = useLang();
   const isFull      = event.rosterCount >= event.capacity;
   const fillPct     = event.capacity > 0 ? Math.min((event.rosterCount / event.capacity) * 100, 100) : 0;
   const isScheduled = !!event.publishedAt && new Date(event.publishedAt) > new Date();
@@ -97,7 +99,7 @@ export function AdminEventCard({
               <treatment.icon size={15} className={`shrink-0 -translate-y-px ${treatment.labelColor}`} />
             ) : treatment.label && (
               <span className={`text-[10px] font-black uppercase tracking-widest shrink-0 ${treatment.labelColor}`}>
-                {treatment.label}
+                {displayStatus === "scheduled" ? t.admin.scheduled : displayStatus === "canceled" ? t.event.canceled : treatment.label}
               </span>
             )}
           </div>
@@ -127,7 +129,7 @@ export function AdminEventCard({
           {/* Capacity — pinned to bottom of left column */}
           <div className="mt-auto">
             <div className="flex items-center justify-between text-[11px] font-bold mb-1.5">
-              <span className="text-[#79828b]">Roster</span>
+              <span className="text-[#79828b]">{t.admin.roster}</span>
               <span className={isFull ? "text-[#4dcd5e]" : "text-white"}>
                 {event.rosterCount} / {event.capacity}
               </span>
