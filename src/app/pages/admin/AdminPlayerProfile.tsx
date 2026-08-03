@@ -612,7 +612,7 @@ export function AdminPlayerProfile() {
         </label>
         <div className="flex items-center gap-2 mb-1">
           <h1 className="text-xl font-semibold text-white">{player.name}</h1>
-          {player.is_verified && <BadgeCheck size={18} className="text-[#462ed1] shrink-0" />}
+          {player.is_verified && <BadgeCheck size={18} className="text-[#3897f0] shrink-0" />}
         </div>
         <span className={`text-sm font-medium mb-2 ${SKILL_COLOR[displaySkill] ?? "text-white"}`}>{displaySkill}</span>
         <div className="flex items-center gap-2 flex-wrap justify-center">

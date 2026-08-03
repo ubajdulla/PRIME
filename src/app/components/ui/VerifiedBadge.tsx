@@ -15,7 +15,7 @@ export function VerifiedBadge({ verified, size = 16, ringClassName = "border-[#1
   const iconSize = Math.max(8, Math.round(size * 0.62));
   return (
     <div
-      className={`absolute -right-0.5 -bottom-0.5 bg-[#462ed1] rounded-full flex items-center justify-center border-2 ${ringClassName}`}
+      className={`absolute -right-0.5 -bottom-0.5 bg-[#3897f0] rounded-full flex items-center justify-center border-2 ${ringClassName}`}
       style={{ width: size, height: size }}
     >
       <BadgeCheck size={iconSize} className="text-white" strokeWidth={2.5} />
