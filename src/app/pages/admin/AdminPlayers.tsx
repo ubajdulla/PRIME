@@ -7,6 +7,7 @@ import { TrustDot } from "../../components/ui/TrustDot";
 import { VerifiedBadge } from "../../components/ui/VerifiedBadge";
 import { LABEL_META, SENTIMENT_COLOR, effectiveLabel } from "../../lib/trustLabel";
 import { navDir } from "../../lib/navDir";
+import { useHorizontalSwipe } from "../../lib/useHorizontalSwipe";
 import { supabase } from "../../lib/supabaseClient";
 
 const LEVELS = ["PRIME", "Pro", "Advanced", "Intermediate", "Beginner", "Rookie"] as const;
@@ -57,7 +58,7 @@ function CategoryIcon({ category, size = 20 }: { category: Category; size?: numb
   );
 }
 
-const STATUSES = ["All", "Payment Pending", "Warnings", "No-show", "Disrespect", "Trust"] as const;
+const STATUSES = ["All", "Payment Pending", "Warnings", "No-show", "Disrespect", "Trust", "No Label"] as const;
 type Status = typeof STATUSES[number];
 
 // "Recently searched" is a per-admin browsing convenience, not roster data -
@@ -224,6 +225,7 @@ export function AdminPlayers() {
     if (s === "No-show")         return eff?.label === "no_show";
     if (s === "Disrespect")      return eff?.label === "rude_behavior";
     if (s === "Trust")           return eff?.label === "trustworthy";
+    if (s === "No Label")        return eff === null;
     return true;
   }
 
@@ -345,8 +347,23 @@ export function AdminPlayers() {
     );
   }
 
+  // Swipe right back to the Events tab - mirrors AdminEvents' swipe-left,
+  // same no-slide route transition as tapping the sub-navbar tab, with the
+  // page itself following the drag. Disabled while search is focused so a
+  // stray horizontal drag in the results doesn't navigate away mid-search.
+  // ignoreRef=filterScrollRef so dragging the status filter pills (its own
+  // click-and-drag scroller, same as the Home feed's filter bar) never gets
+  // misread as a page swipe back to Events.
+  const { containerRef: swipeRef, handlers: swipeHandlers, style: swipeStyle } =
+    useHorizontalSwipe(undefined, () => { navDir.none(); navigate("/admin/events"); }, filterScrollRef);
+
   return (
-    <div className="max-w-[640px] mx-auto px-4 py-8">
+    <div
+      ref={swipeRef}
+      className="max-w-[640px] mx-auto px-4 py-8"
+      style={focused ? undefined : swipeStyle}
+      {...(focused ? {} : swipeHandlers)}
+    >
       <div className="flex items-center justify-between mb-4">
         <h1 className="font-black italic text-2xl text-white uppercase tracking-widest">Players</h1>
         <span className="text-[#79828b] text-xs font-bold">{players.length} total</span>
@@ -442,6 +459,13 @@ export function AdminPlayers() {
                   })}
                 </div>
               )}
+            </section>
+          ) : status === "No Label" ? (
+            <section>
+              <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">
+                {statusFiltered.length} match{statusFiltered.length === 1 ? "" : "es"}
+              </h2>
+              <PlayerList list={statusFiltered} empty="No players without a label" />
             </section>
           ) : (
             <section>

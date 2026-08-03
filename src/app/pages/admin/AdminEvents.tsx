@@ -7,6 +7,8 @@ import { AdminEventCard, type AdminEventCardData } from "../../components/AdminE
 import { DropdownPanel } from "../../components/ui/DropdownMenu";
 import { supabase } from "../../lib/supabaseClient";
 import { relativeDay, shortDate, isPastDate } from "../../lib/eventDate";
+import { useHorizontalSwipe } from "../../lib/useHorizontalSwipe";
+import { navDir } from "../../lib/navDir";
 
 type FilterValue = "active" | "past";
 
@@ -119,8 +121,14 @@ export function AdminEvents() {
 
   const activeLabel = FILTER_OPTIONS.find(f => f.value === filter)?.label ?? "Filter";
 
+  // Swipe left to the Players tab - same no-slide route transition as tapping
+  // the sub-navbar tab in AdminLayout (navDir.none()), but the page itself
+  // follows the drag and springs back if it doesn't clear the threshold.
+  const { containerRef: swipeRef, handlers: swipeHandlers, style: swipeStyle } =
+    useHorizontalSwipe(() => { navDir.none(); navigate("/admin/players"); });
+
   return (
-    <div className="max-w-[640px] mx-auto px-4 py-8">
+    <div ref={swipeRef} className="max-w-[640px] mx-auto px-4 py-8" style={swipeStyle} {...swipeHandlers}>
 
       {/* Top bar: Filter (left) + Create (right) */}
       <div className="flex items-center justify-between mb-5">

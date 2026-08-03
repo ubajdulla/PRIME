@@ -1,5 +1,5 @@
 import { Calendar } from "lucide-react";
-import { DatePickerField } from "./DatePickerField";
+import { BirthDateField } from "./BirthDateField";
 
 function formatDate(d: string) {
   if (!d) return "";
@@ -41,10 +41,11 @@ export function DateOfBirthRow({
               editing ? "opacity-100" : "opacity-0 pointer-events-none"
             }`}
           >
-            <DatePickerField
+            <BirthDateField
               value={draftValue}
               onChange={onChange}
-              triggerClassName="flex items-center gap-1 text-white text-sm leading-5 focus:outline-none"
+              placeholder="DD/MM/YYYY"
+              inline
             />
           </div>
           <div
