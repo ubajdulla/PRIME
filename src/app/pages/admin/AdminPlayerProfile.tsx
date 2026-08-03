@@ -431,10 +431,11 @@ export function AdminPlayerProfile() {
 
   const currentLabel = effectiveLabel(player.trust_label, player.trust_label_set_at_events, events.length);
 
-  // Single avatar-ring/badge slot, one priority order: a ban is more urgent
+  // Status badge sits next to the name, not on the avatar - it used to be a
+  // ring + corner badge on the avatar itself, but that fought the avatar's
+  // own tap target (change photo). One priority order: a ban is more urgent
   // than a suspension, which is more urgent than a trust label (Warning
-  // etc.) - only the winner ever shows, never stacked, so the ring can
-  // never carry ambiguous meaning.
+  // etc.) - only the winner ever shows, never stacked.
   const skillRingColor = dotColor(displaySkill);
   const avatarStatus: { color: string; icon: "ban" | "suspend" | "flag"; tooltip: string; opacity?: number } | null =
     player.is_banned
@@ -450,7 +451,7 @@ export function AdminPlayerProfile() {
           tooltip: LABEL_META[currentLabel.label].name, opacity: currentLabel.opacity,
         }
       : null;
-  const ringColor = avatarStatus?.color ?? skillRingColor;
+  const ringColor = skillRingColor;
 
   return (
     <div className="min-h-full bg-[#181818] pb-8 font-sans">
@@ -634,14 +635,6 @@ export function AdminPlayerProfile() {
               <User size={36} className="text-white/20" />
             </div>
           )}
-          {/* Status corner badge - opposite corner from the camera button.
-              Ring + this badge carry ban/suspension/trust-label state now
-              instead of a pill row below the name, so nothing shifts layout
-              when status changes. Tap (or hover on desktop) for the reason
-              and, for suspensions, how long is left. */}
-          {avatarStatus && (
-            <StatusBadge color={avatarStatus.color} icon={avatarStatus.icon} tooltip={avatarStatus.tooltip} opacity={avatarStatus.opacity} />
-          )}
           {/* Admin-only override: tap to replace this player's photo, same
               upload path and badge styling as their own Profile page avatar picker. */}
           <span className="absolute bottom-0.5 right-0.5 w-7 h-7 rounded-full bg-[#462ed1] border-2 border-[#181818] flex items-center justify-center pointer-events-none">
@@ -652,6 +645,12 @@ export function AdminPlayerProfile() {
         <div className="flex items-center gap-2 mb-1">
           <h1 className="text-xl font-semibold text-white">{player.name}</h1>
           {player.is_verified && <BadgeCheck size={18} className="text-[#3897f0] shrink-0" />}
+          {/* Status badge - ban/suspension/trust-label, one priority order
+              (see avatarStatus above). Lives next to the name, not on the
+              avatar, so it never competes with the avatar's own tap target. */}
+          {avatarStatus && (
+            <StatusBadge color={avatarStatus.color} icon={avatarStatus.icon} tooltip={avatarStatus.tooltip} opacity={avatarStatus.opacity} />
+          )}
         </div>
         <span className={`text-sm font-medium mb-2 ${SKILL_COLOR[displaySkill] ?? "text-white"}`}>{displaySkill}</span>
       </div>

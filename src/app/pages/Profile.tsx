@@ -166,10 +166,10 @@ export function Profile() {
   if (!profile) return null;
 
   const skillStyle = SKILL_STYLE[profile.skill_level] ?? SKILL_STYLE.Rookie;
-  // Status ring + corner icon instead of a separate label row - matches
-  // AdminPlayerProfile.tsx, and means the avatar itself carries the state
-  // instead of something that appears/disappears and shifts the page.
-  const statusRingColor = profile.is_banned ? "#ef4444" : profile.is_suspended ? "#eab308" : null;
+  // Status badge sits next to the name, not on the avatar - a badge/ring on
+  // the avatar itself competed with its own tap target (change photo).
+  // Same colors/icon/tooltip as before, just relocated.
+  const statusColor = profile.is_banned ? "#ef4444" : profile.is_suspended ? "#eab308" : null;
   const statusTooltip = profile.is_banned
     ? `Banned${profile.ban_reason ? ` — ${profile.ban_reason}` : ""}`
     : profile.is_suspended && profile.suspended_until
@@ -182,27 +182,19 @@ export function Profile() {
       {/* ── Profile identity ── */}
       <div className="flex flex-col items-center pt-8 pb-6 px-4">
 
-        {/* Avatar — always tappable. Suspended/banned shows as a ring +
-            corner badge instead of swapping the whole avatar, so status
-            reads consistently with AdminPlayerProfile.tsx. */}
+        {/* Avatar — always tappable, plain, no ring/badge on it so tapping
+            it always opens the photo picker with nothing else to hit. */}
         <label className="relative cursor-pointer mb-4 w-28 h-28">
           {profile.avatar ? (
             <img
               src={profile.avatar}
               alt=""
               className={`w-28 h-28 rounded-full object-cover bg-[#212121] ${uploadingAvatar ? "opacity-50" : ""}`}
-              style={statusRingColor ? { boxShadow: `0 0 0 3px ${statusRingColor}` } : undefined}
             />
           ) : (
-            <div
-              className={`w-28 h-28 rounded-full bg-[#212121] flex items-center justify-center ${uploadingAvatar ? "opacity-50" : ""}`}
-              style={statusRingColor ? { boxShadow: `0 0 0 3px ${statusRingColor}` } : undefined}
-            >
+            <div className={`w-28 h-28 rounded-full bg-[#212121] flex items-center justify-center ${uploadingAvatar ? "opacity-50" : ""}`}>
               <User size={44} className="text-[#79828b]" />
             </div>
-          )}
-          {statusRingColor && (
-            <StatusBadge color={statusRingColor} icon={profile.is_banned ? "ban" : "suspend"} tooltip={statusTooltip} />
           )}
           <span className="absolute bottom-0.5 right-0.5 w-7 h-7 rounded-full bg-[#462ed1] border-2 border-[#181818] flex items-center justify-center pointer-events-none">
             <Camera size={13} className="text-white" />
@@ -211,7 +203,12 @@ export function Profile() {
         </label>
 
         {/* Name — display only, updates when contact is saved */}
-        <h1 className="text-xl font-semibold text-white mb-1">{profile.name}</h1>
+        <div className="flex items-center gap-2 mb-1">
+          <h1 className="text-xl font-semibold text-white">{profile.name}</h1>
+          {statusColor && (
+            <StatusBadge color={statusColor} icon={profile.is_banned ? "ban" : "suspend"} tooltip={statusTooltip} />
+          )}
+        </div>
         <span className={`text-sm font-medium ${skillStyle.text}`}>
           {profile.skill_level}
         </span>
