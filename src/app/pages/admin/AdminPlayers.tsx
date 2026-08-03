@@ -355,14 +355,14 @@ export function AdminPlayers() {
   // click-and-drag scroller, same as the Home feed's filter bar) never gets
   // misread as a page swipe back to Events.
   const { containerRef: swipeRef, handlers: swipeHandlers, style: swipeStyle } =
-    useHorizontalSwipe(undefined, () => { navDir.none(); navigate("/admin/events"); }, filterScrollRef);
+    useHorizontalSwipe(undefined, () => { navDir.none(); navigate("/admin/events"); }, filterScrollRef, !focused);
 
   return (
     <div
       ref={swipeRef}
       className="max-w-[640px] mx-auto px-4 py-8"
-      style={focused ? undefined : swipeStyle}
-      {...(focused ? {} : swipeHandlers)}
+      style={swipeStyle}
+      {...swipeHandlers}
     >
       <div className="flex items-center justify-between mb-4">
         <h1 className="font-black italic text-2xl text-white uppercase tracking-widest">Players</h1>

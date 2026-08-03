@@ -1,4 +1,4 @@
-import { useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
 const SWIPE_THRESHOLD_PX = 80;
 // Horizontal travel must beat vertical by this ratio before it counts as a
@@ -13,70 +13,130 @@ const SPRING_MS = 220;
  * didn't clear the threshold. `ignoreRef` opts a child element (a draggable
  * filter bar, a horizontally-scrollable row, etc.) out of gesture tracking
  * entirely, so dragging inside it never gets misread as a page swipe.
+ * `enabled` (default true) lets a caller suspend tracking without unmounting
+ * the gesture (e.g. while a search field is focused).
+ *
+ * Bound as real (non-passive) DOM listeners in an effect, not JSX props:
+ * React's synthetic touch handlers are passive by default, so `preventDefault`
+ * inside `onTouchMove` is a silent no-op there. Without it, once a drag
+ * leaned horizontal the browser's own scroll/rubber-band gesture was still
+ * live underneath and fought our transform for the rest of the gesture -
+ * that's what showed up as the swipe stalling mid-drag and feeling choppy.
+ * Once we've decided a gesture is a horizontal swipe we now call
+ * `preventDefault` to fully hand the gesture to JS, and the transform during
+ * the drag is written straight to the DOM (not through React state) so it
+ * tracks the finger every frame instead of waiting on a re-render.
  */
 export function useHorizontalSwipe(
   onSwipeLeft?: () => void,
   onSwipeRight?: () => void,
-  ignoreRef?: RefObject<HTMLElement>
+  ignoreRef?: RefObject<HTMLElement>,
+  enabled = true
 ) {
   const start = useRef<{ x: number; y: number } | null>(null);
   const tracking = useRef(false);
+  const committed = useRef(false); // decided this is a horizontal swipe, not a scroll
   const containerRef = useRef<HTMLDivElement>(null);
+  const enabledRef = useRef(enabled);
   const [dragX, setDragX] = useState(0);
   const [springing, setSpringing] = useState(false);
 
-  function onTouchStart(e: React.TouchEvent) {
-    const t = e.touches[0];
-    if (!t) return;
-    if (ignoreRef?.current?.contains(e.target as Node)) {
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    function onTouchStart(e: TouchEvent) {
+      if (!enabledRef.current) return;
+      const t = e.touches[0];
+      if (!t) return;
+      if (ignoreRef?.current?.contains(e.target as Node)) {
+        start.current = null;
+        tracking.current = false;
+        return;
+      }
+      start.current = { x: t.clientX, y: t.clientY };
+      tracking.current = true;
+      committed.current = false;
+      setSpringing(false);
+    }
+
+    function onTouchMove(e: TouchEvent) {
+      if (!tracking.current || !start.current) return;
+      const t = e.touches[0];
+      if (!t) return;
+      const dx = t.clientX - start.current.x;
+      const dy = t.clientY - start.current.y;
+
+      if (!committed.current) {
+        // Undecided yet - let the browser scroll normally until movement
+        // clearly favors horizontal over vertical.
+        if (Math.abs(dx) < Math.abs(dy) * DIRECTION_RATIO) return;
+        if (dx < 0 && !onSwipeLeft) return;
+        if (dx > 0 && !onSwipeRight) return;
+        committed.current = true;
+      }
+
+      // Committed: take the gesture over from the browser entirely so its
+      // native scroll can't keep fighting our transform underneath.
+      e.preventDefault();
+      el!.style.transition = "none";
+      el!.style.transform = `translateX(${dx}px)`;
+    }
+
+    function onTouchEnd(e: TouchEvent) {
+      const s = start.current;
+      const wasCommitted = committed.current;
       start.current = null;
       tracking.current = false;
-      return;
+      committed.current = false;
+      if (!s || !wasCommitted) return;
+      const t = e.changedTouches[0];
+      const dx = t ? t.clientX - s.x : 0;
+      const dy = t ? t.clientY - s.y : 0;
+      const cleared = Math.abs(dx) >= SWIPE_THRESHOLD_PX && Math.abs(dx) >= Math.abs(dy) * DIRECTION_RATIO;
+      const dest = dx < 0 ? onSwipeLeft : onSwipeRight;
+      setSpringing(true);
+      if (cleared && dest) {
+        const width = el?.offsetWidth ?? window.innerWidth;
+        setDragX(dx < 0 ? -width : width);
+        window.setTimeout(dest, SPRING_MS);
+      } else {
+        setDragX(0);
+      }
     }
-    start.current = { x: t.clientX, y: t.clientY };
-    tracking.current = true;
-    setSpringing(false);
-  }
 
-  function onTouchMove(e: React.TouchEvent) {
-    if (!tracking.current || !start.current) return;
-    const t = e.touches[0];
-    if (!t) return;
-    const dx = t.clientX - start.current.x;
-    const dy = t.clientY - start.current.y;
-    if (Math.abs(dx) < Math.abs(dy) * DIRECTION_RATIO) return; // reads as a vertical scroll - ignore
-    if (dx < 0 && !onSwipeLeft) return; // no destination that way - don't drag past the edge
-    if (dx > 0 && !onSwipeRight) return;
-    setDragX(dx);
-  }
-
-  function onTouchEnd(e: React.TouchEvent) {
-    const s = start.current;
-    const wasTracking = tracking.current;
-    start.current = null;
-    tracking.current = false;
-    if (!wasTracking || !s) return;
-    const t = e.changedTouches[0];
-    const dx = t ? t.clientX - s.x : 0;
-    const dy = t ? t.clientY - s.y : 0;
-    const cleared = Math.abs(dx) >= SWIPE_THRESHOLD_PX && Math.abs(dx) >= Math.abs(dy) * DIRECTION_RATIO;
-    const dest = dx < 0 ? onSwipeLeft : onSwipeRight;
-    setSpringing(true);
-    if (cleared && dest) {
-      const width = containerRef.current?.offsetWidth ?? window.innerWidth;
-      setDragX(dx < 0 ? -width : width);
-      window.setTimeout(dest, SPRING_MS);
-    } else {
-      setDragX(0);
-    }
-  }
+    // touchmove must be non-passive so preventDefault can actually cancel
+    // the browser's own gesture once we've committed to a horizontal swipe.
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [onSwipeLeft, onSwipeRight, ignoreRef]);
 
   return {
     containerRef,
-    handlers: { onTouchStart, onTouchMove, onTouchEnd },
+    // Gesture is bound via native listeners in the effect above, not JSX
+    // props - kept as an empty object so existing `{...swipeHandlers}`
+    // call sites don't need to change.
+    handlers: {},
     style: {
       transform: dragX ? `translateX(${dragX}px)` : undefined,
-      transition: springing ? `transform ${SPRING_MS}ms cubic-bezier(0.16, 1, 0.3, 1)` : "none",
+      transition: springing ? `transform ${SPRING_MS}ms cubic-bezier(0.16, 1, 0.3, 1)` : undefined,
+      // Tells the browser upfront that this element only pans vertically on
+      // its own - horizontal gestures are ours, so it never spins up a
+      // competing native recognizer in the first place (belt-and-suspenders
+      // alongside the preventDefault above).
+      touchAction: "pan-y",
     } as React.CSSProperties,
   };
 }
