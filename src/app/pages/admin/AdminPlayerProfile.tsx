@@ -20,6 +20,7 @@ import { ConfirmModal, type ModalOrigin } from "../../components/ui/Modal";
 import { TapConfirmButton } from "../../components/ui/TapConfirmButton";
 import { DropdownPanel, DropdownItem, ConfirmDropdownItem } from "../../components/ui/DropdownMenu";
 import { ModAvatarIcon } from "../../components/ui/ModAvatarIcon";
+import { StatusBadge } from "../../components/ui/StatusBadge";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../lib/AuthContext";
 import { isPastDate } from "../../lib/eventDate";
@@ -237,16 +238,6 @@ export function AdminPlayerProfile() {
 
   const player = profile;
   const displaySkill = player.skill_level;
-  const skillRingColor = dotColor(displaySkill);
-  // Status takes priority over the skill-tier ring when active - a
-  // suspension/ban is more urgent to surface than skill color right now.
-  const statusRingColor = player.is_banned ? "#ef4444" : player.is_suspended ? "#eab308" : null;
-  const ringColor = statusRingColor ?? skillRingColor;
-  const statusTooltip = player.is_banned
-    ? `Banned${player.ban_reason ? ` — ${player.ban_reason}` : ""}`
-    : player.is_suspended && player.suspended_until
-    ? `Suspended — ${formatDistanceToNowStrict(new Date(player.suspended_until))} left${player.suspend_reason ? ` — ${player.suspend_reason}` : ""}`
-    : "";
 
   const upcomingEvents = events.filter(e => e.status === "upcoming" && !isPastDate(e.event_date));
   const pastEvents     = events.filter(e => isPastDate(e.event_date));
@@ -440,6 +431,27 @@ export function AdminPlayerProfile() {
 
   const currentLabel = effectiveLabel(player.trust_label, player.trust_label_set_at_events, events.length);
 
+  // Single avatar-ring/badge slot, one priority order: a ban is more urgent
+  // than a suspension, which is more urgent than a trust label (Warning
+  // etc.) - only the winner ever shows, never stacked, so the ring can
+  // never carry ambiguous meaning.
+  const skillRingColor = dotColor(displaySkill);
+  const avatarStatus: { color: string; icon: "ban" | "suspend" | "flag"; tooltip: string; opacity?: number } | null =
+    player.is_banned
+      ? { color: "#ef4444", icon: "ban", tooltip: `Banned${player.ban_reason ? ` — ${player.ban_reason}` : ""}` }
+      : player.is_suspended
+      ? {
+          color: "#eab308", icon: "suspend",
+          tooltip: `Suspended${player.suspended_until ? ` — ${formatDistanceToNowStrict(new Date(player.suspended_until))} left` : ""}${player.suspend_reason ? ` — ${player.suspend_reason}` : ""}`,
+        }
+      : currentLabel
+      ? {
+          color: SENTIMENT_COLOR[LABEL_META[currentLabel.label].sentiment], icon: "flag",
+          tooltip: LABEL_META[currentLabel.label].name, opacity: currentLabel.opacity,
+        }
+      : null;
+  const ringColor = avatarStatus?.color ?? skillRingColor;
+
   return (
     <div className="min-h-full bg-[#181818] pb-8 font-sans">
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={() => setToast(p => ({ ...p, visible: false }))} />
@@ -623,18 +635,12 @@ export function AdminPlayerProfile() {
             </div>
           )}
           {/* Status corner badge - opposite corner from the camera button.
-              Ring + this icon carry the suspended/banned state now instead
-              of a pill row below the name, so nothing shifts layout when
-              status changes. Hover for a native tooltip with the reason
+              Ring + this badge carry ban/suspension/trust-label state now
+              instead of a pill row below the name, so nothing shifts layout
+              when status changes. Tap (or hover on desktop) for the reason
               and, for suspensions, how long is left. */}
-          {statusRingColor && (
-            <span
-              title={statusTooltip}
-              className="absolute bottom-0.5 left-0.5 w-7 h-7 rounded-full border-2 border-[#181818] flex items-center justify-center pointer-events-auto"
-              style={{ background: statusRingColor }}
-            >
-              {player.is_banned ? <OctagonX size={13} className="text-white" /> : <Clock size={13} className="text-white" />}
-            </span>
+          {avatarStatus && (
+            <StatusBadge color={avatarStatus.color} icon={avatarStatus.icon} tooltip={avatarStatus.tooltip} opacity={avatarStatus.opacity} />
           )}
           {/* Admin-only override: tap to replace this player's photo, same
               upload path and badge styling as their own Profile page avatar picker. */}
@@ -648,21 +654,6 @@ export function AdminPlayerProfile() {
           {player.is_verified && <BadgeCheck size={18} className="text-[#3897f0] shrink-0" />}
         </div>
         <span className={`text-sm font-medium mb-2 ${SKILL_COLOR[displaySkill] ?? "text-white"}`}>{displaySkill}</span>
-        <div className="flex items-center gap-2 flex-wrap justify-center">
-          {currentLabel && (
-            <span
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
-              style={{
-                opacity: currentLabel.opacity,
-                background: `${SENTIMENT_COLOR[LABEL_META[currentLabel.label].sentiment]}1a`,
-                border: `1px solid ${SENTIMENT_COLOR[LABEL_META[currentLabel.label].sentiment]}40`,
-                color: SENTIMENT_COLOR[LABEL_META[currentLabel.label].sentiment],
-              }}
-            >
-              <Flag size={11} /> {LABEL_META[currentLabel.label].name}
-            </span>
-          )}
-        </div>
       </div>
 
       <div className="max-w-[640px] mx-auto px-4 flex flex-col gap-6">

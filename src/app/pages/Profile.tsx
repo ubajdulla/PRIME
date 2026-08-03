@@ -15,6 +15,7 @@ import { DropdownPanel, DropdownItem, ConfirmDropdownItem } from "../components/
 import { ContactRow } from "../components/ui/ContactRow";
 import { DateOfBirthRow } from "../components/ui/DateOfBirthRow";
 import { EditToggleButtons } from "../components/ui/EditToggleButtons";
+import { StatusBadge } from "../components/ui/StatusBadge";
 import { LABEL_META, SENTIMENT_COLOR, type TrustLabel } from "../lib/trustLabel";
 
 const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
@@ -201,13 +202,7 @@ export function Profile() {
             </div>
           )}
           {statusRingColor && (
-            <span
-              title={statusTooltip}
-              className="absolute bottom-0.5 left-0.5 w-7 h-7 rounded-full border-2 border-[#181818] flex items-center justify-center"
-              style={{ background: statusRingColor }}
-            >
-              {profile.is_banned ? <OctagonX size={13} className="text-white" /> : <Clock size={13} className="text-white" />}
-            </span>
+            <StatusBadge color={statusRingColor} icon={profile.is_banned ? "ban" : "suspend"} tooltip={statusTooltip} />
           )}
           <span className="absolute bottom-0.5 right-0.5 w-7 h-7 rounded-full bg-[#462ed1] border-2 border-[#181818] flex items-center justify-center pointer-events-none">
             <Camera size={13} className="text-white" />
