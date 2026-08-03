@@ -136,7 +136,7 @@ export function AdminCreateEvent() {
   ) {
     const changes: string[] = [];
     if (prev.date !== payload.event_date || prev.time !== payload.event_time) {
-      changes.push(`now ${shortDate(payload.event_date)}, ${payload.event_time.split(" - ")[0]}`);
+      changes.push(`now ${shortDate(payload.event_date, t)}, ${payload.event_time.split(" - ")[0]}`);
     }
     if (prev.location !== payload.location) {
       changes.push(`now at ${payload.location}`);

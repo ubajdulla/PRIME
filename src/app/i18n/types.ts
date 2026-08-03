@@ -108,6 +108,8 @@ export interface Dict {
     flaked: string;
     you: string;
     canceled: string;
+    published: string;
+    past: string;
     leaveTitle: string;
     leaveDesc: string;
     leaveBtn: string;
@@ -172,6 +174,9 @@ export interface Dict {
     collectedWeek: string;
     paid: string;
     unpaid: string;
+    paymentUnpaid: string;
+    paymentCash: string;
+    paymentOnline: string;
 
     // Events tab
     createBtn: string;
@@ -302,5 +307,19 @@ export interface Dict {
     friday: string;
     saturday: string;
     sunday: string;
+  };
+  dateFmt: {
+    dow: string[];
+    dowTitle: string[];
+    mon: string[];
+    monTitle: string[];
+  };
+  levels: {
+    rookie: string;
+    beginner: string;
+    intermediate: string;
+    advanced: string;
+    pro: string;
+    prime: string;
   };
 }

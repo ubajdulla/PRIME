@@ -6,7 +6,7 @@ import { type EventStatus } from "../../data/adminData";
 import { AdminEventCard, type AdminEventCardData } from "../../components/AdminEventCard";
 import { DropdownPanel } from "../../components/ui/DropdownMenu";
 import { supabase } from "../../lib/supabaseClient";
-import { relativeDay, shortDate, isPastDate } from "../../lib/eventDate";
+import { formatEventDate, isPastDate } from "../../lib/eventDate";
 import { useHorizontalSwipe } from "../../lib/useHorizontalSwipe";
 import { navDir } from "../../lib/navDir";
 import { useLang } from "../../i18n";
@@ -80,7 +80,7 @@ export function AdminEvents() {
         return {
           id: row.id,
           title: row.title,
-          date: relativeDay(row.event_date) ? `${relativeDay(row.event_date)} • ${shortDate(row.event_date)}` : shortDate(row.event_date),
+          date: row.event_date,
           time: row.event_time,
           location: row.location,
           price: row.price,
@@ -182,7 +182,7 @@ export function AdminEvents() {
         {filtered.map(event => (
           <AdminEventCard
             key={event.id}
-            event={event}
+            event={{ ...event, date: formatEventDate(event.rawDate, t) }}
             onNavigate={navigate}
           />
         ))}

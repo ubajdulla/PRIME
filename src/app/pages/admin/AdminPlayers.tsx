@@ -9,6 +9,7 @@ import { LABEL_META, SENTIMENT_COLOR, effectiveLabel } from "../../lib/trustLabe
 import { navDir } from "../../lib/navDir";
 import { useHorizontalSwipe } from "../../lib/useHorizontalSwipe";
 import { supabase } from "../../lib/supabaseClient";
+import { levelLabel } from "../../data/adminData";
 import { useLang } from "../../i18n";
 
 const LEVELS = ["PRIME", "Pro", "Advanced", "Intermediate", "Beginner", "Rookie"] as const;
@@ -144,6 +145,7 @@ function classifyActivity(n: NoteRow): ActivityKind {
 export function AdminPlayers() {
   const navigate = useNavigate();
   const { t } = useLang();
+  const catLabel = (c: Category): string => (c === "Admin" ? t.nav.admin : levelLabel(c, t));
   const searchRef = useRef<HTMLInputElement>(null);
   // Same drag-to-scroll behavior as the Home event feed filter bar, copied
   // 1:1 so both bars feel like the same component everywhere in the app.
@@ -326,7 +328,7 @@ export function AdminPlayers() {
         <div className="flex-1 min-w-0">
           <div className="font-bold text-white text-sm truncate">{p.name}</div>
           <div className="flex items-center gap-1.5 text-[#79828b] text-[11px] uppercase tracking-wider">
-            <span className={CATEGORY_TEXT_CLASS[p.skill_level] ?? ""}>{p.skill_level}</span>
+            <span className={CATEGORY_TEXT_CLASS[p.skill_level] ?? ""}>{levelLabel(p.skill_level, t)}</span>
             {p.position && <span>· {p.position}</span>}
           </div>
         </div>
@@ -521,7 +523,7 @@ export function AdminPlayers() {
                     <CategoryIcon category={c} size={c === "Admin" ? 22 : 18} />
                   </div>
                 </div>
-                <span className="text-[10px] font-bold text-white truncate w-14">{c}</span>
+                <span className="text-[10px] font-bold text-white truncate w-14">{catLabel(c)}</span>
               </button>
             ))}
           </div>
@@ -529,7 +531,7 @@ export function AdminPlayers() {
           {category ? (
             <section>
               <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">
-                {categoryFiltered.length} {t.admin.inLabel} {category}
+                {categoryFiltered.length} {t.admin.inLabel} {catLabel(category)}
               </h2>
               <PlayerList list={categoryFiltered} empty={t.admin.noCategoryMatch} />
             </section>

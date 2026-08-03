@@ -6,15 +6,11 @@ import { EventCard, EventCardProps } from "../components/EventCard";
 import { useLang, type Dict } from "../i18n";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
-import { SKILL_STYLE } from "../data/adminData";
+import { SKILL_STYLE, levelLabel } from "../data/adminData";
 import { computeJoinStatus } from "../lib/joinType";
-import { relativeDay, shortDate } from "../lib/eventDate";
+import { formatEventDate, weekdayLabel } from "../lib/eventDate";
 import { categoryImage } from "../lib/eventImages";
 import { FilterPill } from "../components/ui/FilterPill";
-
-function formatEventDate(dateStr: string): string {
-  return relativeDay(dateStr) ?? shortDate(dateStr);
-}
 
 type EventRow = {
   id: string;
@@ -49,17 +45,6 @@ const FILTER_KEY: Record<string, keyof Dict["home"]["filters"]> = {
 // width of the content column above it.
 const COL_GAP = "gap-2 md:gap-3";
 
-function getDayLabel(date: string, t: Dict): string {
-  if (date === "TODAY")    return t.days.today;
-  if (date === "TOMORROW") return t.days.tomorrow;
-  const m: Record<string, keyof Dict["days"]> = {
-    MON: "monday", TUE: "tuesday", WED: "wednesday",
-    THU: "thursday", FRI: "friday", SAT: "saturday", SUN: "sunday",
-  };
-  const key = m[date.split(",")[0].trim()];
-  return key ? t.days[key] : "";
-}
-
 export function Home() {
   const { t } = useLang();
   const [activeFilter, setActiveFilter] = useState("ALL");
@@ -78,7 +63,7 @@ export function Home() {
   }, []);
   const { isLoggedIn, profile } = useAuth();
 
-  const [events, setEvents] = useState<EventCardProps[]>([]);
+  const [events, setEvents] = useState<(EventCardProps & { rawDate: string })[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
 
   useEffect(() => {
@@ -130,7 +115,7 @@ export function Home() {
         }
       }
 
-      const mapped: EventCardProps[] = ((rows as EventRow[] | null) ?? []).map(row => {
+      const mapped: (EventCardProps & { rawDate: string })[] = ((rows as EventRow[] | null) ?? []).map(row => {
         const current = countMap.get(row.id) ?? row.event_participants?.length ?? 0;
         const avatars = isLoggedIn
           ? (row.event_participants ?? []).map(p => ({ id: p.profiles?.id ?? `guest-${p.id}`, url: p.profiles?.avatar ?? null }))
@@ -138,7 +123,8 @@ export function Home() {
         return {
           id: row.id,
           title: row.title,
-          date: formatEventDate(row.event_date),
+          date: row.event_date,
+          rawDate: row.event_date,
           time: row.event_time,
           location: row.location,
           price: row.price_label ?? "FREE",
@@ -166,10 +152,10 @@ export function Home() {
     return e.category === activeFilter;
   });
 
-  const dateGroups = filtered.reduce<{ date: string; events: EventCardProps[] }[]>((acc, e) => {
+  const dateGroups = filtered.reduce<{ rawDate: string; events: (EventCardProps & { rawDate: string })[] }[]>((acc, e) => {
     const last = acc[acc.length - 1];
-    if (last && last.date === e.date) { last.events.push(e); }
-    else { acc.push({ date: e.date, events: [e] }); }
+    if (last && last.rawDate === e.rawDate) { last.events.push(e); }
+    else { acc.push({ rawDate: e.rawDate, events: [e] }); }
     return acc;
   }, []);
 
@@ -225,7 +211,7 @@ export function Home() {
                   {t.home.greeting.hello}, {profile.name.split(" ")[0]}
                 </h1>
                 <div className="text-sm font-semibold text-white mt-1.5">
-                  {profile.position ? `${profile.skill_level} ${profile.position}` : profile.skill_level}
+                  {profile.position ? `${levelLabel(profile.skill_level, t)} ${profile.position}` : levelLabel(profile.skill_level, t)}
                 </div>
               </div>
             </div>
@@ -299,8 +285,8 @@ export function Home() {
             <p className="text-[#79828b] text-sm py-10 text-center">{t.home.noEvents}</p>
           )}
 
-          {dateGroups.map(({ date, events }, idx) => (
-            <div key={date} className="relative mb-7">
+          {dateGroups.map(({ rawDate, events }, idx) => (
+            <div key={rawDate} className="relative mb-7">
 
               {/* Date rail — absolutely positioned in the left gutter so it never
                   eats into the card column's width (which must match every other
@@ -308,10 +294,10 @@ export function Home() {
               <div className={`hidden md:flex absolute right-full top-0 bottom-0 mr-3 items-stretch ${COL_GAP}`}>
                 <div className="w-24 shrink-0 flex flex-col items-end justify-start pt-0.5">
                   <span className="text-white font-black text-[11px] leading-tight text-right break-words">
-                    {date}
+                    {formatEventDate(rawDate, t)}
                   </span>
                   <span className="text-[#79828b] text-[10px] mt-0.5 text-right leading-tight">
-                    {getDayLabel(date, t)}
+                    {weekdayLabel(rawDate, t)}
                   </span>
                 </div>
                 <div className="w-4 shrink-0 flex flex-col items-center">
@@ -324,7 +310,7 @@ export function Home() {
 
               {/* Event cards */}
               <div className="flex flex-col gap-3">
-                {events.map(e => <EventCard key={e.id} {...e} />)}
+                {events.map(e => <EventCard key={e.id} {...e} date={formatEventDate(e.rawDate, t)} />)}
               </div>
             </div>
           ))}

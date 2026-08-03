@@ -8,7 +8,7 @@ import {
   Phone, Mail, User, Pencil, Flag,
   MoreVertical, Trash2, ThumbsUp, Camera,
 } from "lucide-react";
-import { SKILL_ORDER, type SkillLevel } from "../../data/adminData";
+import { SKILL_ORDER, levelLabel, type SkillLevel } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
 import { Toast } from "../../components/ui/Toast";
 import { SelectField } from "../../components/ui/SelectField";
@@ -465,7 +465,7 @@ export function AdminPlayerProfile() {
           origin={skillOrigin}
           icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[#462ed1]/75" icon={<ChevronDown size={18} className="text-white" />} />}
           iconBg="border-[#462ed1]/25"
-          title={t.admin.changeSkillTitle} sub={`${displaySkill} → ${pendingSkill}`}
+          title={t.admin.changeSkillTitle} sub={`${levelLabel(displaySkill, t)} → ${levelLabel(pendingSkill, t)}`}
           body={<>This will move <span className="text-white font-bold">{player.name}</span> to the <span className="text-white font-bold">{pendingSkill}</span> group.</>}
           cancelLabel={t.common.cancel} onCancel={() => { setShowSkillConfirm(false); setPendingSkill(""); }}
           confirmLabel={t.common.confirm} confirmCls="bg-[#462ed1] text-white"
@@ -654,7 +654,7 @@ export function AdminPlayerProfile() {
             <StatusBadge color={avatarStatus.color} icon={avatarStatus.icon} tooltip={avatarStatus.tooltip} opacity={avatarStatus.opacity} />
           )}
         </div>
-        <span className={`text-sm font-medium mb-2 ${SKILL_COLOR[displaySkill] ?? "text-white"}`}>{displaySkill}</span>
+        <span className={`text-sm font-medium mb-2 ${SKILL_COLOR[displaySkill] ?? "text-white"}`}>{levelLabel(displaySkill, t)}</span>
       </div>
 
       <div className="max-w-[640px] mx-auto px-4 flex flex-col gap-6">
@@ -842,12 +842,12 @@ export function AdminPlayerProfile() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold text-white">{t.admin.skillLevel}</div>
-                <div className="text-[11px] text-[#79828b]">{t.admin.current}: {displaySkill}</div>
+                <div className="text-[11px] text-[#79828b]">{t.admin.current}: {levelLabel(displaySkill, t)}</div>
               </div>
               <div className="shrink-0" ref={skillFieldRef}>
                 <SelectField
                   value={displaySkill}
-                  options={skillOptions}
+                  options={skillOptions.map(lvl => ({ value: lvl, label: levelLabel(lvl, t) }))}
                   onChange={openSkillPicker}
                   disabled={hierarchyLocked}
                   triggerClassName="w-24 h-8 flex items-center justify-between gap-1.5 bg-white/5 rounded-full pl-3 pr-2.5 text-white/70 text-[11px] font-black uppercase tracking-wider transition-colors hover:bg-white/10 hover:text-white focus:outline-none cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"

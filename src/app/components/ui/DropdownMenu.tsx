@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useLang } from "../../i18n";
 
 export function DropdownPanel({
   children,
@@ -54,7 +55,7 @@ export function DropdownItem({
 export function ConfirmDropdownItem({
   icon,
   label,
-  confirmLabel = "Tap to Confirm",
+  confirmLabel,
   variant = "default",
   armed,
   onArm,
@@ -70,6 +71,8 @@ export function ConfirmDropdownItem({
   onConfirm: () => void;
   onDisarm?: () => void;
 }) {
+  const { t } = useLang();
+  const resolvedConfirmLabel = confirmLabel ?? t.admin.tapToConfirm;
   const btnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -113,7 +116,7 @@ export function ConfirmDropdownItem({
         className={`absolute inset-0 ${fill} transition-transform duration-300 ease-out ${armed ? "translate-x-0" : "translate-x-full"}`}
       />
       <span className={`relative z-10 transition-colors duration-200 ${armed ? armedColor : idleColor}`}>
-        {armed ? confirmLabel : label}
+        {armed ? resolvedConfirmLabel : label}
       </span>
       <span className={`relative z-10 shrink-0 flex items-center justify-center [&>svg]:w-[18px] [&>svg]:h-[18px] transition-transform duration-300 ${
         armed ? `${armedColor} rotate-12` : idleColor

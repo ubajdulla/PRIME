@@ -1,3 +1,5 @@
+import type { Dict } from "../i18n/types";
+
 export type PaymentStatus = "unpaid" | "cash" | "online";
 export type JoinType = "direct" | "request";
 export type EventStatus = "upcoming" | "past" | "draft" | "canceled";
@@ -5,6 +7,21 @@ export type EventStatus = "upcoming" | "past" | "draft" | "canceled";
 // Ordered lowest → highest
 export const SKILL_ORDER = ["Rookie", "Beginner", "Intermediate", "Advanced", "Pro", "PRIME"] as const;
 export type SkillLevel = typeof SKILL_ORDER[number];
+
+// Skill level values are stored/compared in English (DB values, lookup keys) -
+// this only translates them for display.
+const LEVEL_KEY: Record<string, keyof Dict["levels"]> = {
+  Rookie: "rookie",
+  Beginner: "beginner",
+  Intermediate: "intermediate",
+  Advanced: "advanced",
+  Pro: "pro",
+  PRIME: "prime",
+};
+export function levelLabel(level: string, t: Dict): string {
+  const key = LEVEL_KEY[level];
+  return key ? t.levels[key] : level;
+}
 
 // One color for every tier — the app's accent violet. Only the numeric
 // range in the bookmark changes between levels, not the color. Shared

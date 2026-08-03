@@ -334,7 +334,7 @@ export function AdminEventDetail() {
       const { error: notifyErr } = await supabase.from("notifications").insert(
         recipientIds.map(recipientId => ({
           recipient_id: recipientId, type: "event_canceled", title: "Event Canceled",
-          body: `"${event!.title}" (${shortDate(event!.event_date, true)}, ${event!.event_time}) was canceled by the organizer.`,
+          body: `"${event!.title}" (${shortDate(event!.event_date, t, true)}, ${event!.event_time}) was canceled by the organizer.`,
           event_id: event!.id,
         }))
       );
@@ -470,7 +470,7 @@ export function AdminEventDetail() {
   const isPast      = !isDraft && !isCanceled && isPastDate(event.event_date);
   const isScheduled = !isDraft && !isCanceled && !isPast && !!event.published_at && new Date(event.published_at) > new Date();
   const badgeStatus: EventStatus = isCanceled ? "canceled" : isPast ? "past" : "upcoming";
-  const badgeLabel   = isCanceled ? "Canceled" : isPast ? "Past" : "Published";
+  const badgeLabel   = isCanceled ? t.event.canceled : isPast ? t.event.past : t.event.published;
   const canJoinEvent = authUser?.id === event.moderator_id && !roster.some(p => p.id === authUser.id);
   const canLeaveEvent = authUser?.id === event.moderator_id && roster.some(p => p.id === authUser.id);
   const rosterLocked = isRosterLocked(event.event_date, event.roster_lock_override);
@@ -605,7 +605,7 @@ export function AdminEventDetail() {
             <div className="bg-[#212121] rounded-2xl overflow-hidden">
               <div className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
                 <Calendar size={16} className="text-[#462ed1]" />
-                <span className="text-sm font-semibold text-white/90">{shortDate(event.event_date, true)} · {event.event_time}</span>
+                <span className="text-sm font-semibold text-white/90">{shortDate(event.event_date, t, true)} · {event.event_time}</span>
               </div>
               <div className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
                 <Ticket size={16} className="text-[#462ed1]" />
@@ -653,9 +653,9 @@ export function AdminEventDetail() {
               <div className="h-full bg-[#462ed1] transition-all" style={{ width: event.capacity > 0 ? `${(onlinePaid / event.capacity) * 100}%` : "0%" }} />
             </div>
             <div className="flex gap-4 flex-wrap">
-              <LegendDot color="#4dcd5e" label={`${cashPaid} cash`} />
-              <LegendDot color="#462ed1" label={`${onlinePaid} online`} />
-              <LegendDot color="#ffffff30" label={`${unpaid} unpaid`} textColor="text-[#79828b]" />
+              <LegendDot color="#4dcd5e" label={`${cashPaid} ${t.admin.paymentCash}`} />
+              <LegendDot color="#462ed1" label={`${onlinePaid} ${t.admin.paymentOnline}`} />
+              <LegendDot color="#ffffff30" label={`${unpaid} ${t.admin.paymentUnpaid}`} textColor="text-[#79828b]" />
             </div>
           </div>
         )}
@@ -1101,6 +1101,7 @@ function MenuAction({ icon, label, onClick, danger, iconRight }: { icon: React.R
 const PAYMENT_CYCLE: PaymentStatus[] = ["unpaid", "cash", "online"];
 
 function PaymentToggle({ status, onConfirm }: { status: PaymentStatus; onConfirm: (s: PaymentStatus) => void }) {
+  const { t } = useLang();
   const [pending, setPending] = useState<PaymentStatus>(status);
   const [progress, setProgress] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -1143,7 +1144,7 @@ function PaymentToggle({ status, onConfirm }: { status: PaymentStatus; onConfirm
   const isConfirmed = pending === status;
   const confirmedAndSet = isConfirmed && status !== "unpaid";
 
-  const label = pending === "cash" ? "Cash" : pending === "online" ? "Online" : "Unpaid";
+  const label = pending === "cash" ? t.admin.paymentCash : pending === "online" ? t.admin.paymentOnline : t.admin.paymentUnpaid;
   const fillColor = pending === "online" ? "bg-[#462ed1]" : "bg-[#4dcd5e]";
   const confirmedBg = status === "online" ? "bg-[#462ed1]/10" : "bg-[#4dcd5e]/10";
   const confirmedText = status === "online" ? "text-[#462ed1]" : "text-[#4dcd5e]";

@@ -110,6 +110,8 @@ export const en: Dict = {
     flaked: "Flaked",
     you: "You",
     canceled: "Canceled",
+    published: "Published",
+    past: "Past",
     leaveTitle: "Leave Event?",
     leaveDesc: "You'll be removed from the roster.",
     leaveBtn: "Leave",
@@ -174,6 +176,9 @@ export const en: Dict = {
     collectedWeek: "Collected (week)",
     paid: "paid",
     unpaid: "unpaid",
+    paymentUnpaid: "Unpaid",
+    paymentCash: "Cash",
+    paymentOnline: "Card",
 
     // Events tab
     createBtn: "Create",
@@ -304,5 +309,19 @@ export const en: Dict = {
     friday: "Friday",
     saturday: "Saturday",
     sunday: "Sunday",
+  },
+  dateFmt: {
+    dow: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"],
+    dowTitle: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    mon: ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"],
+    monTitle: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+  },
+  levels: {
+    rookie: "Rookie",
+    beginner: "Beginner",
+    intermediate: "Intermediate",
+    advanced: "Advanced",
+    pro: "Pro",
+    prime: "PRIME",
   },
 };

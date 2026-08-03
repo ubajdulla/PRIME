@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router";
 import { Navigate } from "react-router";
 import { Send, Instagram, Calendar, MapPin, User } from "lucide-react";
-import { SKILL_STYLE } from "../data/adminData";
+import { SKILL_STYLE, levelLabel } from "../data/adminData";
 import { BackBar } from "../components/ui/BackBar";
 import { TrustDot } from "../components/ui/TrustDot";
 import { VerifiedBadge } from "../components/ui/VerifiedBadge";
@@ -103,7 +103,7 @@ export function PlayerProfile() {
         </div>
         <h1 className="text-xl font-semibold text-white mb-1">{player.name}</h1>
         <span className={`text-sm font-medium ${SKILL_COLOR[player.skill_level] ?? "text-white"}`}>
-          {player.skill_level}
+          {levelLabel(player.skill_level, t)}
         </span>
       </div>
 
@@ -180,7 +180,7 @@ export function PlayerProfile() {
                   <div className="flex flex-wrap gap-3 text-xs text-[#aaa]">
                     <span className="flex items-center gap-1">
                       <Calendar size={11} className="text-[#462ed1]" />
-                      {shortDate(e.event_date, true)}
+                      {shortDate(e.event_date, t, true)}
                     </span>
                     <span className="flex items-center gap-1">
                       <MapPin size={11} className="text-[#462ed1]" />
@@ -210,7 +210,7 @@ export function PlayerProfile() {
                   className="relative flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden"
                 >
                   <span className="text-sm text-white/75 truncate">{e.title}</span>
-                  <span className="text-xs text-[#aaa] shrink-0 ml-3">{shortDate(e.event_date, true)}</span>
+                  <span className="text-xs text-[#aaa] shrink-0 ml-3">{shortDate(e.event_date, t, true)}</span>
                 </Link>
               ))}
             </div>

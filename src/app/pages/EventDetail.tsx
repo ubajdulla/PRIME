@@ -456,7 +456,7 @@ return (
             <div className="bg-[#212121] rounded-2xl overflow-hidden">
               <div className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
                 <Calendar size={16} className={theme.primary} />
-                <span className="text-sm font-semibold text-white/90">{shortDate(event.event_date, true)} · {event.event_time}</span>
+                <span className="text-sm font-semibold text-white/90">{shortDate(event.event_date, t, true)} · {event.event_time}</span>
               </div>
               <div className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
                 <Ticket size={16} className={theme.primary} />
@@ -536,7 +536,7 @@ return (
                   )}
                   {myStatus
                     ? leaveArmed
-                      ? "Tap to Confirm"
+                      ? t.admin.tapToConfirm
                       : myStatus === "joined" ? t.event.leaveBtn.toUpperCase() : t.event.cancelRequestBtn.toUpperCase()
                     : joinButtonLabel()}
                 </span>

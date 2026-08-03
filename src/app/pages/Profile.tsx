@@ -4,7 +4,7 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { useLang } from "../i18n";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
-import { SKILL_STYLE } from "../data/adminData";
+import { SKILL_STYLE, levelLabel } from "../data/adminData";
 import { shortDate, isPastDate } from "../lib/eventDate";
 import {
   Phone, Mail, Instagram, Send, MapPin, Calendar, Clock,
@@ -210,7 +210,7 @@ export function Profile() {
           )}
         </div>
         <span className={`text-sm font-medium ${skillStyle.text}`}>
-          {profile.skill_level}
+          {levelLabel(profile.skill_level, t)}
         </span>
       </div>
 
@@ -428,7 +428,7 @@ export function Profile() {
                     {pending && <Clock size={14} className="text-[#f5c542] shrink-0" />}
                   </div>
                   <div className="flex flex-wrap gap-3 text-xs text-[#aaa]">
-                    <span className="flex items-center gap-1"><Calendar size={11} className="text-[#462ed1]" />{shortDate(e.event_date, true)}</span>
+                    <span className="flex items-center gap-1"><Calendar size={11} className="text-[#462ed1]" />{shortDate(e.event_date, t, true)}</span>
                     <span className="flex items-center gap-1"><Clock    size={11} className="text-[#462ed1]" />{e.event_time}</span>
                     <span className="flex items-center gap-1"><MapPin   size={11} className="text-[#462ed1]" />{e.location}</span>
                   </div>
@@ -453,7 +453,7 @@ export function Profile() {
                   className={`relative flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden`}
                 >
                   <span className="text-sm text-white/75 truncate">{e.title}</span>
-                  <span className="text-xs text-[#aaa] shrink-0 ml-3">{shortDate(e.event_date, true)}</span>
+                  <span className="text-xs text-[#aaa] shrink-0 ml-3">{shortDate(e.event_date, t, true)}</span>
                 </Link>
               ))}
             </div>

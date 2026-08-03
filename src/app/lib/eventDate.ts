@@ -1,15 +1,12 @@
-const DOW_UPPER = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-const DOW_TITLE = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MON_UPPER = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-const MON_TITLE = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+import type { Dict } from "../i18n/types";
 
-export function relativeDay(dateStr: string): "TODAY" | "TOMORROW" | null {
+export function relativeDay(dateStr: string): "today" | "tomorrow" | null {
   const d = new Date(dateStr + "T00:00:00");
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const diffDays = Math.round((d.getTime() - today.getTime()) / 86_400_000);
-  if (diffDays === 0) return "TODAY";
-  if (diffDays === 1) return "TOMORROW";
+  if (diffDays === 0) return "today";
+  if (diffDays === 1) return "tomorrow";
   return null;
 }
 
@@ -33,9 +30,30 @@ export function isRosterLocked(dateStr: string, override: "locked" | "unlocked" 
   return Date.now() >= d.getTime();
 }
 
-export function shortDate(dateStr: string, titleCase = false): string {
+export function shortDate(dateStr: string, t: Dict, titleCase = false): string {
   const d = new Date(dateStr + "T00:00:00");
-  const dow = titleCase ? DOW_TITLE[d.getDay()] : DOW_UPPER[d.getDay()];
-  const mon = titleCase ? MON_TITLE[d.getMonth()] : MON_UPPER[d.getMonth()];
+  const dow = titleCase ? t.dateFmt.dowTitle[d.getDay()] : t.dateFmt.dow[d.getDay()];
+  const mon = titleCase ? t.dateFmt.monTitle[d.getMonth()] : t.dateFmt.mon[d.getMonth()];
   return `${dow}, ${mon} ${d.getDate()}`;
+}
+
+// "Today"/"Tomorrow" (uppercase, to match the badge-style short date) or the
+// localized "DOW, MON D" short date - the primary label used on event cards
+// and the home feed's date rail.
+export function formatEventDate(dateStr: string, t: Dict): string {
+  const rel = relativeDay(dateStr);
+  if (rel === "today") return t.days.today.toUpperCase();
+  if (rel === "tomorrow") return t.days.tomorrow.toUpperCase();
+  return shortDate(dateStr, t);
+}
+
+// Full weekday name (or "Today"/"Tomorrow") - the secondary label under the
+// short date on the home feed's date rail.
+export function weekdayLabel(dateStr: string, t: Dict): string {
+  const rel = relativeDay(dateStr);
+  if (rel === "today") return t.days.today;
+  if (rel === "tomorrow") return t.days.tomorrow;
+  const d = new Date(dateStr + "T00:00:00");
+  const keys: (keyof Dict["days"])[] = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  return t.days[keys[d.getDay()]];
 }
