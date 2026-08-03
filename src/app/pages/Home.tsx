@@ -6,7 +6,7 @@ import { EventCard, EventCardProps } from "../components/EventCard";
 import { useLang, type Dict } from "../i18n";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
-import { SKILL_STYLE, levelLabel } from "../data/adminData";
+import { SKILL_STYLE, levelLabel, positionLabel } from "../data/adminData";
 import { computeJoinStatus } from "../lib/joinType";
 import { formatEventDate, weekdayLabel } from "../lib/eventDate";
 import { categoryImage } from "../lib/eventImages";
@@ -211,7 +211,7 @@ export function Home() {
                   {t.home.greeting.hello}, {profile.name.split(" ")[0]}
                 </h1>
                 <div className="text-sm font-semibold text-white mt-1.5">
-                  {profile.position ? `${levelLabel(profile.skill_level, t)} ${profile.position}` : levelLabel(profile.skill_level, t)}
+                  {profile.position ? `${levelLabel(profile.skill_level, t)} ${positionLabel(profile.position, t)}` : levelLabel(profile.skill_level, t)}
                 </div>
               </div>
             </div>

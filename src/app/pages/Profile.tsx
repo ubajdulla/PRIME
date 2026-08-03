@@ -4,7 +4,7 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { useLang } from "../i18n";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
-import { SKILL_STYLE, levelLabel } from "../data/adminData";
+import { SKILL_STYLE, levelLabel, POSITIONS, positionLabel } from "../data/adminData";
 import { shortDate, isPastDate } from "../lib/eventDate";
 import {
   Phone, Mail, Instagram, Send, MapPin, Calendar, Clock,
@@ -17,8 +17,6 @@ import { DateOfBirthRow } from "../components/ui/DateOfBirthRow";
 import { EditToggleButtons } from "../components/ui/EditToggleButtons";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { LABEL_META, SENTIMENT_COLOR, type TrustLabel } from "../lib/trustLabel";
-
-const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
 
 type EventRow = { id: string; title: string; event_date: string; event_time: string; location: string; status: string };
 type NoteRow = { id: string; author_name: string; body: string; created_at: string; label: TrustLabel | null };
@@ -230,7 +228,7 @@ export function Profile() {
             <span className="text-sm text-[#aaa]">{t.profile.position}</span>
             <SelectField
               value={profile.position ?? POSITIONS[0]}
-              options={POSITIONS}
+              options={POSITIONS.map(p => ({ value: p, label: positionLabel(p, t) }))}
               onChange={v => updateProfile({ position: v })}
               triggerClassName="flex items-center gap-1.5 text-white text-sm hover:opacity-80 transition-opacity focus:outline-none"
               panelClassName="absolute right-0 top-full mt-1.5 z-30"

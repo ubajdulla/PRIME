@@ -16,7 +16,7 @@ import { VerifiedBadge } from "../../components/ui/VerifiedBadge";
 import { TrustDot } from "../../components/ui/TrustDot";
 import { LevelBookmark } from "../../components/ui/LevelBookmark";
 import { CategoryIcon } from "../../components/ui/CategoryIcon";
-import { getStatusStyle, type PaymentStatus, type EventStatus } from "../../data/adminData";
+import { getStatusStyle, POSITIONS, positionLabel, type PaymentStatus, type EventStatus } from "../../data/adminData";
 import { navDir } from "../../lib/navDir";
 import { Toast } from "../../components/ui/Toast";
 import { supabase } from "../../lib/supabaseClient";
@@ -49,8 +49,6 @@ type EventRow = {
 
 type RosterEntry = { id: string; rowId: string; name: string; avatar: string | null; position: string | null; teamName: string | null; paymentStatus: PaymentStatus; isGuest: boolean; verified: boolean; trustLabel: string | null };
 type PersonEntry = { id: string; name: string; avatar: string | null; position: string | null; teamName: string | null };
-
-const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
 
 export function AdminEventDetail() {
   const { id } = useParams();
@@ -854,7 +852,7 @@ export function AdminEventDetail() {
                         <div onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
                           <SelectField
                             value={player.position ?? POSITIONS[0]}
-                            options={POSITIONS}
+                            options={POSITIONS.map(p => ({ value: p, label: positionLabel(p, t) }))}
                             onChange={v => updatePosition(player.rowId, v)}
                             triggerClassName="flex items-center gap-1 text-[#79828b] text-[11px] uppercase tracking-wider hover:text-white transition-colors focus:outline-none -ml-0.5"
                             panelWidthClassName="w-52"

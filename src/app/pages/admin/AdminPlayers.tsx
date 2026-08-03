@@ -9,7 +9,7 @@ import { LABEL_META, SENTIMENT_COLOR, effectiveLabel } from "../../lib/trustLabe
 import { navDir } from "../../lib/navDir";
 import { useHorizontalSwipe } from "../../lib/useHorizontalSwipe";
 import { supabase } from "../../lib/supabaseClient";
-import { levelLabel } from "../../data/adminData";
+import { levelLabel, positionLabel } from "../../data/adminData";
 import { useLang } from "../../i18n";
 
 const LEVELS = ["PRIME", "Pro", "Advanced", "Intermediate", "Beginner", "Rookie"] as const;
@@ -329,7 +329,7 @@ export function AdminPlayers() {
           <div className="font-bold text-white text-sm truncate">{p.name}</div>
           <div className="flex items-center gap-1.5 text-[#79828b] text-[11px] uppercase tracking-wider">
             <span className={CATEGORY_TEXT_CLASS[p.skill_level] ?? ""}>{levelLabel(p.skill_level, t)}</span>
-            {p.position && <span>· {p.position}</span>}
+            {p.position && <span>· {positionLabel(p.position, t)}</span>}
           </div>
         </div>
         <div className="text-right shrink-0 mr-1">

@@ -74,7 +74,7 @@ type NoteRow = {
 
 export function AdminPlayerProfile() {
   const { playerId } = useParams<{ playerId: string }>();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { user: viewer, profile: viewerProfile } = useAuth();
 
   const [profile, setProfile] = useState<ProfileRow | null>(null);
@@ -259,7 +259,7 @@ export function AdminPlayerProfile() {
 
   function formatDate(d: string) {
     if (!d) return "";
-    return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    return new Date(d).toLocaleDateString(lang === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "short", year: "numeric" });
   }
 
   function openDetailsEdit() {
@@ -372,7 +372,7 @@ export function AdminPlayerProfile() {
   }
 
   function formatDateTime(d: string) {
-    return new Date(d).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    return new Date(d).toLocaleString(lang === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
   }
 
   async function confirmSuspend() {
@@ -502,7 +502,7 @@ export function AdminPlayerProfile() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[10px] text-[#79828b] mb-0.5">{t.admin.reasonOptional}</div>
-                <input type="text" value={suspendReason} onChange={e => setSuspendReason(e.target.value)} placeholder="e.g. repeated no-show"
+                <input type="text" value={suspendReason} onChange={e => setSuspendReason(e.target.value)} placeholder={t.common.reasonPlaceholder}
                   className="w-full bg-transparent text-white text-sm font-bold outline-none placeholder:text-[#79828b] placeholder:font-normal" />
               </div>
             </div>
@@ -528,7 +528,7 @@ export function AdminPlayerProfile() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[10px] text-[#79828b] mb-0.5">{t.admin.reasonOptional}</div>
-                <input type="text" value={banReason} onChange={e => setBanReason(e.target.value)} placeholder="e.g. harassment"
+                <input type="text" value={banReason} onChange={e => setBanReason(e.target.value)} placeholder={t.common.reasonPlaceholder}
                   className="w-full bg-transparent text-white text-sm font-bold outline-none placeholder:text-[#79828b] placeholder:font-normal" />
               </div>
             </div>
@@ -924,7 +924,7 @@ export function AdminPlayerProfile() {
                 <button ref={suspendBtnRef} onClick={openSuspendModal} disabled={player.is_banned || player.is_verified || hierarchyLocked}
                   title={player.is_verified ? t.admin.cantBeSuspended : undefined}
                   className="w-24 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/70 text-[11px] font-black uppercase tracking-wider hover:bg-white/10 hover:text-white transition-colors focus:outline-none shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
-                  {t.admin.suspend}
+                  {t.admin.suspendBtn}
                 </button>
               )}
             </div>

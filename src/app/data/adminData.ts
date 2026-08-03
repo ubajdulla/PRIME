@@ -23,6 +23,20 @@ export function levelLabel(level: string, t: Dict): string {
   return key ? t.levels[key] : level;
 }
 
+// Volleyball positions - stored/compared in English (DB values), translated for display.
+export const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"] as const;
+const POSITION_KEY: Record<string, keyof Dict["positions"]> = {
+  "Outside Hitter": "outsideHitter",
+  "Opposite Hitter": "oppositeHitter",
+  "Setter": "setter",
+  "Middle Blocker": "middleBlocker",
+  "Libero": "libero",
+};
+export function positionLabel(position: string, t: Dict): string {
+  const key = POSITION_KEY[position];
+  return key ? t.positions[key] : position;
+}
+
 // One color for every tier — the app's accent violet. Only the numeric
 // range in the bookmark changes between levels, not the color. Shared
 // between EventCard's ribbon and the event detail info panel bookmark.

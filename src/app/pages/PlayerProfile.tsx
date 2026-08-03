@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router";
 import { Navigate } from "react-router";
 import { Send, Instagram, Calendar, MapPin, User } from "lucide-react";
-import { SKILL_STYLE, levelLabel } from "../data/adminData";
+import { SKILL_STYLE, levelLabel, positionLabel } from "../data/adminData";
 import { BackBar } from "../components/ui/BackBar";
 import { TrustDot } from "../components/ui/TrustDot";
 import { VerifiedBadge } from "../components/ui/VerifiedBadge";
@@ -113,7 +113,7 @@ export function PlayerProfile() {
         <div className="bg-[#212121] rounded-xl">
           <div className="flex items-center justify-between px-4 py-3.5">
             <span className="text-sm text-[#aaa]">{t.profile.position}</span>
-            <span className="text-white text-sm font-bold">{player.position ?? "—"}</span>
+            <span className="text-white text-sm font-bold">{player.position ? positionLabel(player.position, t) : "—"}</span>
           </div>
         </div>
 

@@ -14,13 +14,15 @@ export function DatePickerField({
   value,
   onChange,
   triggerClassName,
-  placeholder = "Select date",
+  placeholder,
 }: {
   value: string; // "yyyy-MM-dd" or ""
   onChange: (v: string) => void;
   triggerClassName: string;
   placeholder?: string;
 }) {
+  const { t } = useLang();
+  const resolvedPlaceholder = placeholder ?? t.common.selectDate;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const selected = value ? new Date(value + "T00:00:00") : null;
@@ -45,7 +47,7 @@ export function DatePickerField({
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen(v => !v)} className={triggerClassName}>
         <span className={selected ? "" : "text-[#79828b]"}>
-          {selected ? format(selected, "EEE, MMM d yyyy") : placeholder}
+          {selected ? format(selected, "EEE, MMM d yyyy") : resolvedPlaceholder}
         </span>
         <CalendarIcon size={14} className="shrink-0 text-[#79828b]" />
       </button>

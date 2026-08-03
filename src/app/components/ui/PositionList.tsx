@@ -12,12 +12,12 @@ const ACCENT = {
 };
 
 function PositionRow({
-  pos,
+  label,
   selected,
   onSelect,
   colors,
 }: {
-  pos: string;
+  label: string;
   selected: boolean;
   onSelect: () => void;
   colors: (typeof ACCENT)["violet"];
@@ -34,7 +34,7 @@ function PositionRow({
     >
       <span aria-hidden className={`absolute left-0 top-2 bottom-2 w-[3px] rounded-full transition-colors ${selected ? colors.bar : "bg-transparent"}`} />
       <span className={`flex-1 text-xs font-bold transition-colors ${selected ? colors.text : "text-[#79828b] group-hover:text-white"}`}>
-        {pos}
+        {label}
       </span>
       <Check size={14} className={`shrink-0 transition-opacity ${selected ? `${colors.text} opacity-100` : "opacity-0"}`} />
       <RippleLayer ripples={ripple.ripples} />
@@ -48,7 +48,7 @@ export function PositionList({
   onChange,
   accent = "violet",
 }: {
-  positions: readonly string[];
+  positions: readonly { value: string; label: string }[];
   value: string | null;
   onChange: (v: string) => void;
   accent?: "violet" | "gold";
@@ -57,7 +57,7 @@ export function PositionList({
   return (
     <div className="bg-white/5 rounded-2xl overflow-hidden">
       {positions.map(pos => (
-        <PositionRow key={pos} pos={pos} selected={value === pos} onSelect={() => onChange(pos)} colors={colors} />
+        <PositionRow key={pos.value} label={pos.label} selected={value === pos.value} onSelect={() => onChange(pos.value)} colors={colors} />
       ))}
     </div>
   );

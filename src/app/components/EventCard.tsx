@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { MapPin, Calendar, Clock, ChevronRight, User } from "lucide-react";
 import { LevelBookmark } from "./ui/LevelBookmark";
 import { CategoryIcon } from "./ui/CategoryIcon";
+import { useLang } from "../i18n";
 
 export interface EventCardProps {
   id: string;
@@ -38,6 +39,7 @@ export function EventCard({
   horizontal = false,
   canceled = false,
 }: EventCardProps) {
+  const { t } = useLang();
   const fillPct = Math.min(100, (capacity.current / capacity.max) * 100);
   const initials = moderator?.name?.trim().charAt(0).toUpperCase() ?? "";
 
@@ -111,7 +113,7 @@ export function EventCard({
             />
           </div>
           <span className="text-[#79828b] text-[11px] font-bold shrink-0 uppercase tracking-wide">
-            {capacity.current}/{capacity.max} spots
+            {capacity.current}/{capacity.max} {t.event.spots}
           </span>
         </div>
 

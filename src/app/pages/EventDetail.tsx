@@ -29,6 +29,7 @@ import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { computeJoinStatus } from "../lib/joinType";
 import { shortDate, isRosterLocked } from "../lib/eventDate";
+import { POSITIONS, positionLabel } from "../data/adminData";
 
 type EventRow = {
   id: string;
@@ -54,7 +55,6 @@ type WaitlistEntry = { id: string; name: string; avatar: string | null; trustLab
 
 type JoinStatus = null | "joined" | "pending";
 
-const POSITIONS = ["Outside Hitter", "Opposite Hitter", "Setter", "Middle Blocker", "Libero"];
 const POSITION_REQUIRED_LEVELS = ["Advanced", "Pro", "PRIME"];
 
 // Mobile scrolls inside <main> (fixed header/footer bars around it); desktop scrolls the window.
@@ -370,7 +370,7 @@ return (
             <div className="mb-5">
               <p className="block w-full text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-3">{t.event.selectPosition}</p>
               <PositionList
-                positions={POSITIONS}
+                positions={POSITIONS.map(p => ({ value: p, label: positionLabel(p, t) }))}
                 value={selectedPosition}
                 onChange={setSelectedPosition}
                 accent={isRequestOnly ? "gold" : "violet"}
@@ -589,7 +589,7 @@ return (
                         </span>
                       ) : requiresPosition && player.position ? (
                         <span className={`text-[10px] font-bold uppercase tracking-widest ${theme.primary}`}>
-                          {player.position}
+                          {positionLabel(player.position, t)}
                         </span>
                       ) : undefined
                     }

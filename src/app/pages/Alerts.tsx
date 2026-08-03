@@ -68,24 +68,25 @@ const FALLBACK_CONFIG = { icon: Bell, bg: "bg-white/10", color: "text-white/70",
 
 type Filter = "all" | "unread";
 
-function bucketFor(createdAt: string): "Today" | "Yesterday" | "Earlier" {
+function bucketFor(createdAt: string): "today" | "yesterday" | "earlier" {
   const day = new Date(createdAt); day.setHours(0, 0, 0, 0);
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const diff = Math.round((today.getTime() - day.getTime()) / 86_400_000);
-  if (diff === 0) return "Today";
-  if (diff === 1) return "Yesterday";
-  return "Earlier";
+  if (diff === 0) return "today";
+  if (diff === 1) return "yesterday";
+  return "earlier";
 }
 
-function formatTime(createdAt: string, group: string): string {
+function formatTime(createdAt: string, group: string, locale: string): string {
   const d = new Date(createdAt);
-  return group === "Earlier"
-    ? d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
-    : d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return group === "earlier"
+    ? d.toLocaleDateString(locale, { month: "short", day: "numeric" })
+    : d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 }
 
 export function Alerts() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const locale = lang === "ru" ? "ru-RU" : "en-GB";
   const { user: authUser } = useAuth();
   const [filter, setFilter] = useState<Filter>("all");
   const [rows, setRows] = useState<NotificationRow[]>([]);
@@ -125,7 +126,7 @@ export function Alerts() {
       type: r.type,
       title: r.title,
       description: r.body,
-      time: formatTime(r.created_at, group),
+      time: formatTime(r.created_at, group, locale),
       unread: !r.read,
       eventId: r.event_id ?? undefined,
       relatedId: r.related_id ?? undefined,
@@ -133,9 +134,9 @@ export function Alerts() {
   }
 
   const groupedAll = useMemo(() => {
-    const buckets: Record<"Today" | "Yesterday" | "Earlier", AlertItem[]> = { Today: [], Yesterday: [], Earlier: [] };
+    const buckets: Record<"today" | "yesterday" | "earlier", AlertItem[]> = { today: [], yesterday: [], earlier: [] };
     for (const r of rows) buckets[bucketFor(r.created_at)].push(toAlertItem(r));
-    return (["Today", "Yesterday", "Earlier"] as const)
+    return (["today", "yesterday", "earlier"] as const)
       .map(group => ({ group, items: buckets[group] }))
       .filter(g => g.items.length > 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -184,7 +185,7 @@ export function Alerts() {
             body: `You are now the moderator for "${swap.events?.title}".`, event_id: swap.event_id, related_id: swapId },
         ]);
         if (notifyErr) console.error("Failed to send swap-accepted notifications:", notifyErr);
-        fireToast("Swap Accepted!", "success");
+        fireToast(t.alerts.swapAccepted, "success");
         await markRead(alert.id);
         setSwapStatus(prev => ({ ...prev, [swapId]: "resolved" }));
         return;
@@ -201,7 +202,7 @@ export function Alerts() {
       event_id: swap.event_id, related_id: swapId,
     });
     if (notifyErr1) console.error("Failed to send swap-failed notification:", notifyErr1);
-    fireToast("Could Not Complete The Swap", "error");
+    fireToast(t.alerts.swapFailed, "error");
     await markRead(alert.id);
     setSwapStatus(prev => ({ ...prev, [swapId]: "resolved" }));
   }
@@ -226,7 +227,7 @@ export function Alerts() {
       event_id: swap.event_id, related_id: swapId,
     });
     if (notifyErr2) console.error("Failed to send swap-declined notification:", notifyErr2);
-    fireToast("Swap Declined", "success");
+    fireToast(t.alerts.swapDeclined, "success");
     await markRead(alert.id);
     setSwapStatus(prev => ({ ...prev, [swapId]: "resolved" }));
   }
@@ -290,7 +291,7 @@ export function Alerts() {
             <div key={group}>
               <div className="flex items-center justify-between mb-3">
                 <p className="text-[#79828b] text-[11px] font-bold uppercase tracking-widest">
-                  {group}
+                  {t.alerts[group]}
                 </p>
                 {idx === 0 && totalUnread > 0 && (
                   <button

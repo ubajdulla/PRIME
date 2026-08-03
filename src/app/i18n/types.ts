@@ -16,6 +16,8 @@ export interface Dict {
     nothingHere: string;
     linkCopied: string;
     notFound: string;
+    selectDate: string;
+    reasonPlaceholder: string;
   };
   home: {
     eventsFeed: string;
@@ -67,6 +69,12 @@ export interface Dict {
     accept: string;
     decline: string;
     swapUnavailable: string;
+    today: string;
+    yesterday: string;
+    earlier: string;
+    swapAccepted: string;
+    swapDeclined: string;
+    swapFailed: string;
   };
   profile: {
     position: string;
@@ -120,6 +128,7 @@ export interface Dict {
     joinTitle: string;
     joinDesc: string;
     requestDesc: string;
+    spots: string;
     selectPosition: string;
     teamName: string;
     teamNamePlaceholder: string;
@@ -254,6 +263,7 @@ export interface Dict {
     notSuspended: string;
     lift: string;
     suspend: string;
+    suspendBtn: string;
     ban: string;
     notBanned: string;
     permanentlyBanned: string;
@@ -321,5 +331,12 @@ export interface Dict {
     advanced: string;
     pro: string;
     prime: string;
+  };
+  positions: {
+    outsideHitter: string;
+    oppositeHitter: string;
+    setter: string;
+    middleBlocker: string;
+    libero: string;
   };
 }
