@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate, useLocation, useBlocker } from "react-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Calendar, User, Bell, ShieldCheck, ChevronDown, Check, Settings, Moon, Sun } from "lucide-react";
+import { Calendar, User, Bell, ShieldCheck, ChevronDown, Check, Settings, Moon, Sun, Monitor } from "lucide-react";
 import logo from "../../imports/Prime_logo_nobg_white_border.png";
 import { useLang, LANG_CYCLE, type Lang } from "../i18n";
 import { useTheme, type Theme } from "../theme";
@@ -20,6 +20,7 @@ const LANG_OPTIONS: { code: Lang; label: string }[] = [
 ];
 
 const THEME_OPTIONS: { value: Theme; label: string; icon: React.ReactNode }[] = [
+  { value: "system", label: "System", icon: <Monitor size={14} /> },
   { value: "dark", label: "Dark", icon: <Moon size={14} /> },
   { value: "light", label: "Light", icon: <Sun size={14} /> },
 ];
@@ -238,8 +239,12 @@ export function MainLayout() {
         </div>
       </div>
 
-      {/* Main scroll container */}
-      <main ref={mainRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-none md:overflow-visible md:overscroll-auto md:flex-none md:ml-[72px] md:min-h-screen [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      {/* Main scroll container — bg-surface-1 is a fallback only: every page's
+          own min-h-full wrapper normally covers this completely, so it's only
+          ever visible in a gap (short admin content, iOS rubber-band bounce),
+          where it should read as "same white as the nav below", not the app's
+          surface-0 grey. */}
+      <main ref={mainRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-none bg-[var(--surface-1)] md:overflow-visible md:overscroll-auto md:flex-none md:ml-[72px] md:min-h-screen [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <Outlet />
       </main>
 

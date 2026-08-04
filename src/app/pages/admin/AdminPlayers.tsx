@@ -240,6 +240,16 @@ export function AdminPlayers() {
   const [loading, setLoading] = useState(true);
 
   const [focused, setFocused]     = useState(false);
+  // Scrolling while the keyboard is up should dismiss it (same as most
+  // native search UIs) without resetting the search — a capture-phase
+  // listener on document catches scroll from the app's scroll container
+  // (`<main>` in MainLayout) even though `scroll` events don't bubble.
+  useEffect(() => {
+    if (!focused) return;
+    const dismissKeyboard = () => searchRef.current?.blur();
+    document.addEventListener("scroll", dismissKeyboard, { capture: true, passive: true });
+    return () => document.removeEventListener("scroll", dismissKeyboard, true);
+  }, [focused]);
   const [search, setSearch]       = useState("");
   // status drives the pill highlight/indicator and updates synchronously so
   // the slide animation starts immediately on click. contentStatus drives
@@ -253,7 +263,18 @@ export function AdminPlayers() {
     setStatus(s);
     startTransition(() => setContentStatus(s));
   };
+  // category drives the circle's opacity highlight and updates synchronously
+  // so it dims/brightens immediately on tap. contentCategory drives which
+  // section renders (category results vs. search/recent) and is set inside
+  // startTransition so the heavier list swap never blocks the same frame as
+  // the highlight (same split as the status filter bar above).
   const [category, setCategory]   = useState<Category | null>(null);
+  const [contentCategory, setContentCategory] = useState<Category | null>(null);
+  const handleCategoryClick = (c: Category) => {
+    const next = category === c ? null : c;
+    setCategory(next);
+    startTransition(() => setContentCategory(next));
+  };
   const [recentTick, setRecentTick] = useState(0);
   // Players whose notes mention the current search text — kept separate from
   // the player fields since it needs its own (debounced) query instead of a
@@ -326,6 +347,7 @@ export function AdminPlayers() {
     setFocused(false);
     setSearch("");
     setCategory(null);
+    setContentCategory(null);
     searchRef.current?.blur();
   }
 
@@ -356,10 +378,10 @@ export function AdminPlayers() {
     return map;
   }, [labelNotes]);
   const categoryFiltered = useMemo(
-    () => category
-      ? players.filter(p => (category === "Admin" ? p.is_admin : p.skill_level === category) && matchesSearch(p)).sort(byName)
+    () => contentCategory
+      ? players.filter(p => (contentCategory === "Admin" ? p.is_admin : p.skill_level === contentCategory) && matchesSearch(p)).sort(byName)
       : [],
-    [category, players, search, noteMatchIds]
+    [contentCategory, players, search, noteMatchIds]
   );
   const searchResults = useMemo(
     () => search.trim() ? players.filter(matchesSearch).sort(byName) : [],
@@ -530,7 +552,7 @@ export function AdminPlayers() {
                 // input stays focused (cursor + keyboard both ready) and typing
                 // right after tapping a category works with no extra tap needed.
                 onPointerDown={e => e.preventDefault()}
-                onClick={() => setCategory(prev => (prev === c ? null : c))}
+                onClick={() => handleCategoryClick(c)}
                 className="flex flex-col items-center gap-1.5 w-14 shrink-0 text-center"
               >
                 <div
@@ -546,10 +568,10 @@ export function AdminPlayers() {
             ))}
           </div>
 
-          {category ? (
+          {contentCategory ? (
             <section>
               <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">
-                {categoryFiltered.length} {t.admin.inLabel} {catLabel(category)}
+                {categoryFiltered.length} {t.admin.inLabel} {catLabel(contentCategory)}
               </h2>
               <PlayerList list={categoryFiltered} empty={t.admin.noCategoryMatch} loading={loading} t={t} onPlayerClick={goToPlayer} />
             </section>

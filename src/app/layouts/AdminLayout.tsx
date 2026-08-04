@@ -15,7 +15,7 @@ export function AdminLayout() {
   if (!isAdmin) return <Navigate to="/" replace />;
 
   return (
-    <div className="bg-[var(--surface-0)]">
+    <div className="min-h-full bg-[var(--surface-0)]">
       {!isSubPage && (
         <div className="sticky top-0 z-10 bg-[var(--surface-0)] border-b border-[var(--ink)]/5 px-4">
           <div className="max-w-[640px] mx-auto flex">

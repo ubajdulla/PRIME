@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Link } from "react-router";
 import {
   Bell,
@@ -98,6 +98,17 @@ export function Alerts() {
   const locale = lang === "ru" ? "ru-RU" : "en-GB";
   const { user: authUser } = useAuth();
   const [filter, setFilter] = useState<Filter>("unread");
+  // filter drives the pill highlight/indicator and updates synchronously so
+  // the slide animation starts immediately on click. contentFilter drives
+  // which items render and is set inside startTransition so the heavier list
+  // re-render never blocks the same frame as the indicator animation (same
+  // split as Home's / AdminPlayers' filter bars).
+  const [contentFilter, setContentFilter] = useState<Filter>("unread");
+  const [, startTransition] = useTransition();
+  const handleFilterClick = (f: Filter) => {
+    setFilter(f);
+    startTransition(() => setContentFilter(f));
+  };
   const [rows, setRows] = useState<NotificationRow[]>([]);
   const [swapStatus, setSwapStatus] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error"; visible: boolean }>({ message: "", variant: "success", visible: false });
@@ -285,7 +296,7 @@ export function Alerts() {
   const filteredGroups = groupedAll
     .map(g => ({
       ...g,
-      items: filter === "unread" ? g.items.filter(a => a.unread) : g.items,
+      items: contentFilter === "unread" ? g.items.filter(a => a.unread) : g.items,
     }))
     .filter(g => g.items.length > 0);
 
@@ -315,7 +326,7 @@ export function Alerts() {
                   key={f}
                   pillKey={f}
                   active={filter === f}
-                  onClick={() => setFilter(f)}
+                  onClick={() => handleFilterClick(f)}
                   label={f === "unread" && totalUnread > 0 ? t.alerts.unreadCount(totalUnread) : f === "unread" ? t.alerts.filterUnread : t.alerts.filterAll}
                 />
               ))}
@@ -331,10 +342,10 @@ export function Alerts() {
               <Bell size={32} className="text-[var(--brand)]" />
             </div>
             <h3 className="text-xl font-bold text-[var(--ink)]">
-              {filter === "unread" ? t.alerts.allCaughtUp : t.alerts.noAlerts}
+              {contentFilter === "unread" ? t.alerts.allCaughtUp : t.alerts.noAlerts}
             </h3>
             <p className="text-[#79828b] text-center text-sm max-w-xs leading-relaxed">
-              {filter === "unread" ? t.alerts.emptyUnreadDesc : t.alerts.emptyAllDesc}
+              {contentFilter === "unread" ? t.alerts.emptyUnreadDesc : t.alerts.emptyAllDesc}
             </p>
           </div>
         )}
