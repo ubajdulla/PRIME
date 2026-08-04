@@ -27,13 +27,14 @@ type EventRow = {
   event_participants: { id: string; profiles: { id: string; avatar: string | null } | null }[] | null;
 };
 
-const ALL_FILTERS = ["ALL", "TOURNAMENT", "GAMES", "TRAININGS", "EVENTS", "BEACH", "JOIN DIRECTLY", "REQUEST ONLY"] as const;
+const ALL_FILTERS = ["ALL", "TOURNAMENT", "GAMES", "OPENGYM", "TRAININGS", "EVENTS", "BEACH", "JOIN DIRECTLY", "REQUEST ONLY"] as const;
 
 // Maps each filter key to its key in t.home.filters
 const FILTER_KEY: Record<string, keyof Dict["home"]["filters"]> = {
   ALL: "all",
   TOURNAMENT: "tournament",
   GAMES: "games",
+  OPENGYM: "openGym",
   TRAININGS: "trainings",
   EVENTS: "events",
   BEACH: "beach",

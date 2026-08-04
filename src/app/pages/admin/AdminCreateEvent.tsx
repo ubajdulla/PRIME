@@ -11,10 +11,21 @@ import { supabase } from "../../lib/supabaseClient";
 import { categoryImage } from "../../lib/eventImages";
 import { encodeNotification, type EventChange } from "../../lib/notificationText";
 import { useWaterRipple, RippleLayer } from "../../components/ui/useWaterRipple";
-import { useLang } from "../../i18n";
+import { useLang, type Dict } from "../../i18n";
 import { useExclusiveOpen } from "../../lib/exclusiveOpen";
 
-const CATEGORIES = ["GAMES", "TOURNAMENT", "TRAININGS", "BEACH", "EVENTS"];
+const CATEGORIES = ["GAMES", "OPENGYM", "TOURNAMENT", "TRAININGS", "BEACH", "EVENTS"] as const;
+
+// Maps each category constant to its key in t.home.filters, so the create-event
+// dropdown shows the same translated label as the Home filter bar.
+const CATEGORY_KEY: Record<string, keyof Dict["home"]["filters"]> = {
+  GAMES: "games",
+  OPENGYM: "openGym",
+  TOURNAMENT: "tournament",
+  TRAININGS: "trainings",
+  BEACH: "beach",
+  EVENTS: "events",
+};
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = ["00", "15", "30", "45"];
@@ -22,6 +33,7 @@ const MINUTES = ["00", "15", "30", "45"];
 function suggestedTitle(category: string, level: string): string {
   const isAdvancedPlus = SKILL_ORDER.indexOf(level as (typeof SKILL_ORDER)[number]) >= SKILL_ORDER.indexOf("Advanced");
   if (category === "GAMES")     return isAdvancedPlus ? "GAME 5-1" : "GAME";
+  if (category === "OPENGYM")   return isAdvancedPlus ? "OpenGym Advanced" : "OpenGym";
   if (category === "TRAININGS") return isAdvancedPlus ? "Advanced training" : "Training";
   if (category === "BEACH")     return isAdvancedPlus ? "Beach advanced" : "Beach";
   return "";
@@ -115,7 +127,7 @@ export function AdminCreateEvent() {
     requestAnimationFrame(() => setShake(true));
   }
 
-  const showLevel = f.category === "GAMES" || f.category === "TRAININGS" || f.category === "BEACH";
+  const showLevel = f.category === "GAMES" || f.category === "OPENGYM" || f.category === "TRAININGS" || f.category === "BEACH";
   const image = categoryImage(f.category);
 
   async function handleAttachmentChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -335,7 +347,12 @@ export function AdminCreateEvent() {
         {/* Category + Level */}
         <FieldGroup className={`grid ${showLevel ? "grid-cols-2 divide-x divide-[var(--ink)]/5" : "grid-cols-1"}`}>
           <Field label={t.admin.category}>
-            <SelectField value={f.category} options={CATEGORIES} onChange={v => s("category", v)} triggerClassName={F_SEL} />
+            <SelectField
+              value={f.category}
+              options={CATEGORIES.map(c => ({ value: c, label: t.home.filters[CATEGORY_KEY[c]] }))}
+              onChange={v => s("category", v)}
+              triggerClassName={F_SEL}
+            />
           </Field>
           {showLevel && (
             <Field label={t.admin.level}>

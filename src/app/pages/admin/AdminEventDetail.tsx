@@ -897,15 +897,17 @@ export function AdminEventDetail() {
                     ) : (
                       <>
                         <div className="font-bold text-[var(--ink)] text-sm truncate">{player.name}</div>
-                        <div onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
-                          <SelectField
-                            value={player.position ?? POSITIONS[0]}
-                            options={POSITIONS.map(p => ({ value: p, label: positionLabel(p, t) }))}
-                            onChange={v => updatePosition(player.rowId, v)}
-                            triggerClassName="flex items-center gap-1 text-[#79828b] text-[11px] uppercase tracking-wider hover:text-[var(--ink)] transition-colors focus:outline-none -ml-0.5"
-                            panelWidthClassName="w-52"
-                          />
-                        </div>
+                        {event.category !== "BEACH" && event.category !== "EVENTS" && (
+                          <div onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
+                            <SelectField
+                              value={player.position ?? POSITIONS[0]}
+                              options={POSITIONS.map(p => ({ value: p, label: positionLabel(p, t) }))}
+                              onChange={v => updatePosition(player.rowId, v)}
+                              triggerClassName="flex items-center gap-1 text-[#79828b] text-[11px] uppercase tracking-wider hover:text-[var(--ink)] transition-colors focus:outline-none -ml-0.5"
+                              panelWidthClassName="w-52"
+                            />
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -992,7 +994,10 @@ export function AdminEventDetail() {
                   </div>
                   <button
                     onClick={e => { e.stopPropagation(); addToRosterFromWaitlist(player.id); }}
-                    className="w-[76px] h-8 flex items-center justify-center gap-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-[var(--brand)] text-white hover:brightness-110"
+                    // Fixed width, not min-width - sized to fit "Добавить"
+                    // (the longest translation of Add), so the pill is the
+                    // same size in every language instead of hugging "Add".
+                    className="w-28 h-8 flex items-center justify-center gap-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-[var(--brand)] text-white hover:brightness-110"
                   >
                     <CheckCheck size={12} />
                     {t.common.add}
@@ -1066,7 +1071,10 @@ export function AdminEventDetail() {
                   </div>
                   <button
                     onClick={e => { e.stopPropagation(); approveRequest(player.id); }}
-                    className="w-[76px] h-8 flex items-center justify-center gap-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-[var(--brand)] text-white hover:brightness-110"
+                    // Fixed width, not min-width - sized to fit "Добавить"
+                    // (the longest translation of Add), so the pill is the
+                    // same size in every language instead of hugging "Add".
+                    className="w-28 h-8 flex items-center justify-center gap-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-[var(--brand)] text-white hover:brightness-110"
                   >
                     <CheckCheck size={12} />
                     {t.common.add}
@@ -1206,7 +1214,12 @@ function PaymentToggle({ status, onConfirm }: { status: PaymentStatus; onConfirm
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
       onPointerLeave={stopHold}
-      className={`relative w-[76px] h-8 rounded-full overflow-hidden shrink-0 select-none touch-none ${
+      // Fixed width, not min-width - the label cycles between differently
+      // sized words both per payment state (Unpaid/Cash/Card) and per locale
+      // (К оплате/наличкой/картой), so anything content-based would make the
+      // pill visibly resize itself as it cycles. Sized to fit the longest of
+      // all of them so it's identical across every state and language.
+      className={`relative w-24 h-8 rounded-full overflow-hidden shrink-0 select-none touch-none ${
         confirmedAndSet ? `${confirmedBg}` : "bg-[var(--ink)]/5"
       }`}
     >

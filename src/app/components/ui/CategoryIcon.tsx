@@ -1,4 +1,4 @@
-import { Volleyball, Trophy, Dumbbell, Palmtree, PartyPopper, type LucideProps } from "lucide-react";
+import { Volleyball, Trophy, Dumbbell, Palmtree, PartyPopper, Users, type LucideProps } from "lucide-react";
 import { getCategoryIconName } from "../../data/adminData";
 
 const ICONS = {
@@ -7,6 +7,7 @@ const ICONS = {
   dumbbell: Dumbbell,
   palmtree: Palmtree,
   party: PartyPopper,
+  users: Users,
 };
 
 export function CategoryIcon({ category, ...props }: { category: string | null | undefined } & LucideProps) {

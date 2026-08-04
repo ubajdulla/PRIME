@@ -7,7 +7,7 @@ import { isInsidePortalDropdown } from "./MiniDropdown";
 import { useExclusiveOpen } from "../../lib/exclusiveOpen";
 
 const MIN_YEAR = 1920;
-const PANEL_W = 288; // matches DatePickerField's w-72 dropdown
+const PANEL_W = 320; // matches DatePickerField's w-80 dropdown
 
 function maskDigitsToDate(raw: string) {
   const digits = raw.replace(/\D/g, "").slice(0, 8);

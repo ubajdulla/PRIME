@@ -9,7 +9,7 @@ const HIDDEN_MASK = "----------";
 // the box height the way a real border would.
 export function ContactRow({
   editing, href, external, icon, iconBg, label, displayValue, editValue, prefix, onChange,
-  showToOthers, onToggleShowToOthers,
+  showToOthers, onToggleShowToOthers, numeric,
 }: {
   editing: boolean;
   href?: string;
@@ -23,6 +23,7 @@ export function ContactRow({
   onChange: (v: string) => void;
   showToOthers?: boolean;
   onToggleShowToOthers?: () => void;
+  numeric?: boolean;
 }) {
   const isHidden = showToOthers === false;
   const shownValue = isHidden ? HIDDEN_MASK : (displayValue || "—");
@@ -41,8 +42,10 @@ export function ContactRow({
           >
             {prefix && <span className="text-[#aaa] text-sm shrink-0">{prefix}</span>}
             <input
+              type={numeric ? "tel" : "text"}
+              inputMode={numeric ? "numeric" : undefined}
               value={editValue}
-              onChange={e => onChange(e.target.value)}
+              onChange={e => onChange(numeric ? e.target.value.replace(/[^\d ]/g, "") : e.target.value)}
               onClick={e => e.preventDefault()}
               tabIndex={editing ? 0 : -1}
               className="flex-1 bg-transparent text-[var(--ink)] text-sm leading-5 focus:outline-none shadow-[0_1px_0_0_var(--ink-line)] focus:shadow-[0_1px_0_0_var(--brand)] transition-shadow min-w-0"

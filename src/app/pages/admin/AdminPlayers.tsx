@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import { FilterPill, FilterPillTrack } from "../../components/ui/FilterPill";
 import { TrustDot } from "../../components/ui/TrustDot";
 import { VerifiedBadge } from "../../components/ui/VerifiedBadge";
+import { SkillLevelIcon } from "../../components/ui/SkillLevelIcon";
 import { LABEL_META, SENTIMENT_COLOR, effectiveLabel, labelName } from "../../lib/trustLabel";
 import { navDir } from "../../lib/navDir";
 import { useHorizontalSwipe } from "../../lib/useHorizontalSwipe";
@@ -27,11 +28,6 @@ const CATEGORY_TEXT_CLASS: Record<string, string> = {
   Admin: "text-[#3897f0]", Rookie: "text-[#d9d4f7]", Beginner: "text-[#b3a3ef]", Intermediate: "text-[#8b78e8]",
   Advanced: "text-[#6b52e2]", Pro: "text-[#5136da]", PRIME: "text-[#4b1eff]",
 };
-// Rank 1 (Rookie) through 6 (PRIME) — used to compute how full the cup icon is.
-const CATEGORY_RANK: Record<string, number> = {
-  Rookie: 1, Beginner: 2, Intermediate: 3, Advanced: 4, Pro: 5, PRIME: 6,
-};
-
 function CategoryIcon({ category, size = 20 }: { category: Category; size?: number }) {
   if (category === "Admin") {
     return (
@@ -40,24 +36,7 @@ function CategoryIcon({ category, size = 20 }: { category: Category; size?: numb
       </svg>
     );
   }
-  // "Fill Level" cup: a rank-proportional fill rises inside the bowl, empty
-  // at Rookie (1/6) to overflowing at PRIME (6/6) — the ordering is read from
-  // how full the cup is, not from a detail that has to be spotted.
-  const rank = CATEGORY_RANK[category] ?? 1;
-  const frac = rank / 6;
-  const bowlTop = 4.5, bowlBottom = 12.3;
-  const fillY = bowlBottom - frac * (bowlBottom - bowlTop);
-  const clipId = `cup-clip-${category}`;
-  return (
-    <svg width={size} height={size * (26 / 24)} viewBox="0 0 24 26" fill="none">
-      <defs>
-        <clipPath id={clipId}><path d="M7.3 4.3h9.4v4a4.7 4.7 0 0 1-9.4 0Z" /></clipPath>
-      </defs>
-      <rect x="6" y={fillY} width="12" height="10" fill="currentColor" opacity={0.85} clipPath={`url(#${clipId})`} />
-      <path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4Z" stroke="currentColor" strokeWidth={1.9} />
-      <path d="M7 6H4a2 2 0 0 0 2 4M17 6h3a2 2 0 0 1-2 4" stroke="currentColor" strokeWidth={1.9} />
-    </svg>
-  );
+  return <SkillLevelIcon level={category} size={size} />;
 }
 
 const STATUSES = ["All", "Payment Pending", "Warnings", "No-show", "Disrespect", "Trust", "No Label"] as const;

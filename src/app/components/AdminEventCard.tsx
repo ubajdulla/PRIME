@@ -1,4 +1,4 @@
-import { Calendar, Clock, MapPin, ChevronRight, User, Volleyball, Trophy, Dumbbell, Palmtree, PartyPopper, PenLine } from "lucide-react";
+import { Calendar, Clock, MapPin, ChevronRight, User, Volleyball, Trophy, Dumbbell, Palmtree, PartyPopper, Users, PenLine } from "lucide-react";
 import { getCategoryIconName, type EventStatus } from "../data/adminData";
 import { useWaterRipple, RippleLayer } from "./ui/useWaterRipple";
 import { useLang } from "../i18n";
@@ -11,6 +11,7 @@ const CATEGORY_ICON = {
   dumbbell: Dumbbell,
   palmtree: Palmtree,
   party: PartyPopper,
+  users: Users,
 };
 
 // The card's own styling (border, opacity, title treatment) carries most of the

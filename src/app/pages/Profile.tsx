@@ -13,6 +13,7 @@ import {
 import { SelectField } from "../components/ui/SelectField";
 import { DropdownPanel, DropdownItem, ConfirmDropdownItem } from "../components/ui/DropdownMenu";
 import { ContactRow } from "../components/ui/ContactRow";
+import { SkillLevelIcon } from "../components/ui/SkillLevelIcon";
 import { DateOfBirthRow } from "../components/ui/DateOfBirthRow";
 import { EditToggleButtons } from "../components/ui/EditToggleButtons";
 import { StatusBadge } from "../components/ui/StatusBadge";
@@ -209,7 +210,8 @@ export function Profile() {
             <StatusBadge color={statusColor} icon={profile.is_banned ? "ban" : "suspend"} tooltip={statusTooltip} />
           )}
         </div>
-        <span className={`text-sm font-medium ${skillStyle.text}`}>
+        <span className={`flex items-center gap-1 text-sm font-medium ${skillStyle.text}`}>
+          <SkillLevelIcon level={profile.skill_level} size={14} />
           {levelLabel(profile.skill_level, t)}
         </span>
       </div>
@@ -315,6 +317,7 @@ export function Profile() {
               displayValue={profile.phone ?? ""}
               editValue={draft.phone}
               onChange={v => setDraftField("phone", v)}
+              numeric
             />
             <ContactRow
               editing={editingContact}
@@ -416,7 +419,9 @@ export function Profile() {
 
         {/* Upcoming Events */}
         <section>
-          <SectionLabel>{t.profile.upcomingEvents}</SectionLabel>
+          <div className="mb-2">
+            <SectionLabel>{t.profile.upcomingEvents}</SectionLabel>
+          </div>
           {upcomingEvents.length === 0 ? (
             <Empty />
           ) : (
@@ -440,7 +445,9 @@ export function Profile() {
 
         {/* Past Events */}
         <section>
-          <SectionLabel>{t.profile.pastEvents}</SectionLabel>
+          <div className="mb-2">
+            <SectionLabel>{t.profile.pastEvents}</SectionLabel>
+          </div>
           {pastEvents.length === 0 ? (
             <Empty />
           ) : (

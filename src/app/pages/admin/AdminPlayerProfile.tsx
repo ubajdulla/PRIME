@@ -14,6 +14,7 @@ import { Toast } from "../../components/ui/Toast";
 import { SelectField } from "../../components/ui/SelectField";
 import { DatePickerField } from "../../components/ui/DatePickerField";
 import { ContactRow } from "../../components/ui/ContactRow";
+import { SkillLevelIcon } from "../../components/ui/SkillLevelIcon";
 import { DateOfBirthRow } from "../../components/ui/DateOfBirthRow";
 import { EditToggleButtons } from "../../components/ui/EditToggleButtons";
 import { ConfirmModal, type ModalOrigin } from "../../components/ui/Modal";
@@ -227,7 +228,6 @@ export function AdminPlayerProfile() {
     setUploadingAvatar(false);
     if (!r.ok) { fireToast(r.error ?? "Failed to update photo", "error"); return; }
     fireToast("Profile photo updated");
-    logAction(profile.id, "Profile photo changed");
   }
 
   if (loading) return <div className="min-h-screen bg-[var(--surface-0)]" />;
@@ -468,7 +468,7 @@ export function AdminPlayerProfile() {
       {showSkillConfirm && (
         <ConfirmModal
           origin={skillOrigin}
-          icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[var(--brand)]/75" icon={<ChevronDown size={18} className="text-white" />} />}
+          icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[var(--brand)]/45" icon={<ChevronDown size={18} className="text-white" />} />}
           iconBg="border-[var(--brand)]/25"
           title={t.admin.changeSkillTitle} sub={`${levelLabel(displaySkill, t)} → ${levelLabel(pendingSkill, t)}`}
           body={<>This will move <span className="text-[var(--ink)] font-bold">{player.name}</span> to the <span className="text-[var(--ink)] font-bold">{pendingSkill}</span> group.</>}
@@ -480,7 +480,7 @@ export function AdminPlayerProfile() {
       {showSuspendModal && (
         <ConfirmModal
           origin={suspendOrigin}
-          icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[#b45309]/75" icon={<Clock size={18} className="text-white" />} />}
+          icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[#b45309]/45" icon={<Clock size={18} className="text-white" />} />}
           iconBg="border-[#eab308]/25"
           title={t.admin.suspendPlayerTitle} sub={t.admin.suspendPlayerSub}
           cancelLabel={t.common.cancel} onCancel={() => { setShowSuspendModal(false); setSuspendDate(""); setSuspendReason(""); }}
@@ -519,7 +519,7 @@ export function AdminPlayerProfile() {
       {showBanConfirm && (
         <ConfirmModal
           origin={banOrigin}
-          icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[#7f1d1d]/75" icon={<OctagonX size={18} className="text-white" />} />}
+          icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[#7f1d1d]/45" icon={<OctagonX size={18} className="text-white" />} />}
           iconBg="border-[#ef4444]/30"
           title={t.admin.banPlayerTitle} sub={t.admin.banPlayerSub}
           cancelLabel={t.common.cancel} onCancel={() => { setShowBanConfirm(false); setBanReason(""); }}
@@ -550,7 +550,7 @@ export function AdminPlayerProfile() {
       {addingNote && (
         <ConfirmModal
           origin={noteOrigin}
-          icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[var(--brand)]/75" icon={<Pencil size={18} className="text-white" />} />}
+          icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[var(--brand)]/45" icon={<Pencil size={18} className="text-white" />} />}
           iconBg="border-[var(--brand)]/25"
           title={t.admin.addNoteTitle} sub={t.admin.aboutPlayer(player.name)}
           cancelLabel={t.common.cancel} onCancel={() => { setAddingNote(false); setNoteDraft(""); setNoteLabel(""); }}
@@ -660,7 +660,10 @@ export function AdminPlayerProfile() {
             <StatusBadge color={avatarStatus.color} icon={avatarStatus.icon} tooltip={avatarStatus.tooltip} opacity={avatarStatus.opacity} />
           )}
         </div>
-        <span className={`text-sm font-medium mb-2 ${SKILL_COLOR[displaySkill] ?? "text-[var(--ink)]"}`}>{levelLabel(displaySkill, t)}</span>
+        <span className={`flex items-center gap-1 text-sm font-medium mb-2 ${SKILL_COLOR[displaySkill] ?? "text-[var(--ink)]"}`}>
+          <SkillLevelIcon level={displaySkill} size={14} />
+          {levelLabel(displaySkill, t)}
+        </span>
       </div>
 
       <div className="max-w-[640px] mx-auto px-4 flex flex-col gap-6">
@@ -702,6 +705,7 @@ export function AdminPlayerProfile() {
               icon={<Phone size={15} className="text-[var(--brand)]" />} iconBg="bg-[var(--brand)]/15"
               label={t.profile.phone} displayValue={player.phone ?? ""} editValue={detailsDraft.phone}
               onChange={v => setDetailsField("phone", v)}
+              numeric
             />
             <ContactRow
               editing={editingDetails}
@@ -844,10 +848,8 @@ export function AdminPlayerProfile() {
 
             {/* Skill Level */}
             <div className="relative flex items-center gap-3 px-4 py-3.5 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
-              <div className="w-8 h-8 rounded-full bg-[var(--ink)]/5 flex items-center justify-center shrink-0">
-                <span className={`text-[10px] font-black ${SKILL_COLOR[displaySkill] ?? "text-[var(--ink)]"}`}>
-                  {displaySkill.slice(0, 3).toUpperCase()}
-                </span>
+              <div className={`w-8 h-8 rounded-full bg-[var(--ink)]/5 flex items-center justify-center shrink-0 ${SKILL_COLOR[displaySkill] ?? "text-[var(--ink)]"}`}>
+                <SkillLevelIcon level={displaySkill} size={16} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold text-[var(--ink)]">{t.admin.skillLevel}</div>

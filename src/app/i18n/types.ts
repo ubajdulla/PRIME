@@ -51,6 +51,7 @@ export interface Dict {
       all: string;
       tournament: string;
       games: string;
+      openGym: string;
       trainings: string;
       events: string;
       beach: string;

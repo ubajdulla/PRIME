@@ -55,7 +55,7 @@ export function DatePickerField({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1.5 z-30 w-72">
+        <div className="absolute left-0 top-full mt-1.5 z-30 w-80">
           <CalendarPanel selected={selected} onPick={pick} />
         </div>
       )}
@@ -164,7 +164,7 @@ export function CalendarPanel({
               value={currentMonthDate.getFullYear()}
               options={Array.from({ length: yearTo - yearFrom + 1 }, (_, i) => ({ value: yearTo - i, label: String(yearTo - i) }))}
               onChange={y => jumpToMonth(y, currentMonthDate.getMonth())}
-              className="w-24 shrink-0"
+              className="w-20 shrink-0"
             />
           </>
         ) : (

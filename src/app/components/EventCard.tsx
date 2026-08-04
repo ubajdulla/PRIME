@@ -117,15 +117,12 @@ export function EventCard({
           </span>
         </div>
 
-        {/* Footer: host + avatars + arrow */}
+        {/* Footer: host avatar + avatars + arrow */}
         <div className="flex justify-between items-center pt-2.5 border-t border-[var(--ink)]/5">
           <div className="flex items-center gap-2.5">
             {moderator && (
               <>
-                {/* Fixed-size wrapper so the avatar itself aligns with the player
-                    avatars below — the HOST caption is absolutely positioned so
-                    it doesn't add height to the flex row and throw off centering. */}
-                <div className="relative w-9 h-9 shrink-0">
+                <div className="w-9 h-9 shrink-0">
                   {moderator.avatar ? (
                     <img
                       src={moderator.avatar}
@@ -137,9 +134,6 @@ export function EventCard({
                       {initials || <User size={14} className="text-white/70" />}
                     </div>
                   )}
-                  <span className="absolute top-full left-1/2 -translate-x-1/2 mt-0.5 text-[7px] font-black tracking-widest text-[var(--brand)] leading-none whitespace-nowrap">
-                    HOST
-                  </span>
                 </div>
                 <div className="w-px h-9 bg-[var(--ink)]/10 shrink-0" />
               </>

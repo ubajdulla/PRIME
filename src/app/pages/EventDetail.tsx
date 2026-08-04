@@ -239,7 +239,7 @@ export function EventDetail() {
 
   const isCanceled = event?.status === "canceled";
   const isRequestOnly = event ? computeJoinStatus(event.level, profile?.skill_level) === "REQUEST ONLY" : false;
-  const requiresPosition = event?.category === "GAMES" && POSITION_REQUIRED_LEVELS.includes(event?.level ?? "");
+  const requiresPosition = (event?.category === "GAMES" || event?.category === "OPENGYM") && POSITION_REQUIRED_LEVELS.includes(event?.level ?? "");
   const requiresTeamName = event?.category === "TOURNAMENT";
   const maxCapacity = event?.capacity ?? 0;
   const currentCapacity = roster.length;

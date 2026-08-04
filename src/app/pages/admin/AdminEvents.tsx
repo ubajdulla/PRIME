@@ -168,7 +168,7 @@ export function AdminEvents() {
         <button
           onClick={() => navigate("/admin/events/create")}
           onPointerDown={createRipple.onPointerDown}
-          className="relative overflow-hidden flex items-center gap-2 h-11 bg-[var(--brand)] text-white text-xs font-black uppercase tracking-widest px-4 rounded-full"
+          className="relative overflow-hidden flex items-center gap-2 h-11 bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white text-xs font-black uppercase tracking-widest px-4 rounded-full transition-colors"
         >
           <Plus size={15} />
           {t.admin.createBtn}

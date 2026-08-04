@@ -68,9 +68,10 @@ export const SKILL_STYLE: Record<string, {
 // Monochrome icon per category — used inline next to the event title instead
 // of a colored badge, so category reads as metadata rather than another chip
 // competing for attention (see AdminEventCard).
-export function getCategoryIconName(category: string): "volleyball" | "trophy" | "dumbbell" | "palmtree" | "party" {
-  const names: Record<string, "volleyball" | "trophy" | "dumbbell" | "palmtree" | "party"> = {
+export function getCategoryIconName(category: string): "volleyball" | "trophy" | "dumbbell" | "palmtree" | "party" | "users" {
+  const names: Record<string, "volleyball" | "trophy" | "dumbbell" | "palmtree" | "party" | "users"> = {
     GAMES: "volleyball",
+    OPENGYM: "users",
     TOURNAMENT: "trophy",
     TRAININGS: "dumbbell",
     BEACH: "palmtree",
@@ -82,6 +83,7 @@ export function getCategoryIconName(category: string): "volleyball" | "trophy" |
 export function getCategoryStyle(category: string): string {
   const styles: Record<string, string> = {
     GAMES:      "bg-[var(--brand)]/10 text-[var(--brand)]",
+    OPENGYM:    "bg-[var(--brand)]/10 text-[var(--brand)]",
     TOURNAMENT: "bg-[#eab308]/10 text-[#eab308]",
     TRAININGS:  "bg-[#4dcd5e]/10 text-[#4dcd5e]",
     BEACH:      "bg-[#f97316]/10 text-[#f97316]",

@@ -6,6 +6,7 @@ import { SKILL_STYLE, levelLabel, positionLabel } from "../data/adminData";
 import { BackBar } from "../components/ui/BackBar";
 import { TrustDot } from "../components/ui/TrustDot";
 import { VerifiedBadge } from "../components/ui/VerifiedBadge";
+import { SkillLevelIcon } from "../components/ui/SkillLevelIcon";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { shortDate, isPastDate } from "../lib/eventDate";
@@ -102,7 +103,8 @@ export function PlayerProfile() {
           <TrustDot label={player.visible_trust_label} size={20} ringClassName="border-[var(--surface-0)]" />
         </div>
         <h1 className="text-xl font-semibold text-[var(--ink)] mb-1">{player.name}</h1>
-        <span className={`text-sm font-medium ${SKILL_COLOR[player.skill_level] ?? "text-[var(--ink)]"}`}>
+        <span className={`flex items-center gap-1 text-sm font-medium ${SKILL_COLOR[player.skill_level] ?? "text-[var(--ink)]"}`}>
+          <SkillLevelIcon level={player.skill_level} size={14} />
           {levelLabel(player.skill_level, t)}
         </span>
       </div>

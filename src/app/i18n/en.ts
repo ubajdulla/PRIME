@@ -53,6 +53,7 @@ export const en: Dict = {
       all: "All",
       tournament: "Tournament",
       games: "Games",
+      openGym: "OpenGym",
       trainings: "Trainings",
       events: "Events",
       beach: "Beach",

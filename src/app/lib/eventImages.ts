@@ -6,6 +6,7 @@ import eventsImage from "../../imports/events/events.jpg";
 
 export const DEFAULT_IMAGE: Record<string, string> = {
   GAMES: gamesImage,
+  OPENGYM: gamesImage,
   TOURNAMENT: tournamentImage,
   TRAININGS: trainingsImage,
   BEACH: beachImage,
