@@ -335,11 +335,11 @@ export function AdminCreateEvent() {
         {/* Category + Level */}
         <FieldGroup className={`grid ${showLevel ? "grid-cols-2 divide-x divide-[var(--ink)]/5" : "grid-cols-1"}`}>
           <Field label={t.admin.category}>
-            <SelectField value={f.category} options={CATEGORIES} onChange={v => s("category", v)} triggerClassName={F_SEL} nativeOnMobile />
+            <SelectField value={f.category} options={CATEGORIES} onChange={v => s("category", v)} triggerClassName={F_SEL} />
           </Field>
           {showLevel && (
             <Field label={t.admin.level}>
-              <SelectField value={f.level} options={SKILL_ORDER} onChange={v => s("level", v)} triggerClassName={F_SEL} nativeOnMobile />
+              <SelectField value={f.level} options={SKILL_ORDER} onChange={v => s("level", v)} triggerClassName={F_SEL} />
             </Field>
           )}
         </FieldGroup>
@@ -377,17 +377,17 @@ export function AdminCreateEvent() {
 
           <Field label={t.admin.startTime}>
             <div className="flex items-center gap-1">
-              <div className="flex-1"><SelectField value={f.startH} options={HOURS} onChange={v => s("startH", v)} triggerClassName={F_SEL} nativeOnMobile /></div>
+              <div className="flex-1"><SelectField value={f.startH} options={HOURS} onChange={v => s("startH", v)} triggerClassName={F_SEL} /></div>
               <span className="text-[#79828b] font-bold text-sm shrink-0">:</span>
-              <div className="flex-1"><SelectField value={f.startM} options={MINUTES} onChange={v => s("startM", v)} triggerClassName={F_SEL} nativeOnMobile /></div>
+              <div className="flex-1"><SelectField value={f.startM} options={MINUTES} onChange={v => s("startM", v)} triggerClassName={F_SEL} /></div>
             </div>
           </Field>
 
           <Field label={t.admin.endTime}>
             <div className="flex items-center gap-1">
-              <div className="flex-1"><SelectField value={f.endH} options={HOURS} onChange={v => s("endH", v)} triggerClassName={F_SEL} nativeOnMobile /></div>
+              <div className="flex-1"><SelectField value={f.endH} options={HOURS} onChange={v => s("endH", v)} triggerClassName={F_SEL} /></div>
               <span className="text-[#79828b] font-bold text-sm shrink-0">:</span>
-              <div className="flex-1"><SelectField value={f.endM} options={MINUTES} onChange={v => s("endM", v)} triggerClassName={F_SEL} nativeOnMobile /></div>
+              <div className="flex-1"><SelectField value={f.endM} options={MINUTES} onChange={v => s("endM", v)} triggerClassName={F_SEL} /></div>
             </div>
           </Field>
 
