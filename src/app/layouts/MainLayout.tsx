@@ -239,12 +239,8 @@ export function MainLayout() {
         </div>
       </div>
 
-      {/* Main scroll container — bg-surface-1 is a fallback only: every page's
-          own min-h-full wrapper normally covers this completely, so it's only
-          ever visible in a gap (short admin content, iOS rubber-band bounce),
-          where it should read as "same white as the nav below", not the app's
-          surface-0 grey. */}
-      <main ref={mainRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-none bg-[var(--surface-1)] md:overflow-visible md:overscroll-auto md:flex-none md:ml-[72px] md:min-h-screen [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      {/* Main scroll container */}
+      <main ref={mainRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-none md:overflow-visible md:overscroll-auto md:flex-none md:ml-[72px] md:min-h-screen [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <Outlet />
       </main>
 
