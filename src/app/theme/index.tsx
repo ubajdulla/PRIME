@@ -21,8 +21,13 @@ interface ThemeCtx {
 
 const ThemeContext = createContext<ThemeCtx>({ theme: "system", resolvedTheme: "dark", setTheme: () => {} });
 
+// "theme_v2": bumped from the old "theme" key so pre-existing dark/light values
+// picked under the old 2-way toggle (before "system" existed) don't override
+// the new system-follows-OS default — everyone starts fresh on "system".
+const STORAGE_KEY = "theme_v2";
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const stored = localStorage.getItem("theme") ?? "system";
+  const stored = localStorage.getItem(STORAGE_KEY) ?? "system";
   const [theme, setThemeState] = useState<Theme>(isValidTheme(stored) ? stored : "system");
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(
     theme === "system" ? getSystemTheme() : theme,
@@ -45,7 +50,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [resolvedTheme]);
 
   function setTheme(t: Theme) {
-    localStorage.setItem("theme", t);
+    localStorage.setItem(STORAGE_KEY, t);
     setThemeState(t);
   }
 
