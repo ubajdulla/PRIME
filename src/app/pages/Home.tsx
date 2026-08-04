@@ -115,16 +115,17 @@ export function Home() {
         }
       }
 
-      // public_organizer is a whitelisted (name/avatar only) view granted to both
-      // anon and authenticated, so it works for the host badge regardless of login.
-      const moderatorByEvent = new Map<string, { name: string; avatar: string | null }>();
+      // public_organizer is a whitelisted (id/name/avatar only) view granted to
+      // both anon and authenticated, so it works for the host badge regardless
+      // of login. id is included so the badge's avatar can link to their profile.
+      const moderatorByEvent = new Map<string, { id: string; name: string; avatar: string | null }>();
       if (eventIds.length > 0) {
         const { data: organizers } = await supabase
           .from("public_organizer")
-          .select("event_id, name, avatar")
+          .select("event_id, id, name, avatar")
           .in("event_id", eventIds);
-        for (const o of (organizers ?? []) as { event_id: string; name: string; avatar: string | null }[]) {
-          moderatorByEvent.set(o.event_id, { name: o.name, avatar: o.avatar });
+        for (const o of (organizers ?? []) as { event_id: string; id: string; name: string; avatar: string | null }[]) {
+          moderatorByEvent.set(o.event_id, { id: o.id, name: o.name, avatar: o.avatar });
         }
       }
 

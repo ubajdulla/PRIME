@@ -42,6 +42,11 @@ function CategoryIcon({ category, size = 20 }: { category: Category; size?: numb
 const STATUSES = ["All", "Payment Pending", "Warnings", "No-show", "Disrespect", "Trust", "No Label"] as const;
 type Status = typeof STATUSES[number];
 
+// How many recent-change cards each activity feed shows — the "Recent Admin
+// Activity" tab and every label-based status tab (Payment Pending, Warnings,
+// No-show, Disrespect, Trust) all cap at the same count for consistency.
+const ACTIVITY_LIMIT = 36;
+
 // "Recently searched" is a per-admin browsing convenience, not roster data -
 // kept in localStorage instead of a table so looking someone up doesn't
 // need a write to the database every time.
@@ -299,7 +304,7 @@ export function AdminPlayers() {
         supabase.from("profiles").select(
           "id, name, avatar, position, skill_level, telegram, is_admin, is_verified, visible_trust_label, is_suspended, is_banned, trust_label, trust_label_set_at_events, event_participants(id)"
         ),
-        supabase.from("player_notes").select("id, player_id, author_id, author_name, body, label, created_at").order("created_at", { ascending: false }).limit(8),
+        supabase.from("player_notes").select("id, player_id, author_id, author_name, body, label, created_at").order("created_at", { ascending: false }).limit(ACTIVITY_LIMIT),
         // The note that set a player's currently-active trust_label is always
         // their most recent labeled note (addNote() in AdminPlayerProfile.tsx
         // overwrites trust_label every time a labeled note is added) - fetching
@@ -377,6 +382,18 @@ export function AdminPlayers() {
     for (const n of labelNotes) if (!map.has(n.player_id)) map.set(n.player_id, n);
     return map;
   }, [labelNotes]);
+  // Payment Pending/Warnings/No-show/Disrespect/Trust tabs: same "most recent
+  // changes first, capped at ACTIVITY_LIMIT" treatment as Recent Admin
+  // Activity, instead of statusFiltered's alphabetical order.
+  const statusActivity = useMemo(() => {
+    const items: { player: Player; note: NoteRow }[] = [];
+    for (const p of statusFiltered) {
+      const n = latestLabelNoteByPlayer.get(p.id);
+      if (n) items.push({ player: p, note: n });
+    }
+    items.sort((a, b) => new Date(b.note.created_at).getTime() - new Date(a.note.created_at).getTime());
+    return items.slice(0, ACTIVITY_LIMIT);
+  }, [statusFiltered, latestLabelNoteByPlayer]);
   const categoryFiltered = useMemo(
     () => contentCategory
       ? players.filter(p => (contentCategory === "Admin" ? p.is_admin : p.skill_level === contentCategory) && matchesSearch(p)).sort(byName)
@@ -514,15 +531,13 @@ export function AdminPlayers() {
           ) : (
             <section>
               <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">
-                {t.admin.matches(statusFiltered.length)}
+                {t.admin.matches(statusActivity.length)}
               </h2>
-              {!loading && statusFiltered.length === 0 ? (
+              {!loading && statusActivity.length === 0 ? (
                 <p className="text-[#79828b] text-sm text-center py-6">{t.admin.noStatusMatch}</p>
               ) : (
                 <div className="flex flex-col gap-2">
-                  {statusFiltered.map(p => {
-                    const n = latestLabelNoteByPlayer.get(p.id);
-                    if (!n) return null;
+                  {statusActivity.map(({ player: p, note: n }) => {
                     const { color, title } = classifyActivity(n, t);
                     return (
                       <PlayerActivityCard
