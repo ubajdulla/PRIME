@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useTransition, memo } from "react
 import { useNavigate } from "react-router";
 import { Search, X, OctagonX, CheckCircle2, Clock, BadgeCheck, ChevronDown, Flag, MessageSquare, Brush } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { FilterPill, FilterPillTrack } from "../../components/ui/FilterPill";
+import { FilterPill, FilterPillTrack, useEdgeFadeMask } from "../../components/ui/FilterPill";
 import { TrustDot } from "../../components/ui/TrustDot";
 import { VerifiedBadge } from "../../components/ui/VerifiedBadge";
 import { SkillLevelIcon } from "../../components/ui/SkillLevelIcon";
@@ -227,6 +227,7 @@ export function AdminPlayers() {
   // 1:1 so both bars feel like the same component everywhere in the app.
   const filterScrollRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{ active: boolean; startX: number; scrollLeft: number }>({ active: false, startX: 0, scrollLeft: 0 });
+  useEdgeFadeMask(filterScrollRef);
 
   useEffect(() => {
     const el = filterScrollRef.current;
@@ -462,11 +463,7 @@ export function AdminPlayers() {
             <div
               ref={filterScrollRef}
               className="overflow-x-auto overscroll-x-contain touch-pan-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] select-none"
-              style={{
-                cursor: "grab",
-                WebkitMaskImage: "linear-gradient(to right, transparent 0, rgba(0,0,0,0.35) 12px, black 40px, black calc(100% - 40px), rgba(0,0,0,0.35) calc(100% - 12px), transparent 100%)",
-                maskImage: "linear-gradient(to right, transparent 0, rgba(0,0,0,0.35) 12px, black 40px, black calc(100% - 40px), rgba(0,0,0,0.35) calc(100% - 12px), transparent 100%)",
-              }}
+              style={{ cursor: "grab" }}
               onMouseDown={e => {
                 const el = filterScrollRef.current;
                 if (!el) return;

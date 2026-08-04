@@ -1,5 +1,37 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useWaterRipple, RippleLayer } from "./useWaterRipple";
+
+// Drives the left/right edge-fade mask on a horizontally scrollable pill row.
+// A *static* mask (the naive version of this) always fades out its own first
+// ~40px regardless of scroll position - which permanently dims whatever pill
+// sits at the very start (e.g. "All"), since at rest there's nothing scrolled
+// out of view on that side to justify fading it. Each side's fade is only
+// meaningful once there's actually more content hidden past that edge.
+export function useEdgeFadeMask(ref: RefObject<HTMLDivElement | null>) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const track = el.firstElementChild as HTMLElement | null;
+    const update = () => {
+      const showLeft = el.scrollLeft > 1;
+      const showRight = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+      const left = showLeft ? "transparent 0, rgba(0,0,0,0.35) 12px, black 40px" : "black 0";
+      const right = showRight ? "black calc(100% - 40px), rgba(0,0,0,0.35) calc(100% - 12px), transparent 100%" : "black 100%";
+      const mask = `linear-gradient(to right, ${left}, ${right})`;
+      el.style.setProperty("mask-image", mask);
+      el.style.setProperty("-webkit-mask-image", mask);
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    if (track) observer.observe(track);
+    return () => {
+      el.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
+  }, [ref]);
+}
 
 // Wraps a row of FilterPills with one shared blue backing that slides/resizes
 // to the active pill instead of each pill owning its own solid fill - the
