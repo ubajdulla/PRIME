@@ -5,6 +5,7 @@ import { DropdownPanel } from "./DropdownMenu";
 import { useWaterRipple, RippleLayer } from "./useWaterRipple";
 import { MiniDropdown, isInsidePortalDropdown } from "./MiniDropdown";
 import { useLang } from "../../i18n";
+import { useExclusiveOpen } from "../../lib/exclusiveOpen";
 
 export const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 const CHUNK = 12; // months loaded per scroll-edge trigger
@@ -26,6 +27,7 @@ export function DatePickerField({
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const selected = value ? new Date(value + "T00:00:00") : null;
+  useExclusiveOpen(open, () => setOpen(false));
 
   useEffect(() => {
     if (!open) return;

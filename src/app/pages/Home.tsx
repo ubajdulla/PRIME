@@ -10,7 +10,7 @@ import { SKILL_STYLE, levelLabel, positionLabel } from "../data/adminData";
 import { computeJoinStatus } from "../lib/joinType";
 import { formatEventDate, weekdayLabel } from "../lib/eventDate";
 import { categoryImage } from "../lib/eventImages";
-import { FilterPill } from "../components/ui/FilterPill";
+import { FilterPill, FilterPillTrack } from "../components/ui/FilterPill";
 
 type EventRow = {
   id: string;
@@ -244,7 +244,7 @@ export function Home() {
               background-colored rectangle painted on top of it. */}
           <div
             ref={filterScrollRef}
-            className="flex gap-1 overflow-x-auto overscroll-x-contain touch-pan-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] select-none"
+            className="overflow-x-auto overscroll-x-contain touch-pan-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] select-none"
             style={{
               cursor: "grab",
               WebkitMaskImage:
@@ -273,9 +273,11 @@ export function Home() {
               if (filterScrollRef.current) filterScrollRef.current.style.cursor = "";
             }}
           >
-            {ALL_FILTERS.map(f => (
-              <FilterPill key={f} label={t.home.filters[FILTER_KEY[f]]} active={activeFilter === f} onClick={() => setActiveFilter(f)} />
-            ))}
+            <FilterPillTrack activeKey={activeFilter}>
+              {ALL_FILTERS.map(f => (
+                <FilterPill key={f} pillKey={f} label={t.home.filters[FILTER_KEY[f]]} active={activeFilter === f} onClick={() => setActiveFilter(f)} />
+              ))}
+            </FilterPillTrack>
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import { DropdownPanel } from "./DropdownMenu";
+import { useExclusiveOpen } from "../../lib/exclusiveOpen";
 
 type Option<T extends string> = T | { value: T; label: string; icon?: ReactNode };
 
@@ -25,6 +26,7 @@ export function SelectField<T extends string>({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  useExclusiveOpen(open, () => setOpen(false));
 
   useEffect(() => {
     if (!open) return;

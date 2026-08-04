@@ -13,7 +13,7 @@ export function DropdownPanel({
 }) {
   return (
     <div
-      className={`bg-[var(--surface-hover)] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] ${
+      className={`origin-top animate-dropdown-in bg-[var(--surface-hover)] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] ${
         scrollable
           ? "overflow-y-auto max-h-64 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           : "overflow-hidden"

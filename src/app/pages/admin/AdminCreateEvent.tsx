@@ -12,6 +12,7 @@ import { categoryImage } from "../../lib/eventImages";
 import { encodeNotification, type EventChange } from "../../lib/notificationText";
 import { useWaterRipple, RippleLayer } from "../../components/ui/useWaterRipple";
 import { useLang } from "../../i18n";
+import { useExclusiveOpen } from "../../lib/exclusiveOpen";
 
 const CATEGORIES = ["GAMES", "TOURNAMENT", "TRAININGS", "BEACH", "EVENTS"];
 
@@ -44,6 +45,7 @@ export function AdminCreateEvent() {
   const [saving, setSaving] = useState(false);
   const [shake, setShake] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
+  useExclusiveOpen(locationOpen, () => setLocationOpen(false));
   const [loadingEdit, setLoadingEdit] = useState(isEditMode);
   const [titleTouched, setTitleTouched] = useState(false);
   const [locations, setLocations] = useState<string[]>([]);

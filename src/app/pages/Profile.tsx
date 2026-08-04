@@ -17,6 +17,7 @@ import { DateOfBirthRow } from "../components/ui/DateOfBirthRow";
 import { EditToggleButtons } from "../components/ui/EditToggleButtons";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { LABEL_META, SENTIMENT_COLOR, labelName, type TrustLabel } from "../lib/trustLabel";
+import { useExclusiveOpen } from "../lib/exclusiveOpen";
 
 type EventRow = { id: string; title: string; event_date: string; event_time: string; location: string; status: string };
 type NoteRow = { id: string; author_name: string; body: string; created_at: string; label: TrustLabel | null };
@@ -37,6 +38,7 @@ export function Profile() {
 
   const [editingContact, setEditingContact] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  useExclusiveOpen(menuOpen, () => setMenuOpen(false));
   const [logoutArmed, setLogoutArmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);

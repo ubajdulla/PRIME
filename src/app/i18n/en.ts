@@ -70,7 +70,6 @@ export const en: Dict = {
     emptyUnreadDesc: "Nothing new to read.",
     emptyAllDesc: "We'll notify you when something changes.",
     markAllRead: "Mark all as read",
-    markRead: "Mark as read",
     accept: "Accept",
     decline: "Decline",
     select: "Select",

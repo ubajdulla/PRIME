@@ -10,6 +10,7 @@ import { formatEventDate, isPastDate } from "../../lib/eventDate";
 import { useHorizontalSwipe } from "../../lib/useHorizontalSwipe";
 import { navDir } from "../../lib/navDir";
 import { useLang } from "../../i18n";
+import { useExclusiveOpen } from "../../lib/exclusiveOpen";
 
 type FilterValue = "active" | "past";
 
@@ -39,6 +40,7 @@ export function AdminEvents() {
   const createRipple = useWaterRipple();
   const [filter, setFilter]         = useState<FilterValue>("active");
   const [showFilter, setShowFilter] = useState(false);
+  useExclusiveOpen(showFilter, () => setShowFilter(false));
   const filterRef = useRef<HTMLDivElement>(null);
   const [events, setEvents] = useState<(AdminEventCardData & { filterGroup: FilterValue; rawDate: string })[]>([]);
   const [loading, setLoading] = useState(true);

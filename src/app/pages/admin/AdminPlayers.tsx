@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Search, X, OctagonX, CheckCircle2, Clock, BadgeCheck, ChevronDown, Flag, MessageSquare, Brush } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { FilterPill } from "../../components/ui/FilterPill";
+import { FilterPill, FilterPillTrack } from "../../components/ui/FilterPill";
 import { TrustDot } from "../../components/ui/TrustDot";
 import { VerifiedBadge } from "../../components/ui/VerifiedBadge";
 import { LABEL_META, SENTIMENT_COLOR, effectiveLabel, labelName } from "../../lib/trustLabel";
@@ -415,7 +415,7 @@ export function AdminPlayers() {
           <div className="relative mb-6 w-full bg-[#212121] rounded-full p-1.5 overflow-hidden">
             <div
               ref={filterScrollRef}
-              className="flex gap-1 overflow-x-auto overscroll-x-contain touch-pan-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] select-none"
+              className="overflow-x-auto overscroll-x-contain touch-pan-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] select-none"
               style={{
                 cursor: "grab",
                 WebkitMaskImage: "linear-gradient(to right, transparent 0, rgba(0,0,0,0.35) 12px, black 40px, black calc(100% - 40px), rgba(0,0,0,0.35) calc(100% - 12px), transparent 100%)",
@@ -442,9 +442,11 @@ export function AdminPlayers() {
                 if (filterScrollRef.current) filterScrollRef.current.style.cursor = "";
               }}
             >
-              {STATUSES.map(s => (
-                <FilterPill key={s} label={STATUS_LABEL[s]} active={status === s} onClick={() => setStatus(s)} />
-              ))}
+              <FilterPillTrack activeKey={status}>
+                {STATUSES.map(s => (
+                  <FilterPill key={s} pillKey={s} label={STATUS_LABEL[s]} active={status === s} onClick={() => setStatus(s)} />
+                ))}
+              </FilterPillTrack>
             </div>
           </div>
 

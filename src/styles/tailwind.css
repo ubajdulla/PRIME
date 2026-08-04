@@ -9,6 +9,9 @@
   --animate-shake: shake 400ms ease-in-out;
   --animate-slide-in-right: slide-in-right 260ms ease-out;
   --animate-slide-in-left: slide-in-left 260ms ease-out;
+  --animate-check-flash: check-flash 1.3s ease-in-out;
+  --animate-dropdown-in: dropdown-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-row-in: row-in 260ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes water-drop {
@@ -37,6 +40,23 @@
 
 @keyframes slide-in-left {
   0%   { opacity: 0; transform: translateX(-16px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes check-flash {
+  0%   { opacity: 0; }
+  15%  { opacity: 1; }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes dropdown-in {
+  0%   { opacity: 0; transform: translateY(-6px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes row-in {
+  0%   { opacity: 0; transform: translateX(12px); }
   100% { opacity: 1; transform: translateX(0); }
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
+import { useExclusiveOpen } from "../../lib/exclusiveOpen";
 
 const PORTAL_DROPDOWN_ATTR = "data-portal-dropdown";
 
@@ -32,6 +33,7 @@ export function MiniDropdown({
   const listRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number; openUp: boolean } | null>(null);
   const current = options.find(o => o.value === value);
+  useExclusiveOpen(open, () => setOpen(false));
 
   useLayoutEffect(() => {
     if (!open || !btnRef.current) return;
@@ -95,7 +97,8 @@ export function MiniDropdown({
         >
           <div
             ref={listRef}
-            className="bg-[var(--surface-hover)] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] overflow-y-auto max-h-48 p-1.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            style={{ transformOrigin: coords.openUp ? "bottom" : "top" }}
+            className="animate-dropdown-in bg-[var(--surface-hover)] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] overflow-y-auto max-h-48 p-1.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           >
             {options.map(o => (
               <button

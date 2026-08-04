@@ -4,6 +4,7 @@ import { Calendar as CalendarIcon } from "lucide-react";
 import { isValid, format, parse } from "date-fns";
 import { CalendarPanel } from "./DatePickerField";
 import { isInsidePortalDropdown } from "./MiniDropdown";
+import { useExclusiveOpen } from "../../lib/exclusiveOpen";
 
 const MIN_YEAR = 1920;
 const PANEL_W = 288; // matches DatePickerField's w-72 dropdown
@@ -41,6 +42,7 @@ export function BirthDateField({
   const panelRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
   const selected = value ? new Date(value + "T00:00:00") : null;
+  useExclusiveOpen(open, () => setOpen(false));
 
   useEffect(() => {
     setText(value ? format(new Date(value + "T00:00:00"), "dd/MM/yyyy") : "");

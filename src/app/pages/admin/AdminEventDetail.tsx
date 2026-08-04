@@ -26,6 +26,7 @@ import { encodeNotification } from "../../lib/notificationText";
 import { PublishEventModal } from "../../components/PublishEventModal";
 import { useWaterRipple, RippleLayer } from "../../components/ui/useWaterRipple";
 import { useLang } from "../../i18n";
+import { useExclusiveOpen } from "../../lib/exclusiveOpen";
 
 type EventRow = {
   id: string;
@@ -65,13 +66,40 @@ export function AdminEventDetail() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  // Roster/waitlist rows in the middle of a leave (fading + sliding out
+  // before their actual removal from state) or a just-added entrance -
+  // ids only, so `roster.map`/`waitlist.map` can look them up per-row.
+  const [leavingRosterIds,   setLeavingRosterIds]   = useState<Set<string>>(new Set());
+  const [enteringRosterIds,  setEnteringRosterIds]  = useState<Set<string>>(new Set());
+  const [leavingWaitlistIds, setLeavingWaitlistIds] = useState<Set<string>>(new Set());
+  const [enteringWaitlistIds, setEnteringWaitlistIds] = useState<Set<string>>(new Set());
+
+  function markEntering(setFn: React.Dispatch<React.SetStateAction<Set<string>>>, ids: string[]) {
+    setFn(prev => { const next = new Set(prev); ids.forEach(id => next.add(id)); return next; });
+    window.setTimeout(() => {
+      setFn(prev => { const next = new Set(prev); ids.forEach(id => next.delete(id)); return next; });
+    }, 280);
+  }
+
+  // Plays the exit transition, then applies the real state removal after it
+  // finishes - the id stays in `leaving` (and thus still renders) until then.
+  function withExit(setLeaving: React.Dispatch<React.SetStateAction<Set<string>>>, id: string, remove: () => void) {
+    setLeaving(prev => new Set(prev).add(id));
+    window.setTimeout(() => {
+      remove();
+      setLeaving(prev => { const next = new Set(prev); next.delete(id); return next; });
+    }, 200);
+  }
+
   const [openMenu,             setOpenMenu]             = useState<string | null>(null);
+  useExclusiveOpen(openMenu !== null, () => setOpenMenu(null));
   const [editTeamNameId,       setEditTeamNameId]       = useState<string | null>(null);
   const [editTeamNameValue,    setEditTeamNameValue]    = useState("");
   const [confirmRemoveId,      setConfirmRemoveId]      = useState<string | null>(null);
   const [confirmWaitlistRemId, setConfirmWaitlistRemId] = useState<string | null>(null);
   const [confirmRejectId,      setConfirmRejectId]      = useState<string | null>(null);
   const [showActionDropdown,   setShowActionDropdown]   = useState(false);
+  useExclusiveOpen(showActionDropdown, () => setShowActionDropdown(false));
   const [showPublishModal,     setShowPublishModal]     = useState(false);
   const statusBtnRef = useRef<HTMLButtonElement>(null);
   const [publishModalOrigin, setPublishModalOrigin] = useState<{ x: number; y: number } | null>(null);
@@ -86,6 +114,7 @@ export function AdminEventDetail() {
   const [otherAdmins,          setOtherAdmins]          = useState<{ id: string; name: string; avatar: string | null }[]>([]);
   const [pendingSwap,          setPendingSwap]          = useState<{ id: string; to_admin_name: string } | null>(null);
   const [showSwapMenu,         setShowSwapMenu]         = useState(false);
+  useExclusiveOpen(showSwapMenu, () => setShowSwapMenu(false));
   const [swapMenuPos,          setSwapMenuPos]          = useState<{ top: number; right: number } | null>(null);
   const [anonymousName,        setAnonymousName]        = useState("Guest");
   const [anonymousAddCount,    setAnonymousAddCount]    = useState<string>("1");
@@ -215,10 +244,12 @@ export function AdminEventDetail() {
 
   async function removeFromEvent(rowId: string) {
     await supabase.from("event_participants").delete().eq("id", rowId);
-    setRoster(prev => prev.filter(p => p.rowId !== rowId));
     setConfirmRemoveId(null);
     setOpenMenu(null);
     fireToast("Player Removed!", "success");
+    const player = roster.find(p => p.rowId === rowId);
+    if (!player) { setRoster(prev => prev.filter(p => p.rowId !== rowId)); return; }
+    withExit(setLeavingRosterIds, player.id, () => setRoster(prev => prev.filter(p => p.rowId !== rowId)));
   }
 
   async function addAnonymousPlayers() {
@@ -232,19 +263,18 @@ export function AdminEventDetail() {
       .select("id, payment_status, position, guest_name");
     setAddingGuests(false);
     if (error || !data) return;
-    setRoster(prev => [
-      ...prev,
-      ...data.map(r => ({
-        id: `guest-${r.id}`,
-        rowId: r.id as string,
-        name: r.guest_name ?? name,
-        avatar: null,
-        position: r.position ?? null,
-        teamName: null,
-        paymentStatus: r.payment_status as PaymentStatus,
-        isGuest: true,
-      })),
-    ]);
+    const newRows = data.map(r => ({
+      id: `guest-${r.id}`,
+      rowId: r.id as string,
+      name: r.guest_name ?? name,
+      avatar: null,
+      position: r.position ?? null,
+      teamName: null,
+      paymentStatus: r.payment_status as PaymentStatus,
+      isGuest: true,
+    }));
+    setRoster(prev => [...prev, ...newRows]);
+    markEntering(setEnteringRosterIds, newRows.map(r => r.id));
     setAnonymousAddCount("1");
     fireToast(`${count} Guest${count > 1 ? "s" : ""} Added!`, "success");
   }
@@ -256,9 +286,12 @@ export function AdminEventDetail() {
       supabase.from("event_participants").delete().eq("event_id", event!.id).eq("player_id", playerId),
       supabase.from("event_requests").insert({ event_id: event!.id, player_id: playerId, kind: "waitlist", status: "pending", position: player.position, team_name: player.teamName }),
     ]);
-    setRoster(prev => prev.filter(p => p.id !== playerId));
-    setWaitlist(prev => [...prev, { id: player.id, name: player.name, avatar: player.avatar, position: player.position, teamName: player.teamName }]);
     setOpenMenu(null);
+    withExit(setLeavingRosterIds, playerId, () => {
+      setRoster(prev => prev.filter(p => p.id !== playerId));
+      setWaitlist(prev => [...prev, { id: player.id, name: player.name, avatar: player.avatar, position: player.position, teamName: player.teamName }]);
+      markEntering(setEnteringWaitlistIds, [playerId]);
+    });
   }
 
   async function addToRosterFromWaitlist(playerId: string) {
@@ -268,8 +301,11 @@ export function AdminEventDetail() {
       supabase.from("event_requests").delete().eq("event_id", event!.id).eq("player_id", playerId).eq("kind", "waitlist"),
       supabase.from("event_participants").insert({ event_id: event!.id, player_id: playerId, payment_status: "unpaid", position: player.position, team_name: player.teamName }),
     ]);
-    setWaitlist(prev => prev.filter(p => p.id !== playerId));
-    setRoster(prev => [...prev, { id: player.id, name: player.name, avatar: player.avatar, position: player.position, teamName: player.teamName, paymentStatus: "unpaid" }]);
+    withExit(setLeavingWaitlistIds, playerId, () => {
+      setWaitlist(prev => prev.filter(p => p.id !== playerId));
+      setRoster(prev => [...prev, { id: player.id, name: player.name, avatar: player.avatar, position: player.position, teamName: player.teamName, paymentStatus: "unpaid" }]);
+      markEntering(setEnteringRosterIds, [playerId]);
+    });
   }
 
   async function updatePosition(rowId: string, position: string) {
@@ -286,10 +322,10 @@ export function AdminEventDetail() {
 
   async function removeFromWaitlist(playerId: string) {
     await supabase.from("event_requests").delete().eq("event_id", event!.id).eq("player_id", playerId).eq("kind", "waitlist");
-    setWaitlist(prev => prev.filter(p => p.id !== playerId));
     setConfirmWaitlistRemId(null);
     setOpenMenu(null);
     fireToast("Player Removed!", "success");
+    withExit(setLeavingWaitlistIds, playerId, () => setWaitlist(prev => prev.filter(p => p.id !== playerId)));
   }
 
   async function approveRequest(playerId: string) {
@@ -571,7 +607,7 @@ export function AdminEventDetail() {
               <div
                 onMouseDown={e => e.stopPropagation()}
                 style={{ position: "fixed", top: swapMenuPos.top, right: swapMenuPos.right, zIndex: 40 }}
-                className="bg-[#212121] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] w-64 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                className="origin-top-right animate-dropdown-in bg-[#212121] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] w-64 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
               >
                 {otherAdmins.length === 0 && (
                   <p className="text-[#79828b] text-xs text-center py-6 px-4">{t.admin.noOtherAdmins}</p>
@@ -798,7 +834,18 @@ export function AdminEventDetail() {
               <p className="text-[#79828b] text-sm text-center py-6">{t.admin.noRoster}</p>
             )}
             {roster.map((player, i) => (
-              <div key={player.id} className="relative">
+              <div
+                key={player.id}
+                // No transform class in the idle case (not even translate-x-0) -
+                // any transform, even a no-op one, gives the row its own
+                // stacking context and breaks the z-20 dropdown menu's ability
+                // to paint above the *next* row's content (it did, badly:
+                // clicks on "Edit Team Name" were landing on the payment pill
+                // of the row below). Only rows mid-transition get a transform.
+                className={`relative transition-all duration-200 ease-in ${
+                  leavingRosterIds.has(player.id) ? "opacity-0 -translate-x-3 pointer-events-none" : "opacity-100"
+                } ${enteringRosterIds.has(player.id) ? "animate-row-in" : ""}`}
+              >
                 <div
                   className={`relative flex items-center gap-2 p-3 transition-colors hover:bg-white/[0.07] ${i > 0 ? "before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06]" : ""} ${i === 0 ? "rounded-t-2xl" : ""} ${i === roster.length - 1 ? "rounded-b-2xl" : ""}`}
                 >
@@ -923,7 +970,12 @@ export function AdminEventDetail() {
               <p className="text-[#79828b] text-sm text-center py-6">{t.admin.noWaitlist}</p>
             )}
             {waitlist.map(player => (
-              <div key={player.id} className="relative">
+              <div
+                key={player.id}
+                className={`relative transition-all duration-200 ease-in ${
+                  leavingWaitlistIds.has(player.id) ? "opacity-0 -translate-x-3 pointer-events-none" : "opacity-100"
+                } ${enteringWaitlistIds.has(player.id) ? "animate-row-in" : ""}`}
+              >
                 <div className="flex items-center gap-2 p-3 bg-[#212121] rounded-xl transition-colors hover:bg-white/[0.07]">
                   <button
                     type="button"

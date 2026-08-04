@@ -6,6 +6,7 @@ import { useAuth } from "../lib/AuthContext";
 import { COUNTRIES, type Country } from "../data/countries";
 import { DropdownPanel } from "../components/ui/DropdownMenu";
 import { BirthDateField } from "../components/ui/BirthDateField";
+import { useExclusiveOpen } from "../lib/exclusiveOpen";
 
 type Screen = "signin" | "signup" | "forgot" | "confirmEmail";
 type Direction = "forward" | "back";
@@ -403,6 +404,7 @@ function CountrySelect({ country, onSelect }: { country: Country; onSelect: (c: 
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+  useExclusiveOpen(open, () => setOpen(false));
 
   useEffect(() => {
     if (!open) return;

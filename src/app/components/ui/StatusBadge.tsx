@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Clock, OctagonX, Flag } from "lucide-react";
+import { useExclusiveOpen } from "../../lib/exclusiveOpen";
 
 interface StatusBadgeProps {
   color: string;
@@ -24,6 +25,7 @@ export function StatusBadge({ color, icon, tooltip, opacity = 1 }: StatusBadgePr
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const Icon = ICONS[icon];
+  useExclusiveOpen(open, () => setOpen(false));
 
   useEffect(() => {
     if (!open) return;
@@ -48,9 +50,11 @@ export function StatusBadge({ color, icon, tooltip, opacity = 1 }: StatusBadgePr
       {open && (
         <div
           onMouseDown={e => e.stopPropagation()}
-          className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-[220px] bg-[#212121] border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white/90 leading-snug shadow-[0_8px_20px_rgba(0,0,0,0.4)] z-20"
+          className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-[220px] z-20"
         >
-          {tooltip}
+          <div className="origin-top animate-dropdown-in bg-[#212121] border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white/90 leading-snug shadow-[0_8px_20px_rgba(0,0,0,0.4)]">
+            {tooltip}
+          </div>
         </div>
       )}
     </div>

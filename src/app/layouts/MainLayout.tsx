@@ -11,6 +11,7 @@ import { supabase } from "../lib/supabaseClient";
 import { checkEventReminders } from "../lib/eventReminders";
 import { useKeyboardInset } from "../lib/useKeyboardInset";
 import { useModalOpen } from "../lib/useModalOpen";
+import { useExclusiveOpen } from "../lib/exclusiveOpen";
 
 const LANG_OPTIONS: { code: Lang; label: string }[] = [
   { code: "en", label: "English" },
@@ -43,6 +44,7 @@ export function MainLayout() {
   const desktopLangRef = useRef<HTMLDivElement>(null);
   const mobileLangRef = useRef<HTMLDivElement>(null);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
+  useExclusiveOpen(showLangDropdown, () => setShowLangDropdown(false));
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const { isAdmin, user } = useAuth();
   // Hide the mobile chrome (top header, bottom tab bar) whenever the

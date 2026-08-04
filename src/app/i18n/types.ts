@@ -68,7 +68,6 @@ export interface Dict {
     emptyUnreadDesc: string;
     emptyAllDesc: string;
     markAllRead: string;
-    markRead: string;
     accept: string;
     decline: string;
     select: string;

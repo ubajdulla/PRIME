@@ -80,7 +80,6 @@ export const ru: Dict = {
     emptyUnreadDesc: "Новых уведомлений нет.",
     emptyAllDesc: "Сообщим, когда что-то изменится.",
     markAllRead: "Отметить все как прочитанные",
-    markRead: "Отметить как прочитанное",
     accept: "Принять",
     decline: "Отклонить",
     select: "Выбрать",

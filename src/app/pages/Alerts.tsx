@@ -21,7 +21,7 @@ import { useLang } from "../i18n";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { Toast } from "../components/ui/Toast";
-import { FilterPill } from "../components/ui/FilterPill";
+import { FilterPill, FilterPillTrack } from "../components/ui/FilterPill";
 import { ConfirmModal, type ModalOrigin } from "../components/ui/Modal";
 import { useWaterRipple, RippleLayer } from "../components/ui/useWaterRipple";
 import { encodeNotification, renderNotification } from "../lib/notificationText";
@@ -97,7 +97,7 @@ export function Alerts() {
   const { t, lang } = useLang();
   const locale = lang === "ru" ? "ru-RU" : "en-GB";
   const { user: authUser } = useAuth();
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("unread");
   const [rows, setRows] = useState<NotificationRow[]>([]);
   const [swapStatus, setSwapStatus] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error"; visible: boolean }>({ message: "", variant: "success", visible: false });
@@ -309,14 +309,17 @@ export function Alerts() {
         {/* Filter bar */}
         <div className="flex items-center justify-between gap-3 mb-8">
           <div className="flex gap-1 bg-[#212121] rounded-full p-1.5">
-            {(["all", "unread"] as Filter[]).map(f => (
-              <FilterPill
-                key={f}
-                active={filter === f}
-                onClick={() => setFilter(f)}
-                label={f === "unread" && totalUnread > 0 ? t.alerts.unreadCount(totalUnread) : f === "unread" ? t.alerts.filterUnread : t.alerts.filterAll}
-              />
-            ))}
+            <FilterPillTrack activeKey={filter}>
+              {(["all", "unread"] as Filter[]).map(f => (
+                <FilterPill
+                  key={f}
+                  pillKey={f}
+                  active={filter === f}
+                  onClick={() => setFilter(f)}
+                  label={f === "unread" && totalUnread > 0 ? t.alerts.unreadCount(totalUnread) : f === "unread" ? t.alerts.filterUnread : t.alerts.filterAll}
+                />
+              ))}
+            </FilterPillTrack>
           </div>
           <MarkAllReadButton totalUnread={totalUnread} onMarkAll={markAllRead} label={t.alerts.markAllRead} />
         </div>
@@ -345,14 +348,12 @@ export function Alerts() {
                   {t.alerts[group]}
                 </p>
                 {idx === 0 && (
-                  <button
+                  <SelectModeToggle
+                    active={selectMode}
                     onClick={toggleSelectMode}
-                    className={`text-[11px] font-bold uppercase tracking-wide transition-colors ${
-                      selectMode ? "text-[#462ed1]" : "text-[#79828b] hover:text-white"
-                    }`}
-                  >
-                    {selectMode ? t.alerts.cancelSelect : t.alerts.select}
-                  </button>
+                    selectLabel={t.alerts.select}
+                    cancelLabel={t.alerts.cancelSelect}
+                  />
                 )}
               </div>
               <div className="flex flex-col rounded-2xl bg-[#212121] overflow-hidden">
@@ -364,7 +365,6 @@ export function Alerts() {
                     onRead={markRead}
                     onAccept={acceptSwap}
                     onDecline={declineSwap}
-                    markReadLabel={t.alerts.markRead}
                     acceptLabel={t.alerts.accept}
                     declineLabel={t.alerts.decline}
                     unavailableLabel={t.alerts.swapUnavailable}
@@ -414,7 +414,7 @@ export function Alerts() {
 }
 
 function AlertRow({
-  alert, swapStatus, onRead, onAccept, onDecline, markReadLabel, acceptLabel, declineLabel, unavailableLabel,
+  alert, swapStatus, onRead, onAccept, onDecline, acceptLabel, declineLabel, unavailableLabel,
   selectMode, selected, onToggleSelect,
 }: {
   alert: AlertItem;
@@ -422,7 +422,6 @@ function AlertRow({
   onRead: (id: string) => void;
   onAccept: (alert: AlertItem) => void;
   onDecline: (alert: AlertItem) => void;
-  markReadLabel: string;
   acceptLabel: string;
   declineLabel: string;
   unavailableLabel: string;
@@ -459,19 +458,17 @@ function AlertRow({
         {!selectMode && isSwapRequest && !isPendingSwap && (
           <p className="mt-2 text-[#79828b] text-[11px] italic">{unavailableLabel}</p>
         )}
-        {!selectMode && !isSwapRequest && alert.unread && (
-          <button
-            onClick={e => { e.preventDefault(); e.stopPropagation(); onRead(alert.id); }}
-            className="mt-2 text-[#462ed1] text-[11px] font-bold hover:text-white transition-colors"
-          >
-            {markReadLabel}
-          </button>
-        )}
       </div>
 
-      {/* Right: a selection circle in select mode, otherwise time + accept/decline/chevron */}
-      {selectMode ? (
-        <div className="shrink-0 flex items-center ml-1 mt-0.5">
+      {/* Right: crossfades between the selection circle and time+actions -
+          both stay mounted, stacked in the same grid cell, sliding past
+          each other (not just fading) for a livelier hand-off. */}
+      <div className="grid items-center ml-1 overflow-hidden">
+        <div
+          className={`col-start-1 row-start-1 flex items-center transition-all duration-[250ms] ease-out ${
+            selectMode ? "opacity-100 translate-x-0" : "opacity-0 translate-x-2 pointer-events-none"
+          }`}
+        >
           <span
             className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
               selected ? "bg-[#462ed1] border-[#462ed1]" : "border-white/20"
@@ -480,19 +477,24 @@ function AlertRow({
             {selected && <Check size={12} className="text-white" strokeWidth={3} />}
           </span>
         </div>
-      ) : (
-        <div className="shrink-0 flex flex-col items-end gap-1.5 ml-1">
+        <div
+          className={`col-start-1 row-start-1 flex flex-col items-end gap-1.5 transition-all duration-[250ms] ease-out ${
+            selectMode ? "opacity-0 -translate-x-2 pointer-events-none" : "opacity-100 translate-x-0"
+          }`}
+        >
           <span className="text-[#79828b] text-[10px] font-medium whitespace-nowrap">{alert.time}</span>
           {isPendingSwap ? (
             <div className="flex gap-2.5">
               <button
                 onClick={e => { e.preventDefault(); e.stopPropagation(); onAccept(alert); }}
+                tabIndex={selectMode ? -1 : 0}
                 className="text-[#22c55e] text-[11px] font-bold hover:text-white transition-colors"
               >
                 {acceptLabel}
               </button>
               <button
                 onClick={e => { e.preventDefault(); e.stopPropagation(); onDecline(alert); }}
+                tabIndex={selectMode ? -1 : 0}
                 className="text-[#79828b] text-[11px] font-bold hover:text-white transition-colors"
               >
                 {declineLabel}
@@ -502,39 +504,83 @@ function AlertRow({
             !alert.unread && alert.eventId && <ChevronRight size={14} className="text-white/20" />
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 
   const dividerClass = "relative before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden";
 
-  if (selectMode) {
-    return (
-      <div role="button" onClick={() => onToggleSelect(alert.id)} className={`block w-full text-left cursor-pointer ${dividerClass}`}>
-        {inner}
-      </div>
-    );
+  // Same wrapper element across select-mode toggles (branching only on
+  // eventId, not selectMode) so the crossfades above actually animate
+  // instead of getting reset by a remount.
+  function handleRowClick(e: React.MouseEvent) {
+    if (selectMode) {
+      e.preventDefault();
+      onToggleSelect(alert.id);
+      return;
+    }
+    if (alert.unread) onRead(alert.id);
   }
 
   return alert.eventId ? (
-    <Link to={`${cfg.linkPrefix}${alert.eventId}`} state={{ hub: "alerts" }} className={`block ${dividerClass}`}>
+    <Link to={`${cfg.linkPrefix}${alert.eventId}`} state={{ hub: "alerts" }} onClick={handleRowClick} className={`block ${dividerClass}`}>
       {inner}
     </Link>
   ) : (
-    <div className={dividerClass}>{inner}</div>
+    <div role="button" onClick={handleRowClick} className={`block w-full text-left cursor-pointer ${dividerClass}`}>
+      {inner}
+    </div>
+  );
+}
+
+// Same sweep-fill mechanic as TapConfirmButton/ConfirmDropdownItem/the
+// EventDetail CTA - a solid color layer slides in from the right - instead
+// of a plain text crossfade, which read as too flat for entering select mode.
+function SelectModeToggle({
+  active, onClick, selectLabel, cancelLabel,
+}: {
+  active: boolean;
+  onClick: () => void;
+  selectLabel: string;
+  cancelLabel: string;
+}) {
+  const ripple = useWaterRipple();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onPointerDown={ripple.onPointerDown}
+      className={`relative overflow-hidden shrink-0 h-7 px-3.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-colors ${
+        active ? "" : "bg-white/5 text-white/70 hover:bg-white/10"
+      }`}
+    >
+      <span
+        aria-hidden
+        className={`absolute inset-0 bg-[#462ed1] transition-transform duration-300 ease-out ${active ? "translate-x-0" : "translate-x-full"}`}
+      />
+      <span className={`relative z-10 transition-colors duration-200 ${active ? "text-white" : ""}`}>
+        {active ? cancelLabel : selectLabel}
+      </span>
+      <RippleLayer ripples={ripple.ripples} />
+    </button>
   );
 }
 
 function MarkAllReadButton({ totalUnread, onMarkAll, label }: { totalUnread: number; onMarkAll: () => void; label: string }) {
   const [opening, setOpening] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const ripple = useWaterRipple();
 
   function handleClick() {
     if (totalUnread === 0 || opening) return;
     setOpening(true);
+    setConfirmed(true);
     window.setTimeout(() => onMarkAll(), 220);
     window.setTimeout(() => setOpening(false), 900);
+    window.setTimeout(() => setConfirmed(false), 1300);
   }
+
+  const dotVisible = totalUnread > 0 && !confirmed;
 
   return (
     <button
@@ -543,25 +589,30 @@ function MarkAllReadButton({ totalUnread, onMarkAll, label }: { totalUnread: num
       disabled={totalUnread === 0}
       onClick={handleClick}
       onPointerDown={ripple.onPointerDown}
-      className="relative overflow-hidden shrink-0 w-9 h-9 rounded-full bg-[#212121] flex items-center justify-center transition-opacity disabled:opacity-30"
+      className="group relative overflow-hidden shrink-0 w-9 h-9 rounded-full bg-[#212121] flex items-center justify-center transition-opacity disabled:opacity-30"
     >
       <span className="relative w-4 h-4 block">
         <Mail
           size={16}
-          className={`absolute inset-0 text-[#462ed1] transition-all duration-300 ease-in-out ${
+          className={`absolute inset-0 text-[#462ed1] transition-all duration-300 ease-in-out group-hover:opacity-0 group-hover:-translate-y-1 ${
             opening ? "opacity-0 -translate-y-1" : "opacity-100 translate-y-0"
           }`}
         />
         <MailOpen
           size={16}
-          className={`absolute inset-0 text-[#462ed1] transition-all duration-300 ease-in-out ${
+          className={`absolute inset-0 text-[#462ed1] transition-all duration-300 ease-in-out group-hover:opacity-100 group-hover:translate-y-0 ${
             opening ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"
           }`}
         />
+        {confirmed && (
+          <Check size={16} strokeWidth={3} className="absolute inset-0 text-[#22c55e] animate-check-flash" />
+        )}
+        <span
+          className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#462ed1] transition-all duration-300 ease-in-out ${
+            dotVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"
+          }`}
+        />
       </span>
-      {totalUnread > 0 && (
-        <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-[#462ed1]" />
-      )}
       <RippleLayer ripples={ripple.ripples} />
     </button>
   );

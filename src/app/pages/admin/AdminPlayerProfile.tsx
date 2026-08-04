@@ -26,6 +26,7 @@ import { useAuth } from "../../lib/AuthContext";
 import { isPastDate } from "../../lib/eventDate";
 import { encodeNotification } from "../../lib/notificationText";
 import { LABEL_META, SENTIMENT_COLOR, effectiveLabel, labelName, type TrustLabel } from "../../lib/trustLabel";
+import { useExclusiveOpen } from "../../lib/exclusiveOpen";
 import { useLang } from "../../i18n";
 
 const SUPERADMIN_EMAIL = "ubajdulla@seznam.cz";
@@ -106,12 +107,15 @@ export function AdminPlayerProfile() {
   const [detailsDraft,   setDetailsDraft]   = useState({ name: "", birthDate: "", phone: "", email: "", telegram: "", instagram: "" });
 
   const [addingNote,     setAddingNote]     = useState(false);
+  const [noteOrigin,     setNoteOrigin]     = useState<ModalOrigin>(null);
+  const addNoteBtnRef = useRef<HTMLButtonElement>(null);
   const [noteDraft,      setNoteDraft]      = useState("");
   const [noteVisibility, setNoteVisibility] = useState<"admin" | "all">("admin");
   const [noteLabel,      setNoteLabel]      = useState<TrustLabel | "">("");
   const [savingNote,     setSavingNote]     = useState(false);
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
   const [openNoteMenuId, setOpenNoteMenuId] = useState<string | null>(null);
+  useExclusiveOpen(openNoteMenuId !== null, () => setOpenNoteMenuId(null));
   const [deleteArmedId,  setDeleteArmedId]  = useState<string | null>(null);
   const [editingNoteId,  setEditingNoteId]  = useState<string | null>(null);
   const [editNoteDraft,  setEditNoteDraft]  = useState("");
@@ -545,6 +549,7 @@ export function AdminPlayerProfile() {
           own entrance against the keyboard's slide-up animation. */}
       {addingNote && (
         <ConfirmModal
+          origin={noteOrigin}
           icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[#462ed1]/75" icon={<Pencil size={18} className="text-white" />} />}
           iconBg="border-[#462ed1]/25"
           title={t.admin.addNoteTitle} sub={t.admin.aboutPlayer(player.name)}
@@ -728,8 +733,11 @@ export function AdminPlayerProfile() {
             <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa]">{t.admin.notesTab}</h2>
             {!addingNote && (
               <button
+                ref={addNoteBtnRef}
                 type="button"
                 onClick={() => {
+                  const rect = addNoteBtnRef.current?.getBoundingClientRect();
+                  setNoteOrigin(rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null);
                   setAddingNote(true);
                   // Only one note-related thing can be open at a time - opening the
                   // composer closes any note that's mid-edit, expanded, or menu-open.
