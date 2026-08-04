@@ -55,7 +55,7 @@ export const EventCard = memo(function EventCard({
       <div className="px-3 pt-3">
         <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-xl bg-[var(--surface-1)]">
           {image ? (
-            <img src={image} alt={title} className={`w-full h-full object-cover${canceled ? " grayscale" : ""}`} />
+            <img src={image} alt={title} loading="lazy" decoding="async" className={`w-full h-full object-cover${canceled ? " grayscale" : ""}`} />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-[#1e2d3d] to-[var(--surface-1)]" />
           )}
@@ -127,6 +127,8 @@ export const EventCard = memo(function EventCard({
                   {moderator.avatar ? (
                     <img
                       src={moderator.avatar}
+                      loading="lazy"
+                      decoding="async"
                       className="w-9 h-9 rounded-full border-2 border-[var(--brand)] object-cover bg-[var(--surface-1)]"
                       alt={moderator.name}
                     />
@@ -145,6 +147,8 @@ export const EventCard = memo(function EventCard({
                   {av.url ? (
                     <img
                       src={av.url}
+                      loading="lazy"
+                      decoding="async"
                       className="w-9 h-9 rounded-full border-2 border-[var(--surface-1)] object-cover bg-[var(--surface-1)]"
                       alt="Player avatar"
                     />
