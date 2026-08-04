@@ -44,6 +44,12 @@ export function RippleLayer({ ripples }: { ripples: { id: number; x: number; y: 
             height: r.size,
             marginLeft: -r.size / 2,
             marginTop: -r.size / 2,
+            // iOS Safari can fail to repaint the button's other content (e.g. a
+            // label) after this animated layer unmounts, leaving it stuck
+            // invisible until something else forces a reflow. will-change makes
+            // Safari keep a stable compositing layer for the ripple instead of
+            // tearing one down on removal, which avoids the glitch.
+            willChange: "transform, opacity",
           }}
         />
       ))}
