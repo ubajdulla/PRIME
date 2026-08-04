@@ -47,6 +47,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", resolvedTheme);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute(
+      "content",
+      resolvedTheme === "light" ? "#ffffff" : "#212121",
+    );
   }, [resolvedTheme]);
 
   function setTheme(t: Theme) {
