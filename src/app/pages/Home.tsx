@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useTransition } from "react";
 import { Link } from "react-router";
 import { UserCircle } from "lucide-react";
 import { Instagram, Send } from "lucide-react";
@@ -49,7 +49,18 @@ const COL_GAP = "gap-2 md:gap-3";
 
 export function Home() {
   const { t } = useLang();
+  // activeFilter drives the pill highlight/indicator and updates synchronously
+  // so the slide animation starts immediately on click. contentFilter drives
+  // the actual list filtering and is set inside startTransition so React can
+  // paint the (cheap) indicator move before doing the (heavier) list re-render,
+  // instead of both fighting for the same frame.
   const [activeFilter, setActiveFilter] = useState("ALL");
+  const [contentFilter, setContentFilter] = useState("ALL");
+  const [, startTransition] = useTransition();
+  const handleFilterClick = (f: string) => {
+    setActiveFilter(f);
+    startTransition(() => setContentFilter(f));
+  };
   const filterScrollRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{ active: boolean; startX: number; scrollLeft: number }>({ active: false, startX: 0, scrollLeft: 0 });
 
@@ -149,10 +160,10 @@ export function Home() {
   }, [profile?.skill_level, isLoggedIn]);
 
   const filtered = useMemo(() => events.filter(e => {
-    if (activeFilter === "ALL") return true;
-    if (activeFilter === "REQUEST ONLY" || activeFilter === "JOIN DIRECTLY") return e.status === activeFilter;
-    return e.category === activeFilter;
-  }), [events, activeFilter]);
+    if (contentFilter === "ALL") return true;
+    if (contentFilter === "REQUEST ONLY" || contentFilter === "JOIN DIRECTLY") return e.status === contentFilter;
+    return e.category === contentFilter;
+  }), [events, contentFilter]);
 
   const dateGroups = useMemo(() => filtered.reduce<{ rawDate: string; events: (EventCardProps & { rawDate: string })[] }[]>((acc, e) => {
     const last = acc[acc.length - 1];
@@ -277,7 +288,7 @@ export function Home() {
           >
             <FilterPillTrack activeKey={activeFilter}>
               {ALL_FILTERS.map(f => (
-                <FilterPill key={f} pillKey={f} label={t.home.filters[FILTER_KEY[f]]} active={activeFilter === f} onClick={() => setActiveFilter(f)} />
+                <FilterPill key={f} pillKey={f} label={t.home.filters[FILTER_KEY[f]]} active={activeFilter === f} onClick={() => handleFilterClick(f)} />
               ))}
             </FilterPillTrack>
           </div>
