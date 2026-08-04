@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, memo } from "react";
 import { useNavigate } from "react-router";
 import { Search, X, OctagonX, CheckCircle2, Clock, BadgeCheck, ChevronDown, Flag, MessageSquare, Brush } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -121,6 +121,89 @@ function classifyActivity(n: NoteRow, t: Dict): ActivityKind {
   return { Icon: MessageSquare, color: "var(--brand)", title: t.admin.activityNote };
 }
 
+// Shared by "Recent Admin Activity" and every trust-label status filter
+// (Warnings, No-show, Disrespect, Trust, Payment Pending) — same card
+// either way: a name paired with the reason it's on this list, not the
+// generic player row (avatar + skill + event count) used elsewhere.
+// Module-scope + memo'd so switching status/category filters doesn't remount
+// every card (a plain nested function component gets a new identity - and
+// so a full unmount/remount - on every parent render).
+const PlayerActivityCard = memo(function PlayerActivityCard({ avatar, name, color, title, subtitle, onClick }: {
+  avatar: string | null; name: string; color: string; title: string; subtitle: React.ReactNode; onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      className="flex items-stretch w-full text-left rounded-2xl bg-[var(--surface-1)] overflow-hidden transition-colors disabled:cursor-default focus:outline-none"
+    >
+      {/* Severity stripe — the one colored element on the card, always there */}
+      <span className="w-[3px] shrink-0" style={{ background: color }} />
+
+      <div className="flex items-center gap-3 px-3 py-3 flex-1 min-w-0">
+        <div className="shrink-0">
+          {avatar
+            ? <img src={avatar} alt={name} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover border-2 border-[var(--surface-0)]" />
+            : <div className="w-10 h-10 rounded-full bg-[var(--ink)]/5 border-2 border-[var(--surface-0)]" />}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] leading-snug truncate flex items-center gap-1.5">
+            <span className="font-bold text-[var(--ink)]">{name}</span>
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
+            <span className="font-bold text-[var(--ink)]">{title}</span>
+          </p>
+          <p className="text-[11px] text-[#79828b] mt-0.5 truncate">{subtitle}</p>
+        </div>
+      </div>
+    </button>
+  );
+});
+
+const PlayerRowButton = memo(function PlayerRowButton({ p, t, onClick }: { p: Player; t: Dict; onClick: () => void }) {
+  const eff = effectiveLabel(p.visible_trust_label, p.trust_label_set_at_events, p.eventsJoined);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="relative flex items-center gap-3 px-4 py-3 w-full text-left transition-colors hover:bg-[var(--surface-hover)] focus:outline-none before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden"
+    >
+      <div className="relative shrink-0">
+        {p.avatar
+          ? <img src={p.avatar} alt={p.name} loading="lazy" decoding="async" className="w-11 h-11 rounded-full border-2 border-[var(--surface-0)] object-cover" />
+          : <div className="w-11 h-11 rounded-full border-2 border-[var(--surface-0)] bg-[var(--ink)]/5" />}
+        <VerifiedBadge verified={p.is_verified} size={14} ringClassName="border-[var(--surface-0)]" />
+        <TrustDot label={eff?.label} opacity={eff?.opacity} size={11} ringClassName="border-[var(--surface-0)]" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-bold text-[var(--ink)] text-sm truncate">{p.name}</div>
+        <div className="flex items-center gap-1.5 text-[#79828b] text-[11px] uppercase tracking-wider">
+          <span className={CATEGORY_TEXT_CLASS[p.skill_level] ?? ""}>{levelLabel(p.skill_level, t)}</span>
+          {p.position && <span>· {positionLabel(p.position, t)}</span>}
+        </div>
+      </div>
+      <div className="text-right shrink-0 mr-1">
+        <div className="text-[var(--ink)] text-sm font-black">{p.eventsJoined}</div>
+        <div className="text-[#79828b] text-[10px]">events</div>
+      </div>
+    </button>
+  );
+});
+
+function PlayerList({ list, empty, loading, t, onPlayerClick }: {
+  list: Player[]; empty: string; loading: boolean; t: Dict; onPlayerClick: (p: Player) => void;
+}) {
+  if (!loading && list.length === 0) {
+    return <p className="text-[#79828b] text-sm text-center py-6">{empty}</p>;
+  }
+  return (
+    <div className="bg-[var(--surface-1)] rounded-2xl overflow-hidden">
+      {list.map(p => <PlayerRowButton key={p.id} p={p} t={t} onClick={() => onPlayerClick(p)} />)}
+    </div>
+  );
+}
+
 export function AdminPlayers() {
   const navigate = useNavigate();
   const { t } = useLang();
@@ -158,7 +241,18 @@ export function AdminPlayers() {
 
   const [focused, setFocused]     = useState(false);
   const [search, setSearch]       = useState("");
+  // status drives the pill highlight/indicator and updates synchronously so
+  // the slide animation starts immediately on click. contentStatus drives
+  // which section renders and how the player list is filtered, and is set
+  // inside startTransition so that heavier work never blocks the same frame
+  // as the indicator animation (same split as Home's event filter bar).
   const [status, setStatus]       = useState<Status>("All");
+  const [contentStatus, setContentStatus] = useState<Status>("All");
+  const [, startTransition] = useTransition();
+  const handleStatusClick = (s: Status) => {
+    setStatus(s);
+    startTransition(() => setContentStatus(s));
+  };
   const [category, setCategory]   = useState<Category | null>(null);
   const [recentTick, setRecentTick] = useState(0);
   // Players whose notes mention the current search text — kept separate from
@@ -249,95 +343,29 @@ export function AdminPlayers() {
     return noteMatchIds.has(p.id);
   }
 
-  const statusFiltered = players.filter(p => matchesStatus(p, status)).sort(byName);
+  const statusFiltered = useMemo(
+    () => players.filter(p => matchesStatus(p, contentStatus)).sort(byName),
+    [players, contentStatus]
+  );
   // labelNotes is ordered newest-first, so the first note seen per player here
   // is their most recent labeled note - which addNote() guarantees is the one
   // that set their current trust_label.
-  const latestLabelNoteByPlayer = new Map<string, NoteRow>();
-  for (const n of labelNotes) if (!latestLabelNoteByPlayer.has(n.player_id)) latestLabelNoteByPlayer.set(n.player_id, n);
-  const categoryFiltered = category
-    ? players.filter(p => (category === "Admin" ? p.is_admin : p.skill_level === category) && matchesSearch(p)).sort(byName)
-    : [];
-  const searchResults = search.trim() ? players.filter(matchesSearch).sort(byName) : [];
+  const latestLabelNoteByPlayer = useMemo(() => {
+    const map = new Map<string, NoteRow>();
+    for (const n of labelNotes) if (!map.has(n.player_id)) map.set(n.player_id, n);
+    return map;
+  }, [labelNotes]);
+  const categoryFiltered = useMemo(
+    () => category
+      ? players.filter(p => (category === "Admin" ? p.is_admin : p.skill_level === category) && matchesSearch(p)).sort(byName)
+      : [],
+    [category, players, search, noteMatchIds]
+  );
+  const searchResults = useMemo(
+    () => search.trim() ? players.filter(matchesSearch).sort(byName) : [],
+    [search, players, noteMatchIds]
+  );
   const recentPlayers = getRecentIds().map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p);
-
-  // Shared by "Recent Admin Activity" and every trust-label status filter
-  // (Warnings, No-show, Disrespect, Trust, Payment Pending) — same card
-  // either way: a name paired with the reason it's on this list, not the
-  // generic player row (avatar + skill + event count) used elsewhere.
-  function PlayerActivityCard({ avatar, name, color, title, subtitle, onClick }: {
-    avatar: string | null; name: string; color: string; title: string; subtitle: React.ReactNode; onClick?: () => void;
-  }) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={!onClick}
-        className="flex items-stretch w-full text-left rounded-2xl bg-[var(--surface-1)] overflow-hidden transition-colors disabled:cursor-default focus:outline-none"
-      >
-        {/* Severity stripe — the one colored element on the card, always there */}
-        <span className="w-[3px] shrink-0" style={{ background: color }} />
-
-        <div className="flex items-center gap-3 px-3 py-3 flex-1 min-w-0">
-          <div className="shrink-0">
-            {avatar
-              ? <img src={avatar} alt={name} className="w-10 h-10 rounded-full object-cover border-2 border-[var(--surface-0)]" />
-              : <div className="w-10 h-10 rounded-full bg-[var(--ink)]/5 border-2 border-[var(--surface-0)]" />}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] leading-snug truncate flex items-center gap-1.5">
-              <span className="font-bold text-[var(--ink)]">{name}</span>
-              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
-              <span className="font-bold text-[var(--ink)]">{title}</span>
-            </p>
-            <p className="text-[11px] text-[#79828b] mt-0.5 truncate">{subtitle}</p>
-          </div>
-        </div>
-      </button>
-    );
-  }
-
-  function PlayerRowButton({ p }: { p: Player }) {
-    const eff = effectiveLabel(p.visible_trust_label, p.trust_label_set_at_events, p.eventsJoined);
-    return (
-      <button
-        type="button"
-        onClick={() => goToPlayer(p)}
-        className="relative flex items-center gap-3 px-4 py-3 w-full text-left transition-colors hover:bg-[var(--surface-hover)] focus:outline-none before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden"
-      >
-        <div className="relative shrink-0">
-          {p.avatar
-            ? <img src={p.avatar} alt={p.name} className="w-11 h-11 rounded-full border-2 border-[var(--surface-0)] object-cover" />
-            : <div className="w-11 h-11 rounded-full border-2 border-[var(--surface-0)] bg-[var(--ink)]/5" />}
-          <VerifiedBadge verified={p.is_verified} size={14} ringClassName="border-[var(--surface-0)]" />
-          <TrustDot label={eff?.label} opacity={eff?.opacity} size={11} ringClassName="border-[var(--surface-0)]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="font-bold text-[var(--ink)] text-sm truncate">{p.name}</div>
-          <div className="flex items-center gap-1.5 text-[#79828b] text-[11px] uppercase tracking-wider">
-            <span className={CATEGORY_TEXT_CLASS[p.skill_level] ?? ""}>{levelLabel(p.skill_level, t)}</span>
-            {p.position && <span>· {positionLabel(p.position, t)}</span>}
-          </div>
-        </div>
-        <div className="text-right shrink-0 mr-1">
-          <div className="text-[var(--ink)] text-sm font-black">{p.eventsJoined}</div>
-          <div className="text-[#79828b] text-[10px]">events</div>
-        </div>
-      </button>
-    );
-  }
-
-  function PlayerList({ list, empty }: { list: Player[]; empty: string }) {
-    if (!loading && list.length === 0) {
-      return <p className="text-[#79828b] text-sm text-center py-6">{empty}</p>;
-    }
-    return (
-      <div className="bg-[var(--surface-1)] rounded-2xl overflow-hidden">
-        {list.map(p => <PlayerRowButton key={p.id} p={p} />)}
-      </div>
-    );
-  }
 
   // Swipe right back to the Events tab - mirrors AdminEvents' swipe-left,
   // same no-slide route transition as tapping the sub-navbar tab, with the
@@ -423,13 +451,13 @@ export function AdminPlayers() {
             >
               <FilterPillTrack activeKey={status}>
                 {STATUSES.map(s => (
-                  <FilterPill key={s} pillKey={s} label={STATUS_LABEL[s]} active={status === s} onClick={() => setStatus(s)} />
+                  <FilterPill key={s} pillKey={s} label={STATUS_LABEL[s]} active={status === s} onClick={() => handleStatusClick(s)} />
                 ))}
               </FilterPillTrack>
             </div>
           </div>
 
-          {status === "All" ? (
+          {contentStatus === "All" ? (
             <section>
               <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">{t.admin.recentActivity}</h2>
               {activity.length === 0 ? (
@@ -454,12 +482,12 @@ export function AdminPlayers() {
                 </div>
               )}
             </section>
-          ) : status === "No Label" ? (
+          ) : contentStatus === "No Label" ? (
             <section>
               <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">
                 {t.admin.matches(statusFiltered.length)}
               </h2>
-              <PlayerList list={statusFiltered} empty={t.admin.noLabelPlayers} />
+              <PlayerList list={statusFiltered} empty={t.admin.noLabelPlayers} loading={loading} t={t} onPlayerClick={goToPlayer} />
             </section>
           ) : (
             <section>
@@ -523,12 +551,12 @@ export function AdminPlayers() {
               <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">
                 {categoryFiltered.length} {t.admin.inLabel} {catLabel(category)}
               </h2>
-              <PlayerList list={categoryFiltered} empty={t.admin.noCategoryMatch} />
+              <PlayerList list={categoryFiltered} empty={t.admin.noCategoryMatch} loading={loading} t={t} onPlayerClick={goToPlayer} />
             </section>
           ) : search.trim() ? (
             <section>
               <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">{t.admin.results}</h2>
-              <PlayerList list={searchResults} empty={t.admin.noSearchMatch} />
+              <PlayerList list={searchResults} empty={t.admin.noSearchMatch} loading={loading} t={t} onPlayerClick={goToPlayer} />
             </section>
           ) : (
             <section key={recentTick}>
@@ -547,7 +575,7 @@ export function AdminPlayers() {
               {recentPlayers.length === 0 ? (
                 <p className="text-[#79828b] text-sm text-center py-6">{t.admin.nothingSearched}</p>
               ) : (
-                <PlayerList list={recentPlayers} empty={t.admin.nothingSearched} />
+                <PlayerList list={recentPlayers} empty={t.admin.nothingSearched} loading={loading} t={t} onPlayerClick={goToPlayer} />
               )}
             </section>
           )}
