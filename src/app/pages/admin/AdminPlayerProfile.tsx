@@ -207,7 +207,7 @@ export function AdminPlayerProfile() {
     const { data } = await supabase.from("player_notes").insert({
       player_id: playerId,
       author_id: viewer?.id ?? null,
-      author_name: "System",
+      author_name: viewerProfile?.name ?? "Admin",
       body,
       visibility: "admin",
     }).select().single();

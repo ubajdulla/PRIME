@@ -22,6 +22,7 @@ import { BackBar } from "../components/ui/BackBar";
 import { TrustDot } from "../components/ui/TrustDot";
 import { VerifiedBadge } from "../components/ui/VerifiedBadge";
 import { ProfileRow } from "../components/ui/ProfileRow";
+import { useIsMobile } from "../components/ui/use-mobile";
 import { LevelBookmark } from "../components/ui/LevelBookmark";
 import { CategoryIcon } from "../components/ui/CategoryIcon";
 import { PositionList } from "../components/ui/PositionList";
@@ -75,6 +76,11 @@ export function EventDetail() {
   const { t } = useLang();
   const { user: authUser, profile, isLoggedIn, isAdmin } = useAuth();
   const joinRipple = useWaterRipple();
+  // On mobile, only the avatar navigates to a profile (ProfileRow's
+  // avatarOnly) so a mis-tap while scrolling the roster can't accidentally
+  // open someone's profile. Desktop keeps the whole row clickable, same as
+  // before - mispointing with a mouse isn't the same risk as a touch scroll.
+  const isMobile = useIsMobile();
 
   function playerProfilePath(playerId: string) {
     return isAdmin ? `/admin/player/${playerId}` : `/players/${playerId}`;
@@ -447,6 +453,7 @@ return (
             checkmark
             variant="card"
             className="mb-4 shadow-sm"
+            avatarOnly={isMobile}
             onClick={isLoggedIn ? () => { navDir.forward(); navigate(playerProfilePath(event.moderator_id), { state: { hub } }); } : undefined}
           />
 
@@ -572,6 +579,7 @@ return (
                     verified={player.verified}
                     trustLabel={player.trustLabel}
                     divider
+                    avatarOnly={isMobile}
                     onClick={clickable ? () => { navDir.forward(); navigate(playerProfilePath(player.id), { state: { hub } }); } : undefined}
                     primary={
                       requiresTeamName ? (
@@ -618,6 +626,7 @@ return (
                   verified={player.verified}
                   trustLabel={player.trustLabel}
                   divider
+                  avatarOnly={isMobile}
                   onClick={() => { if (isMe) navigate("/profile", { state: { hub } }); else { navDir.forward(); navigate(playerProfilePath(player.id), { state: { hub } }); } }}
                   primary={
                     <span className={`font-bold text-sm block truncate ${isMe ? theme.primary : "text-[var(--ink)]"}`}>{player.name}</span>

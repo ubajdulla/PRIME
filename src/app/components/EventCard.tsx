@@ -1,11 +1,9 @@
 import { memo } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { MapPin, Calendar, Clock, ChevronRight, User } from "lucide-react";
 import { LevelBookmark } from "./ui/LevelBookmark";
 import { CategoryIcon } from "./ui/CategoryIcon";
-import { useIsMobile } from "./ui/use-mobile";
 import { useLang } from "../i18n";
-import { useAuth } from "../lib/AuthContext";
 
 export interface EventCardProps {
   id: string;
@@ -17,7 +15,7 @@ export interface EventCardProps {
   capacity: { current: number; max: number };
   avatars: { id: string; url: string | null }[];
   status: "REQUEST ONLY" | "JOIN DIRECTLY";
-  moderator?: { id: string; name: string; avatar: string | null } | null;
+  moderator?: { name: string; avatar: string | null } | null;
   image?: string;
   category?: string;
   level?: string;
@@ -43,24 +41,8 @@ export const EventCard = memo(function EventCard({
   canceled = false,
 }: EventCardProps) {
   const { t } = useLang();
-  const navigate = useNavigate();
-  const isMobile = useIsMobile();
-  const { isLoggedIn, isAdmin } = useAuth();
   const fillPct = Math.min(100, (capacity.current / capacity.max) * 100);
   const initials = moderator?.name?.trim().charAt(0).toUpperCase() ?? "";
-
-  // Avatars sit inside the card's own event Link - on mobile, tapping one
-  // should open that player's profile instead of the event, without taking
-  // over the rest of the card. Desktop keeps the whole-card click (no
-  // separate hover affordance there), and profiles require login (same rule
-  // as the event page's roster), so in both cases this falls through and
-  // the tap just navigates to the event as normal.
-  function goToPlayerProfile(playerId: string, e: React.MouseEvent) {
-    if (!isMobile || !isLoggedIn) return;
-    e.preventDefault();
-    e.stopPropagation();
-    navigate(isAdmin ? `/admin/player/${playerId}` : `/players/${playerId}`);
-  }
 
   return (
     <Link
@@ -141,11 +123,7 @@ export const EventCard = memo(function EventCard({
           <div className="flex items-center gap-2.5">
             {moderator && (
               <>
-                <button
-                  type="button"
-                  onClick={e => goToPlayerProfile(moderator.id, e)}
-                  className="w-9 h-9 shrink-0"
-                >
+                <div className="w-9 h-9 shrink-0">
                   {moderator.avatar ? (
                     <img
                       src={moderator.avatar}
@@ -159,40 +137,28 @@ export const EventCard = memo(function EventCard({
                       {initials || <User size={14} className="text-white/70" />}
                     </div>
                   )}
-                </button>
+                </div>
                 <div className="w-px h-9 bg-[var(--ink)]/10 shrink-0" />
               </>
             )}
             <div className="flex -space-x-2">
-              {avatars.slice(0, 3).map((av, idx) => {
-                // "guest-" ids are synthetic (walk-in participants with no
-                // linked profile) - nothing to navigate to, so those avatars
-                // just don't get a click handler and fall through to the
-                // card's own event Link like the rest of the card.
-                const hasProfile = !!av.id && !av.id.startsWith("guest-");
-                return (
-                  <button
-                    key={av.id ?? idx}
-                    type="button"
-                    onClick={hasProfile ? e => goToPlayerProfile(av.id, e) : undefined}
-                    className="relative shrink-0"
-                  >
-                    {av.url ? (
-                      <img
-                        src={av.url}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-9 h-9 rounded-full border-2 border-[var(--surface-1)] object-cover bg-[var(--surface-1)]"
-                        alt="Player avatar"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full border-2 border-[var(--surface-1)] bg-[var(--surface-1)] flex items-center justify-center">
-                        <User size={14} className="text-[var(--ink)]/30" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
+              {avatars.slice(0, 3).map((av, idx) => (
+                <div key={av.id ?? idx} className="relative shrink-0">
+                  {av.url ? (
+                    <img
+                      src={av.url}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-9 h-9 rounded-full border-2 border-[var(--surface-1)] object-cover bg-[var(--surface-1)]"
+                      alt="Player avatar"
+                    />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full border-2 border-[var(--surface-1)] bg-[var(--surface-1)] flex items-center justify-center">
+                      <User size={14} className="text-[var(--ink)]/30" />
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
             {capacity.current > 3 && (
               <span className="text-xs font-bold text-[#79828b] bg-[var(--ink)]/5 px-2 py-0.5 rounded-md">
