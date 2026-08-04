@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Link } from "react-router";
 import { UserCircle } from "lucide-react";
 import { Instagram, Send } from "lucide-react";
@@ -148,18 +148,18 @@ export function Home() {
     return () => { active = false; };
   }, [profile?.skill_level, isLoggedIn]);
 
-  const filtered = events.filter(e => {
+  const filtered = useMemo(() => events.filter(e => {
     if (activeFilter === "ALL") return true;
     if (activeFilter === "REQUEST ONLY" || activeFilter === "JOIN DIRECTLY") return e.status === activeFilter;
     return e.category === activeFilter;
-  });
+  }), [events, activeFilter]);
 
-  const dateGroups = filtered.reduce<{ rawDate: string; events: (EventCardProps & { rawDate: string })[] }[]>((acc, e) => {
+  const dateGroups = useMemo(() => filtered.reduce<{ rawDate: string; events: (EventCardProps & { rawDate: string })[] }[]>((acc, e) => {
     const last = acc[acc.length - 1];
     if (last && last.rawDate === e.rawDate) { last.events.push(e); }
     else { acc.push({ rawDate: e.rawDate, events: [e] }); }
     return acc;
-  }, []);
+  }, []), [filtered]);
 
   return (
     <div className="flex flex-col min-h-full bg-[var(--surface-0)] w-full">

@@ -22,17 +22,26 @@ export function FilterPillTrack({
   useLayoutEffect(() => {
     const track = trackRef.current;
     if (!track) return;
-    const activeEl = track.querySelector<HTMLElement>(`[data-pill-key="${CSS.escape(activeKey)}"]`);
-    setIndicator(activeEl ? { left: activeEl.offsetLeft, width: activeEl.offsetWidth } : null);
-  }, [activeKey, children]);
+    const measure = () => {
+      const activeEl = track.querySelector<HTMLElement>(`[data-pill-key="${CSS.escape(activeKey)}"]`);
+      setIndicator(activeEl ? { left: activeEl.offsetLeft, width: activeEl.offsetWidth } : null);
+    };
+    measure();
+    // Re-measures on width changes (language switch, viewport resize) without
+    // depending on `children`, which gets a fresh array identity on every
+    // parent render and would otherwise force a synchronous layout read then.
+    const observer = new ResizeObserver(measure);
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, [activeKey]);
 
   return (
     <div ref={trackRef} className={`relative ${className}`}>
       {indicator && (
         <div
           aria-hidden
-          className="absolute top-0 bottom-0 bg-[var(--brand)] rounded-full transition-[left,width] duration-300 ease-out"
-          style={{ left: indicator.left, width: indicator.width }}
+          className="absolute top-0 bottom-0 left-0 bg-[var(--brand)] rounded-full transition-[transform,width] duration-300 ease-out will-change-transform"
+          style={{ transform: `translateX(${indicator.left}px)`, width: indicator.width }}
         />
       )}
       {children}

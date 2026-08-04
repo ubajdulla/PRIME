@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Link } from "react-router";
 import { MapPin, Calendar, Clock, ChevronRight, User } from "lucide-react";
 import { LevelBookmark } from "./ui/LevelBookmark";
@@ -22,7 +23,7 @@ export interface EventCardProps {
   canceled?: boolean;
 }
 
-export function EventCard({
+export const EventCard = memo(function EventCard({
   id,
   title,
   date,
@@ -169,4 +170,4 @@ export function EventCard({
       </div>
     </Link>
   );
-}
+});
