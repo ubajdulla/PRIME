@@ -1,8 +1,9 @@
 import { Outlet, NavLink, useNavigate, useLocation, useBlocker } from "react-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Calendar, User, Bell, ShieldCheck, ChevronDown, Check } from "lucide-react";
+import { Calendar, User, Bell, ShieldCheck, ChevronDown, Check, Settings, Moon, Sun } from "lucide-react";
 import logo from "../../imports/Prime_logo_nobg_white_border.png";
 import { useLang, LANG_CYCLE, type Lang } from "../i18n";
+import { useTheme, type Theme } from "../theme";
 import { navDir } from "../lib/navDir";
 import { getHub } from "../lib/hub";
 import { DropdownPanel } from "../components/ui/DropdownMenu";
@@ -16,6 +17,11 @@ import { useExclusiveOpen } from "../lib/exclusiveOpen";
 const LANG_OPTIONS: { code: Lang; label: string }[] = [
   { code: "en", label: "English" },
   { code: "ru", label: "Русский" },
+];
+
+const THEME_OPTIONS: { value: Theme; label: string; icon: React.ReactNode }[] = [
+  { value: "dark", label: "Dark", icon: <Moon size={14} /> },
+  { value: "light", label: "Light", icon: <Sun size={14} /> },
 ];
 
 function NavigationGuard() {
@@ -40,6 +46,7 @@ export function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { lang, t, setLang } = useLang();
+  const { theme, setTheme } = useTheme();
   const mainRef = useRef<HTMLElement>(null);
   const desktopLangRef = useRef<HTMLDivElement>(null);
   const mobileLangRef = useRef<HTMLDivElement>(null);
@@ -100,11 +107,11 @@ export function MainLayout() {
   }
 
   return (
-    <div className="h-full md:min-h-screen bg-[#181818] text-white font-sans flex flex-col md:block">
+    <div className="h-full md:min-h-screen bg-[var(--surface-0)] text-[var(--ink)] font-sans flex flex-col md:block">
       <NavigationGuard />
 
       {/* ── Desktop Sidebar ─────────────────────────────────── */}
-      <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen z-50 w-[72px] bg-[#212121] border-r border-[#101923] shadow-2xl">
+      <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen z-50 w-[72px] bg-[var(--surface-1)] border-r border-[var(--divider)] shadow-2xl">
         <div className="flex items-center h-[72px] shrink-0 px-3">
           <a
             href="/"
@@ -126,10 +133,10 @@ export function MainLayout() {
           <div ref={desktopLangRef} className="relative">
             <button
               onClick={() => setShowLangDropdown(v => !v)}
-              className="flex items-center justify-center w-12 h-12 rounded-full text-[#8899a6] hover:text-white hover:bg-white/5 transition-colors"
-              title="Language"
+              className="flex items-center justify-center w-12 h-12 rounded-full text-[#8899a6] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)] transition-colors"
+              title="Settings"
             >
-              <span className="font-black text-sm tracking-widest">{lang.toUpperCase()}</span>
+              <Settings size={20} />
             </button>
 
             {showLangDropdown && (
@@ -141,12 +148,27 @@ export function MainLayout() {
                       onClick={() => { setLang(opt.code); setShowLangDropdown(false); }}
                       className={`flex items-center justify-between w-full px-4 py-3 text-sm font-semibold text-left transition-colors ${
                         lang === opt.code
-                          ? "text-white bg-white/5"
-                          : "text-[#79828b] hover:text-white hover:bg-white/5"
+                          ? "text-[var(--ink)] bg-[var(--surface-active)]"
+                          : "text-[#79828b] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)]"
                       }`}
                     >
                       <span>{opt.label}</span>
-                      {lang === opt.code && <Check size={13} className="text-[#462ed1] shrink-0" />}
+                      {lang === opt.code && <Check size={13} className="text-[var(--brand)] shrink-0" />}
+                    </button>
+                  ))}
+                  <div className="my-1 border-t border-[var(--ink)]/10" />
+                  {THEME_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setTheme(opt.value); setShowLangDropdown(false); }}
+                      className={`flex items-center justify-between w-full px-4 py-3 text-sm font-semibold text-left transition-colors ${
+                        theme === opt.value
+                          ? "text-[var(--ink)] bg-[var(--surface-active)]"
+                          : "text-[#79828b] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)]"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">{opt.icon}{opt.label}</span>
+                      {theme === opt.value && <Check size={13} className="text-[var(--brand)] shrink-0" />}
                     </button>
                   ))}
                 </DropdownPanel>
@@ -157,20 +179,20 @@ export function MainLayout() {
       </aside>
 
       {/* ── Mobile Top Header ──────────────────────────────── */}
-      <div className={`md:hidden relative shrink-0 w-full items-center justify-center px-4 py-3 bg-[#212121] shadow-sm border-b border-[#101923] ${hideChrome ? "hidden" : "flex"}`}>
+      <div className={`md:hidden relative shrink-0 w-full items-center justify-center px-4 py-3 bg-[var(--surface-1)] shadow-sm border-b border-[var(--divider)] ${hideChrome ? "hidden" : "flex"}`}>
         {/* Logo stays centered */}
         <div className="flex items-center gap-2">
           <img src={logo} alt="Prime Logo" className="h-7 object-contain" />
-          <span className="font-black italic text-xl tracking-tighter text-white">PRIME</span>
+          <span className="font-black italic text-xl tracking-tighter text-[var(--ink)]">PRIME</span>
         </div>
 
         {/* Lang trigger — absolutely right, doesn't affect logo centering */}
         <div ref={mobileLangRef} className="absolute right-4">
           <button
             onClick={() => setShowLangDropdown(v => !v)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/5 text-[#79828b] hover:text-white transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-[var(--surface-hover)] text-[#79828b] hover:text-[var(--ink)] transition-colors"
           >
-            <span className="font-black text-[13px] tracking-widest">{lang.toUpperCase()}</span>
+            <Settings size={16} />
             <ChevronDown
               size={12}
               className={`transition-transform duration-200 ${showLangDropdown ? "rotate-180" : ""}`}
@@ -187,12 +209,27 @@ export function MainLayout() {
                     onClick={() => { setLang(opt.code); setShowLangDropdown(false); }}
                     className={`flex items-center justify-between w-full px-4 py-3 text-sm font-semibold text-left transition-colors ${
                       lang === opt.code
-                        ? "text-white bg-white/5"
-                        : "text-[#79828b] hover:text-white hover:bg-white/5"
+                        ? "text-[var(--ink)] bg-[var(--surface-active)]"
+                        : "text-[#79828b] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)]"
                     }`}
                   >
                     <span>{opt.label}</span>
-                    {lang === opt.code && <Check size={13} className="text-[#462ed1] shrink-0" />}
+                    {lang === opt.code && <Check size={13} className="text-[var(--brand)] shrink-0" />}
+                  </button>
+                ))}
+                <div className="my-1 border-t border-[var(--ink)]/10" />
+                {THEME_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => { setTheme(opt.value); setShowLangDropdown(false); }}
+                    className={`flex items-center justify-between w-full px-4 py-3 text-sm font-semibold text-left transition-colors ${
+                      theme === opt.value
+                        ? "text-[var(--ink)] bg-[var(--surface-active)]"
+                        : "text-[#79828b] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)]"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">{opt.icon}{opt.label}</span>
+                    {theme === opt.value && <Check size={13} className="text-[var(--brand)] shrink-0" />}
                   </button>
                 ))}
               </DropdownPanel>
@@ -207,7 +244,7 @@ export function MainLayout() {
       </main>
 
       {/* ── Mobile Bottom Nav ─────────────────────────────── */}
-      <nav className={`md:hidden shrink-0 w-full bg-[#212121] border-t border-[#101923] justify-around items-center p-2 z-50 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[0_-4px_20px_rgba(0,0,0,0.2)] ${hideChrome ? "hidden" : "flex"}`}>
+      <nav className={`md:hidden shrink-0 w-full bg-[var(--surface-1)] border-t border-[var(--divider)] justify-around items-center p-2 z-50 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[0_-4px_20px_rgba(0,0,0,0.2)] ${hideChrome ? "hidden" : "flex"}`}>
         <MobileNavItem to="/" end icon={<Calendar size={24} />} label={t.nav.events} />
         <MobileNavItem to="/alerts"  icon={<Bell size={24} />}  label={t.nav.alerts}  badge={unreadAlerts} />
         <MobileNavItem to="/profile" icon={<User size={24} />}  label={t.nav.profile} />
@@ -226,13 +263,13 @@ function NavItem({ to, icon, label, end, badge }: { to: string; icon: React.Reac
       onClick={() => navDir.none()}
       className={({ isActive }) =>
         `relative flex items-center justify-center w-12 h-12 rounded-full transition-colors
-         ${isActive ? "bg-white/[0.12] text-white" : "text-[#8899a6] hover:text-white hover:bg-white/10"}`
+         ${isActive ? "bg-[var(--surface-active)] text-[var(--ink)]" : "text-[#8899a6] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)]"}`
       }
       title={label}
     >
       {icon}
       {!!badge && (
-        <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-[#462ed1] text-white text-[10px] font-bold flex items-center justify-center">
+        <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-[var(--brand)] text-white text-[10px] font-bold flex items-center justify-center">
           {badge > 9 ? "9+" : badge}
         </span>
       )}
@@ -249,14 +286,14 @@ function MobileNavItem({ to, icon, label, end, badge }: { to: string; icon: Reac
       onClick={() => navDir.none()}
       className={({ isActive }) =>
         `relative flex flex-col items-center gap-1 p-2 min-w-[56px] transition-colors ${
-          isActive ? "text-[#462ed1]" : "text-[#79828b]"
+          isActive ? "text-[var(--brand)]" : "text-[#79828b]"
         }`
       }
     >
       <div className="relative">
         {icon}
         {!!badge && (
-          <span className="absolute -top-1 -right-1.5 min-w-[14px] h-3.5 px-1 rounded-full bg-[#462ed1] text-white text-[9px] font-bold flex items-center justify-center">
+          <span className="absolute -top-1 -right-1.5 min-w-[14px] h-3.5 px-1 rounded-full bg-[var(--brand)] text-white text-[9px] font-bold flex items-center justify-center">
             {badge > 9 ? "9+" : badge}
           </span>
         )}

@@ -100,13 +100,13 @@ export function SignIn() {
   }
 
   return (
-    <div className="min-h-screen bg-[#181818] text-white font-sans flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-[420px] bg-[#212121] rounded-2xl border border-white/5 shadow-2xl p-6 sm:p-8">
+    <div className="min-h-screen bg-[var(--surface-0)] text-[var(--ink)] font-sans flex items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-[420px] bg-[var(--surface-1)] rounded-2xl border border-[var(--ink)]/5 shadow-2xl p-6 sm:p-8">
 
       {/* Back arrow */}
       <button
         onClick={handleBack}
-        className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors mb-6 shrink-0"
+        className="w-9 h-9 flex items-center justify-center rounded-full bg-[var(--surface-hover)] hover:bg-[var(--surface-active)] transition-colors mb-6 shrink-0"
       >
         <ChevronLeft size={20} />
       </button>
@@ -118,7 +118,7 @@ export function SignIn() {
             <div
               key={i}
               className={`h-1 flex-1 rounded-full transition-colors ${
-                i < signupStep ? "bg-[#462ed1]" : "bg-white/10"
+                i < signupStep ? "bg-[var(--brand)]" : "bg-[var(--ink)]/10"
               }`}
             />
           ))}
@@ -132,7 +132,7 @@ export function SignIn() {
 
       {/* Heading */}
       <div className="mb-8">
-        <h1 className="text-3xl font-black text-white mb-2">
+        <h1 className="text-3xl font-black text-[var(--ink)] mb-2">
           {screen === "signin" && t.signin.logIn}
           {screen === "signup" && signupStep === 1 && t.signin.createAccount}
           {screen === "signup" && signupStep === 2 && t.signin.phoneStepTitle}
@@ -180,7 +180,7 @@ export function SignIn() {
             >
               <div
                 className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${
-                  remember ? "bg-[#462ed1] border-[#462ed1]" : "border-white/20 bg-white/5"
+                  remember ? "bg-[var(--brand)] border-[var(--brand)]" : "border-[var(--ink)]/20 bg-[var(--ink)]/5"
                 }`}
               >
                 {remember && (
@@ -193,7 +193,7 @@ export function SignIn() {
             </label>
             <button
               onClick={() => setScreen("forgot")}
-              className="text-sm text-[#462ed1] font-bold hover:text-white transition-colors"
+              className="text-sm text-[var(--brand)] font-bold hover:text-[var(--ink)] transition-colors"
             >
               {t.signin.forgotLink}
             </button>
@@ -202,14 +202,14 @@ export function SignIn() {
           <button
             onClick={handleLogin}
             disabled={submitting}
-            className="w-full py-3.5 rounded-xl bg-[#462ed1] text-white font-bold text-sm mb-5 disabled:opacity-50"
+            className="w-full py-3.5 rounded-xl bg-[var(--brand)] text-white font-bold text-sm mb-5 disabled:opacity-50"
           >
             {submitting ? "…" : t.signin.loginBtn}
           </button>
 
           <p className="text-center text-sm text-[#79828b] mb-8">
             {t.signin.noAccount}{" "}
-            <button onClick={() => { setScreen("signup"); setSignupStep(1); setDirection("forward"); }} className="text-[#462ed1] font-bold hover:text-white transition-colors">
+            <button onClick={() => { setScreen("signup"); setSignupStep(1); setDirection("forward"); }} className="text-[var(--brand)] font-bold hover:text-[var(--ink)] transition-colors">
               {t.signin.signUpLink}
             </button>
           </p>
@@ -265,14 +265,14 @@ export function SignIn() {
 
           <button
             onClick={handleNextFromAccount}
-            className="w-full py-3.5 rounded-xl bg-[#462ed1] text-white font-bold text-sm mb-5"
+            className="w-full py-3.5 rounded-xl bg-[var(--brand)] text-white font-bold text-sm mb-5"
           >
             {t.signin.nextBtn}
           </button>
 
           <p className="text-center text-sm text-[#79828b] mb-8">
             {t.signin.haveAccount}{" "}
-            <button onClick={() => setScreen("signin")} className="text-[#462ed1] font-bold hover:text-white transition-colors">
+            <button onClick={() => setScreen("signin")} className="text-[var(--brand)] font-bold hover:text-[var(--ink)] transition-colors">
               {t.signin.signInLink}
             </button>
           </p>
@@ -287,16 +287,16 @@ export function SignIn() {
           <div className="flex flex-col gap-3 mb-6">
             <CountrySelect country={country} onSelect={setCountry} />
 
-            <div className="flex items-center gap-3 px-4 py-3.5 bg-[#181818]/60 border border-white/10 rounded-xl focus-within:border-[#462ed1]/50 transition-colors">
+            <div className="flex items-center gap-3 px-4 py-3.5 bg-[var(--surface-0)]/60 border border-[var(--ink)]/10 rounded-xl focus-within:border-[var(--brand)]/50 transition-colors">
               <span className="text-[#79828b] shrink-0"><Phone size={16} /></span>
-              <span className="text-white font-bold text-sm shrink-0">{country.dial}</span>
+              <span className="text-[var(--ink)] font-bold text-sm shrink-0">{country.dial}</span>
               <input
                 type="tel"
                 inputMode="numeric"
                 placeholder={t.signin.phonePlaceholder}
                 value={form.phone}
                 onChange={e => set("phone", e.target.value.replace(/[^\d ]/g, ""))}
-                className="flex-1 bg-transparent text-white text-sm placeholder:text-[#79828b]/60 focus:outline-none"
+                className="flex-1 bg-transparent text-[var(--ink)] text-sm placeholder:text-[#79828b]/60 focus:outline-none"
               />
             </div>
           </div>
@@ -304,7 +304,7 @@ export function SignIn() {
           <button
             onClick={handleSignup}
             disabled={submitting}
-            className="w-full py-3.5 rounded-xl bg-[#462ed1] text-white font-bold text-sm disabled:opacity-50"
+            className="w-full py-3.5 rounded-xl bg-[var(--brand)] text-white font-bold text-sm disabled:opacity-50"
           >
             {submitting ? "…" : t.signin.createBtn}
           </button>
@@ -326,7 +326,7 @@ export function SignIn() {
 
           <button
             onClick={() => setScreen("signin")}
-            className="w-full py-3.5 rounded-xl bg-[#462ed1] text-white font-bold text-sm"
+            className="w-full py-3.5 rounded-xl bg-[var(--brand)] text-white font-bold text-sm"
           >
             {t.signin.continueBtn}
           </button>
@@ -337,7 +337,7 @@ export function SignIn() {
       {screen === "confirmEmail" && (
         <button
           onClick={() => setScreen("signin")}
-          className="w-full py-3.5 rounded-xl bg-[#462ed1] text-white font-bold text-sm"
+          className="w-full py-3.5 rounded-xl bg-[var(--brand)] text-white font-bold text-sm"
         >
           {t.signin.backToLoginBtn}
         </button>
@@ -360,14 +360,14 @@ function InputField({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3.5 bg-[#181818]/60 border border-white/10 rounded-xl focus-within:border-[#462ed1]/50 transition-colors">
+    <div className="flex items-center gap-3 px-4 py-3.5 bg-[var(--surface-0)]/60 border border-[var(--ink)]/10 rounded-xl focus-within:border-[var(--brand)]/50 transition-colors">
       <span className="text-[#79828b] shrink-0">{icon}</span>
       <input
         type={type}
         placeholder={placeholder}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="flex-1 bg-transparent text-white text-sm placeholder:text-[#79828b]/60 focus:outline-none"
+        className="flex-1 bg-transparent text-[var(--ink)] text-sm placeholder:text-[#79828b]/60 focus:outline-none"
       />
     </div>
   );
@@ -383,16 +383,16 @@ function PasswordField({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3.5 bg-[#181818]/60 border border-white/10 rounded-xl focus-within:border-[#462ed1]/50 transition-colors">
+    <div className="flex items-center gap-3 px-4 py-3.5 bg-[var(--surface-0)]/60 border border-[var(--ink)]/10 rounded-xl focus-within:border-[var(--brand)]/50 transition-colors">
       <span className="text-[#79828b] shrink-0"><Lock size={16} /></span>
       <input
         type={show ? "text" : "password"}
         placeholder={placeholder}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="flex-1 bg-transparent text-white text-sm placeholder:text-[#79828b]/60 focus:outline-none"
+        className="flex-1 bg-transparent text-[var(--ink)] text-sm placeholder:text-[#79828b]/60 focus:outline-none"
       />
-      <button type="button" tabIndex={-1} onClick={onToggle} className="text-[#79828b] hover:text-white transition-colors shrink-0">
+      <button type="button" tabIndex={-1} onClick={onToggle} className="text-[#79828b] hover:text-[var(--ink)] transition-colors shrink-0">
         {show ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>
     </div>
@@ -422,7 +422,7 @@ function CountrySelect({ country, onSelect }: { country: Country; onSelect: (c: 
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 bg-[#181818]/60 border border-white/10 rounded-xl hover:border-white/20 transition-colors text-sm text-white"
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 bg-[var(--surface-0)]/60 border border-[var(--ink)]/10 rounded-xl hover:border-[var(--ink)]/20 transition-colors text-sm text-[var(--ink)]"
       >
         <span>{country.name}</span>
         <ChevronDown size={15} className={`text-[#79828b] shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
@@ -436,14 +436,14 @@ function CountrySelect({ country, onSelect }: { country: Country; onSelect: (c: 
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={t.signin.searchCountryPlaceholder}
-              className="w-full px-3 py-2 mb-1 bg-white/5 rounded-lg text-sm text-white placeholder:text-[#79828b]/60 focus:outline-none"
+              className="w-full px-3 py-2 mb-1 bg-[var(--ink)]/5 rounded-lg text-sm text-[var(--ink)] placeholder:text-[#79828b]/60 focus:outline-none"
             />
             {filtered.map(c => (
               <button
                 key={c.iso}
                 type="button"
                 onClick={() => { onSelect(c); setOpen(false); setSearch(""); }}
-                className="flex items-center justify-between w-full px-3 py-2.5 text-sm font-semibold text-white hover:bg-[var(--surface-active)] rounded-lg transition-colors text-left focus:outline-none"
+                className="flex items-center justify-between w-full px-3 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-active)] rounded-lg transition-colors text-left focus:outline-none"
               >
                 <span>{c.name}</span>
                 <span className="text-[#79828b]">{c.dial}</span>
@@ -461,9 +461,9 @@ function SocialSection() {
   return (
     <>
       <div className="flex items-center gap-3 mb-6">
-        <div className="flex-1 h-px bg-white/10" />
+        <div className="flex-1 h-px bg-[var(--ink)]/10" />
         <span className="text-[#79828b] text-xs font-bold uppercase tracking-widest shrink-0">{t.signin.orContinueWith}</span>
-        <div className="flex-1 h-px bg-white/10" />
+        <div className="flex-1 h-px bg-[var(--ink)]/10" />
       </div>
 
       <div className="flex justify-center gap-4">
@@ -488,7 +488,7 @@ function SocialBtn({ disabled, label, children }: { disabled?: boolean; label: s
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="w-14 h-14 rounded-full bg-[#212121] border border-white/10 flex items-center justify-center hover:border-white/25 hover:bg-white/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-white/10 disabled:hover:bg-transparent"
+      className="w-14 h-14 rounded-full bg-[var(--surface-1)] border border-[var(--ink)]/10 flex items-center justify-center hover:border-[var(--ink)]/25 hover:bg-[var(--ink)]/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-[var(--ink)]/10 disabled:hover:bg-transparent"
     >
       {children}
     </button>
@@ -508,7 +508,7 @@ function GoogleIcon() {
 
 function AppleIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--ink)">
       <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
     </svg>
   );
@@ -516,7 +516,7 @@ function AppleIcon() {
 
 function TelegramIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="#462ed1">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--brand)">
       <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/>
     </svg>
   );

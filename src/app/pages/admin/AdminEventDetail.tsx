@@ -223,7 +223,7 @@ export function AdminEventDetail() {
     })();
   }, [event?.id, event?.moderator_id, authUser?.id]);
 
-  if (loading) return <div className="min-h-screen bg-[#181818]" />;
+  if (loading) return <div className="min-h-screen bg-[var(--surface-0)]" />;
 
   if (notFound || !event) {
     return (
@@ -512,7 +512,7 @@ export function AdminEventDetail() {
   const showLockToggle = !isDraft && !isCanceled && !isScheduled;
 
   return (
-    <div className="min-h-screen bg-[#181818] text-white font-sans">
+    <div className="min-h-screen bg-[var(--surface-0)] text-[var(--ink)] font-sans">
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={hideToast} />
 
       {/* ── Publish / Schedule modal ─────────────────────────── */}
@@ -536,7 +536,7 @@ export function AdminEventDetail() {
               navigator.clipboard.writeText(url).then(() => fireToast(t.common.linkCopied, "copied"));
             }
           }}
-          className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
+          className="flex items-center gap-1.5 text-[#79828b] hover:text-[var(--ink)] transition-colors text-sm font-bold"
         >
           <Share2 size={16} />
           <span>{t.event.share}</span>
@@ -551,14 +551,14 @@ export function AdminEventDetail() {
           {/* Event title + Edit button */}
           <div className="flex items-center justify-between gap-2 mb-4">
             <div className="flex items-center gap-2 min-w-0">
-              <h1 className="text-3xl font-black italic uppercase tracking-tight leading-none text-white truncate">
+              <h1 className="text-3xl font-black italic uppercase tracking-tight leading-none text-[var(--ink)] truncate">
                 {event.title}
               </h1>
               <CategoryIcon category={event.category} size={20} className="text-[#79828b] shrink-0" />
             </div>
             <button
               onClick={() => navigate(`/admin/events/${event.id}/edit`)}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-[#79828b] hover:text-white hover:bg-white/10 transition-colors shrink-0"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--ink)]/5 text-[#79828b] hover:text-[var(--ink)] hover:bg-[var(--ink)]/10 transition-colors shrink-0"
               title={t.admin.editEvent}
             >
               <Pencil size={14} />
@@ -572,7 +572,7 @@ export function AdminEventDetail() {
               avatarAlt={event.moderator?.name ?? t.event.moderator}
               avatarSize={44}
               eyebrow={t.event.moderator}
-              primary={<span className="text-white font-bold text-sm">{event.moderator?.name ?? "—"}</span>}
+              primary={<span className="text-[var(--ink)] font-bold text-sm">{event.moderator?.name ?? "—"}</span>}
               checkmark
               variant="card"
               className="shadow-sm"
@@ -586,7 +586,7 @@ export function AdminEventDetail() {
                     </span>
                     <button
                       onClick={cancelSwap}
-                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[var(--surface-hover)] transition-colors text-[#79828b]"
                     >
                       <X size={16} />
                     </button>
@@ -595,7 +595,7 @@ export function AdminEventDetail() {
                   <button
                     onMouseDown={e => e.stopPropagation()}
                     onClick={openSwapMenu}
-                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-[#79828b]"
+                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[var(--surface-hover)] transition-colors text-[#79828b]"
                   >
                     <ArrowLeftRight size={16} />
                   </button>
@@ -607,7 +607,7 @@ export function AdminEventDetail() {
               <div
                 onMouseDown={e => e.stopPropagation()}
                 style={{ position: "fixed", top: swapMenuPos.top, right: swapMenuPos.right, zIndex: 40 }}
-                className="origin-top-right animate-dropdown-in bg-[#212121] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] w-64 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                className="origin-top-right animate-dropdown-in bg-[var(--surface-1)] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] w-64 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
               >
                 {otherAdmins.length === 0 && (
                   <p className="text-[#79828b] text-xs text-center py-6 px-4">{t.admin.noOtherAdmins}</p>
@@ -616,16 +616,16 @@ export function AdminEventDetail() {
                   <button
                     key={a.id}
                     onClick={() => initiateSwap(a.id, a.name)}
-                    className="flex items-center gap-3 w-full px-3 py-2.5 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-0"
+                    className="flex items-center gap-3 w-full px-3 py-2.5 hover:bg-[var(--surface-hover)] transition-colors text-left border-b border-[var(--ink)]/5 last:border-0"
                   >
                     {a.avatar ? (
                       <img src={a.avatar} alt={a.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
                     ) : (
-                      <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center shrink-0">
-                        <User size={14} className="text-white/30" />
+                      <div className="w-9 h-9 rounded-full bg-[var(--ink)]/5 flex items-center justify-center shrink-0">
+                        <User size={14} className="text-[var(--ink)]/30" />
                       </div>
                     )}
-                    <span className="flex-1 text-white font-bold text-sm truncate">{a.name}</span>
+                    <span className="flex-1 text-[var(--ink)] font-bold text-sm truncate">{a.name}</span>
                     <ArrowLeftRight size={14} className="text-[#79828b] shrink-0" />
                   </button>
                 ))}
@@ -637,21 +637,21 @@ export function AdminEventDetail() {
           {/* Info panel */}
           <div className="relative">
             {event.level && <LevelBookmark level={event.level} />}
-            <div className="bg-[#212121] rounded-2xl overflow-hidden">
-              <div className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
-                <Calendar size={16} className="text-[#462ed1]" />
-                <span className="text-sm font-semibold text-white/90">{shortDate(event.event_date, t, true)} · {event.event_time}</span>
+            <div className="bg-[var(--surface-1)] rounded-2xl overflow-hidden">
+              <div className="relative flex items-center gap-2.5 p-3 hover:bg-[var(--surface-hover)] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
+                <Calendar size={16} className="text-[var(--brand)]" />
+                <span className="text-sm font-semibold text-[var(--ink)]/90">{shortDate(event.event_date, t, true)} · {event.event_time}</span>
               </div>
-              <div className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
-                <Ticket size={16} className="text-[#462ed1]" />
-                <span className="text-sm font-semibold text-white/90">{event.price_label ?? "FREE"}</span>
+              <div className="relative flex items-center gap-2.5 p-3 hover:bg-[var(--surface-hover)] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
+                <Ticket size={16} className="text-[var(--brand)]" />
+                <span className="text-sm font-semibold text-[var(--ink)]/90">{event.price_label ?? "FREE"}</span>
               </div>
-              <div className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
-                <MapPin size={16} className="text-[#462ed1]" />
-                <span className="text-sm font-semibold text-white/90 truncate">{event.location}</span>
+              <div className="relative flex items-center gap-2.5 p-3 hover:bg-[var(--surface-hover)] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
+                <MapPin size={16} className="text-[var(--brand)]" />
+                <span className="text-sm font-semibold text-[var(--ink)]/90 truncate">{event.location}</span>
               </div>
               {event.description && (
-                <div className="relative p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
+                <div className="relative p-3 hover:bg-[var(--surface-hover)] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
                   <p className="text-[#79828b] text-xs leading-relaxed">{event.description}</p>
                 </div>
               )}
@@ -661,12 +661,12 @@ export function AdminEventDetail() {
                   target="_blank"
                   rel="noopener noreferrer"
                   download={event.attachment_name ?? undefined}
-                  className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden"
+                  className="relative flex items-center gap-2.5 p-3 hover:bg-[var(--surface-hover)] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden"
                 >
-                  <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center shrink-0">
-                    <FileText size={13} className="text-white/60" />
+                  <div className="w-7 h-7 rounded-full bg-[var(--ink)]/5 flex items-center justify-center shrink-0">
+                    <FileText size={13} className="text-[var(--ink)]/60" />
                   </div>
-                  <span className="text-sm font-semibold text-white/90 truncate flex-1">{event.attachment_name ?? t.admin.attachment}</span>
+                  <span className="text-sm font-semibold text-[var(--ink)]/90 truncate flex-1">{event.attachment_name ?? t.admin.attachment}</span>
                   <Download size={14} className="text-[#79828b] shrink-0" />
                 </a>
               )}
@@ -676,21 +676,21 @@ export function AdminEventDetail() {
 
         {/* ── PAYMENTS (first) ─────────────────────────────────── */}
         {event.price > 0 && (
-          <div className="bg-[#212121] rounded-xl p-4 mb-5">
+          <div className="bg-[var(--surface-1)] rounded-xl p-4 mb-5">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[#79828b] text-[11px] font-black uppercase tracking-widest">{t.admin.payments}</span>
-              <span className="text-white font-black text-sm">
+              <span className="text-[var(--ink)] font-black text-sm">
                 {collectedCZK.toLocaleString()} / {(event.capacity * event.price).toLocaleString()} CZK
               </span>
             </div>
-            <div className="h-2 bg-white/5 rounded-full overflow-hidden mb-3 flex">
+            <div className="h-2 bg-[var(--ink)]/5 rounded-full overflow-hidden mb-3 flex">
               <div className="h-full bg-[#4dcd5e] transition-all" style={{ width: event.capacity > 0 ? `${(cashPaid / event.capacity) * 100}%` : "0%" }} />
-              <div className="h-full bg-[#462ed1] transition-all" style={{ width: event.capacity > 0 ? `${(onlinePaid / event.capacity) * 100}%` : "0%" }} />
+              <div className="h-full bg-[var(--brand)] transition-all" style={{ width: event.capacity > 0 ? `${(onlinePaid / event.capacity) * 100}%` : "0%" }} />
             </div>
             <div className="flex gap-4 flex-wrap">
               <LegendDot color="#4dcd5e" label={`${cashPaid} ${t.admin.paymentCash}`} />
-              <LegendDot color="#462ed1" label={`${onlinePaid} ${t.admin.paymentOnline}`} />
-              <LegendDot color="#ffffff30" label={`${unpaid} ${t.admin.paymentUnpaid}`} textColor="text-[#79828b]" />
+              <LegendDot color="var(--brand)" label={`${onlinePaid} ${t.admin.paymentOnline}`} />
+              <LegendDot color="#79828b" label={`${unpaid} ${t.admin.paymentUnpaid}`} textColor="text-[#79828b]" />
             </div>
           </div>
         )}
@@ -699,7 +699,7 @@ export function AdminEventDetail() {
         <div>
           {/* Capacity indicator + Action dropdown */}
           <div className="flex justify-between items-center mb-3 px-1">
-            <h2 className="font-bold text-lg text-white">
+            <h2 className="font-bold text-lg text-[var(--ink)]">
               {totalPlayers}{" "}
               <span className="text-[#79828b]">/ {event.capacity} {t.admin.players}</span>
             </h2>
@@ -712,7 +712,7 @@ export function AdminEventDetail() {
                 onPointerDown={statusRipple.onPointerDown}
                 className={`relative overflow-hidden w-48 py-3 px-4 flex items-center justify-between rounded-xl font-bold text-sm tracking-wide transition-colors ${
                   isDraft || isScheduled
-                    ? "bg-[#462ed1] text-white shadow-sm hover:brightness-110"
+                    ? "bg-[var(--brand)] text-white shadow-sm hover:brightness-110"
                     : `hover:bg-[currentColor]/20 ${getStatusStyle(badgeStatus)}`
                 }`}
               >
@@ -777,18 +777,18 @@ export function AdminEventDetail() {
           </div>
 
           {/* Capacity bar */}
-          <div className="w-full h-1.5 bg-white/5 rounded-full mb-5 overflow-hidden">
+          <div className="w-full h-1.5 bg-[var(--ink)]/5 rounded-full mb-5 overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${isCanceled ? "bg-[#ef4444]" : "bg-[#462ed1]"}`}
+              className={`h-full rounded-full transition-all duration-500 ${isCanceled ? "bg-[#ef4444]" : "bg-[var(--brand)]"}`}
               style={{ width: `${event.capacity > 0 ? Math.min((totalPlayers / event.capacity) * 100, 100) : 0}%` }}
             />
           </div>
 
           {/* Anonymous player card */}
           <div className="mx-0 mb-7">
-            <div className="bg-[#212121] border border-dashed border-white/[0.12] rounded-xl p-3 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full border-2 border-[#181818] bg-white/5 flex items-center justify-center shrink-0">
-                <User size={16} className="text-white/30" />
+            <div className="bg-[var(--surface-1)] border border-dashed border-[var(--ink)]/[0.12] rounded-xl p-3 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full border-2 border-[var(--surface-0)] bg-[var(--ink)]/5 flex items-center justify-center shrink-0">
+                <User size={16} className="text-[var(--ink)]/30" />
               </div>
               <div className="flex-1 min-w-0">
                 {editingAnonName ? (
@@ -798,14 +798,14 @@ export function AdminEventDetail() {
                     onChange={e => setAnonymousName(e.target.value)}
                     onBlur={() => setEditingAnonName(false)}
                     onKeyDown={e => e.key === "Enter" && setEditingAnonName(false)}
-                    className="w-full bg-transparent border-b border-white/20 text-white font-bold text-sm outline-none"
+                    className="w-full bg-transparent border-b border-[var(--ink)]/20 text-[var(--ink)] font-bold text-sm outline-none"
                   />
                 ) : (
                   <button onClick={() => setEditingAnonName(true)} className="flex items-center gap-1.5 group">
-                    <span className="font-bold text-white/40 text-sm group-hover:text-white/60 transition-colors">
+                    <span className="font-bold text-[var(--ink)]/40 text-sm group-hover:text-[var(--ink)]/60 transition-colors">
                       {anonymousName}
                     </span>
-                    <Pencil size={10} className="text-white/20 group-hover:text-white/40 transition-colors" />
+                    <Pencil size={10} className="text-[var(--ink)]/20 group-hover:text-[var(--ink)]/40 transition-colors" />
                   </button>
                 )}
               </div>
@@ -816,12 +816,12 @@ export function AdminEventDetail() {
                 value={anonymousAddCount}
                 onChange={e => setAnonymousAddCount(e.target.value.replace(/[^0-9]/g, ""))}
                 onBlur={() => setAnonymousAddCount(v => (!v || Number(v) < 1) ? "1" : v)}
-                className="w-10 h-8 bg-white/5 border border-white/10 rounded-lg text-white font-black text-sm text-center outline-none focus:border-white/25 shrink-0"
+                className="w-10 h-8 bg-[var(--ink)]/5 border border-[var(--ink)]/10 rounded-lg text-[var(--ink)] font-black text-sm text-center outline-none focus:border-[var(--ink)]/25 shrink-0"
               />
               <button
                 onClick={addAnonymousPlayers}
                 disabled={addingGuests}
-                className="px-3 h-8 flex items-center justify-center gap-1 rounded-full border text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-white/5 border-white/10 text-[#79828b] hover:text-white hover:border-white/25 disabled:opacity-50"
+                className="px-3 h-8 flex items-center justify-center gap-1 rounded-full border text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-[var(--ink)]/5 border-[var(--ink)]/10 text-[#79828b] hover:text-[var(--ink)] hover:border-[var(--ink)]/25 disabled:opacity-50"
               >
                 {t.common.add}
               </button>
@@ -829,7 +829,7 @@ export function AdminEventDetail() {
           </div>
 
           {/* Roster list */}
-          <div className="bg-[#212121] rounded-2xl mb-8">
+          <div className="bg-[var(--surface-1)] rounded-2xl mb-8">
             {roster.length === 0 && (
               <p className="text-[#79828b] text-sm text-center py-6">{t.admin.noRoster}</p>
             )}
@@ -847,12 +847,12 @@ export function AdminEventDetail() {
                 } ${enteringRosterIds.has(player.id) ? "animate-row-in" : ""}`}
               >
                 <div
-                  className={`relative flex items-center gap-2 p-3 transition-colors hover:bg-white/[0.07] ${i > 0 ? "before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06]" : ""} ${i === 0 ? "rounded-t-2xl" : ""} ${i === roster.length - 1 ? "rounded-b-2xl" : ""}`}
+                  className={`relative flex items-center gap-2 p-3 transition-colors hover:bg-[var(--surface-hover)] ${i > 0 ? "before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-[var(--ink)]/[0.06]" : ""} ${i === 0 ? "rounded-t-2xl" : ""} ${i === roster.length - 1 ? "rounded-b-2xl" : ""}`}
                 >
                   {player.isGuest ? (
                     player.avatar
-                      ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full object-cover border border-white/10 shrink-0" />
-                      : <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0"><User size={16} className="text-white/30" /></div>
+                      ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full object-cover border border-[var(--ink)]/10 shrink-0" />
+                      : <div className="w-10 h-10 rounded-full bg-[var(--ink)]/5 border border-[var(--ink)]/10 flex items-center justify-center shrink-0"><User size={16} className="text-[var(--ink)]/30" /></div>
                   ) : (
                     <button
                       type="button"
@@ -860,18 +860,18 @@ export function AdminEventDetail() {
                       className="relative shrink-0 rounded-full transition-opacity hover:opacity-80"
                     >
                       {player.avatar
-                        ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full object-cover border border-white/10" />
-                        : <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
+                        ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full object-cover border border-[var(--ink)]/10" />
+                        : <div className="w-10 h-10 rounded-full bg-[var(--ink)]/5 border border-[var(--ink)]/10 flex items-center justify-center"><User size={16} className="text-[var(--ink)]/30" /></div>
                       }
-                      <VerifiedBadge verified={player.verified} size={13} ringClassName="border-[#212121]" />
-                      <TrustDot label={player.trustLabel} size={10} ringClassName="border-[#212121]" />
+                      <VerifiedBadge verified={player.verified} size={13} ringClassName="border-[var(--surface-1)]" />
+                      <TrustDot label={player.trustLabel} size={10} ringClassName="border-[var(--surface-1)]" />
                     </button>
                   )}
                   <div className="flex-1 min-w-0">
                     {event.category === "TOURNAMENT" ? (
                       editTeamNameId === player.id ? (
                         <div className="relative max-w-[220px]" onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
-                          <label className="absolute -top-2 left-2.5 px-1 bg-[#212121] text-[9px] font-bold uppercase tracking-widest text-[#462ed1]">
+                          <label className="absolute -top-2 left-2.5 px-1 bg-[var(--surface-1)] text-[9px] font-bold uppercase tracking-widest text-[var(--brand)]">
                             {t.event.teamName}
                           </label>
                           <input
@@ -881,12 +881,12 @@ export function AdminEventDetail() {
                             onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                             onBlur={() => updateTeamName(player.rowId, editTeamNameValue)}
                             placeholder="e.g. QAZAQ Volleyball"
-                            className="w-full h-9 bg-transparent border border-[#462ed1]/60 rounded-lg px-2.5 text-white text-xs font-bold outline-none focus:border-[#462ed1] transition-colors"
+                            className="w-full h-9 bg-transparent border border-[var(--brand)]/60 rounded-lg px-2.5 text-[var(--ink)] text-xs font-bold outline-none focus:border-[var(--brand)] transition-colors"
                           />
                         </div>
                       ) : (
                         <>
-                          <div className={`font-bold text-sm truncate ${player.teamName ? "text-white" : "text-[#79828b]/50 italic font-normal"}`}>
+                          <div className={`font-bold text-sm truncate ${player.teamName ? "text-[var(--ink)]" : "text-[#79828b]/50 italic font-normal"}`}>
                             {player.teamName || t.admin.noTeamName}
                           </div>
                           <div className="text-[11px] text-[#79828b] uppercase tracking-wider truncate">
@@ -896,13 +896,13 @@ export function AdminEventDetail() {
                       )
                     ) : (
                       <>
-                        <div className="font-bold text-white text-sm truncate">{player.name}</div>
+                        <div className="font-bold text-[var(--ink)] text-sm truncate">{player.name}</div>
                         <div onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
                           <SelectField
                             value={player.position ?? POSITIONS[0]}
                             options={POSITIONS.map(p => ({ value: p, label: positionLabel(p, t) }))}
                             onChange={v => updatePosition(player.rowId, v)}
-                            triggerClassName="flex items-center gap-1 text-[#79828b] text-[11px] uppercase tracking-wider hover:text-white transition-colors focus:outline-none -ml-0.5"
+                            triggerClassName="flex items-center gap-1 text-[#79828b] text-[11px] uppercase tracking-wider hover:text-[var(--ink)] transition-colors focus:outline-none -ml-0.5"
                             panelWidthClassName="w-52"
                           />
                         </div>
@@ -917,7 +917,7 @@ export function AdminEventDetail() {
                   <button
                     onMouseDown={e => e.stopPropagation()}
                     onClick={e => { e.stopPropagation(); toggleMenu(player.id); }}
-                    className={`w-8 h-8 flex items-center justify-center rounded-full shrink-0 transition-colors ${openMenu === player.id ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
+                    className={`w-8 h-8 flex items-center justify-center rounded-full shrink-0 transition-colors ${openMenu === player.id ? "bg-[var(--surface-active)] text-[var(--ink)]" : "text-[#79828b] hover:bg-[var(--surface-hover)] hover:text-[var(--ink)]"}`}
                   >
                     <MoreVertical size={16} />
                   </button>
@@ -976,23 +976,23 @@ export function AdminEventDetail() {
                   leavingWaitlistIds.has(player.id) ? "opacity-0 -translate-x-3 pointer-events-none" : "opacity-100"
                 } ${enteringWaitlistIds.has(player.id) ? "animate-row-in" : ""}`}
               >
-                <div className="flex items-center gap-2 p-3 bg-[#212121] rounded-xl transition-colors hover:bg-white/[0.07]">
+                <div className="flex items-center gap-2 p-3 bg-[var(--surface-1)] rounded-xl transition-colors hover:bg-[var(--surface-hover)]">
                   <button
                     type="button"
                     onClick={() => openProfile(player)}
                     className="shrink-0 rounded-full transition-opacity hover:opacity-80"
                   >
                     {player.avatar
-                      ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#181818] object-cover" />
-                      : <div className="w-10 h-10 rounded-full border-2 border-[#181818] bg-white/5 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
+                      ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[var(--surface-0)] object-cover" />
+                      : <div className="w-10 h-10 rounded-full border-2 border-[var(--surface-0)] bg-[var(--ink)]/5 flex items-center justify-center"><User size={16} className="text-[var(--ink)]/30" /></div>
                     }
                   </button>
                   <div className="flex-1 min-w-0">
-                    <div className="font-bold text-white text-sm truncate">{player.name}</div>
+                    <div className="font-bold text-[var(--ink)] text-sm truncate">{player.name}</div>
                   </div>
                   <button
                     onClick={e => { e.stopPropagation(); addToRosterFromWaitlist(player.id); }}
-                    className="w-[76px] h-8 flex items-center justify-center gap-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-[#462ed1] text-white hover:brightness-110"
+                    className="w-[76px] h-8 flex items-center justify-center gap-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-[var(--brand)] text-white hover:brightness-110"
                   >
                     <CheckCheck size={12} />
                     {t.common.add}
@@ -1000,7 +1000,7 @@ export function AdminEventDetail() {
                   <button
                     onMouseDown={e => e.stopPropagation()}
                     onClick={e => { e.stopPropagation(); setOpenMenu(prev => prev === `w-${player.id}` ? null : `w-${player.id}`); setConfirmWaitlistRemId(null); }}
-                    className={`w-8 h-8 flex items-center justify-center rounded-full shrink-0 transition-colors ${openMenu === `w-${player.id}` ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
+                    className={`w-8 h-8 flex items-center justify-center rounded-full shrink-0 transition-colors ${openMenu === `w-${player.id}` ? "bg-[var(--surface-active)] text-[var(--ink)]" : "text-[#79828b] hover:bg-[var(--surface-hover)] hover:text-[var(--ink)]"}`}
                   >
                     <MoreVertical size={15} />
                   </button>
@@ -1050,23 +1050,23 @@ export function AdminEventDetail() {
             )}
             {requests.map(player => (
               <div key={player.id} className="relative">
-                <div className="flex items-center gap-2 p-3 bg-[#212121] rounded-xl transition-colors hover:bg-white/[0.07]">
+                <div className="flex items-center gap-2 p-3 bg-[var(--surface-1)] rounded-xl transition-colors hover:bg-[var(--surface-hover)]">
                   <button
                     type="button"
                     onClick={() => openProfile(player)}
                     className="shrink-0 rounded-full transition-opacity hover:opacity-80"
                   >
                     {player.avatar
-                      ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[#181818] object-cover" />
-                      : <div className="w-10 h-10 rounded-full border-2 border-[#181818] bg-white/5 flex items-center justify-center"><User size={16} className="text-white/30" /></div>
+                      ? <img src={player.avatar} alt={player.name} className="w-10 h-10 rounded-full border-2 border-[var(--surface-0)] object-cover" />
+                      : <div className="w-10 h-10 rounded-full border-2 border-[var(--surface-0)] bg-[var(--ink)]/5 flex items-center justify-center"><User size={16} className="text-[var(--ink)]/30" /></div>
                     }
                   </button>
                   <div className="flex-1 min-w-0">
-                    <div className="font-bold text-white text-sm truncate">{player.name}</div>
+                    <div className="font-bold text-[var(--ink)] text-sm truncate">{player.name}</div>
                   </div>
                   <button
                     onClick={e => { e.stopPropagation(); approveRequest(player.id); }}
-                    className="w-[76px] h-8 flex items-center justify-center gap-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-[#462ed1] text-white hover:brightness-110"
+                    className="w-[76px] h-8 flex items-center justify-center gap-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 bg-[var(--brand)] text-white hover:brightness-110"
                   >
                     <CheckCheck size={12} />
                     {t.common.add}
@@ -1074,7 +1074,7 @@ export function AdminEventDetail() {
                   <button
                     onMouseDown={e => e.stopPropagation()}
                     onClick={e => { e.stopPropagation(); setOpenMenu(prev => prev === `r-${player.id}` ? null : `r-${player.id}`); setConfirmRejectId(null); }}
-                    className={`w-8 h-8 flex items-center justify-center rounded-full shrink-0 transition-colors ${openMenu === `r-${player.id}` ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
+                    className={`w-8 h-8 flex items-center justify-center rounded-full shrink-0 transition-colors ${openMenu === `r-${player.id}` ? "bg-[var(--surface-active)] text-[var(--ink)]" : "text-[#79828b] hover:bg-[var(--surface-hover)] hover:text-[var(--ink)]"}`}
                   >
                     <MoreVertical size={15} />
                   </button>
@@ -1125,9 +1125,9 @@ export function AdminEventDetail() {
 function SectionHeader({ label, count, accent }: { label: string; count: string; accent?: "yellow" }) {
   return (
     <div className="flex items-center justify-between mb-3">
-      <h2 className="font-black italic text-base text-white uppercase tracking-widest">{label}</h2>
+      <h2 className="font-black italic text-base text-[var(--ink)] uppercase tracking-widest">{label}</h2>
       <span className={`text-[11px] font-black px-2 py-0.5 rounded ${
-        accent === "yellow" ? "bg-[#eab308]/10 text-[#eab308]" : "bg-white/5 text-[#79828b]"
+        accent === "yellow" ? "bg-[#eab308]/10 text-[#eab308]" : "bg-[var(--ink)]/5 text-[#79828b]"
       }`}>
         {count}
       </span>
@@ -1142,7 +1142,7 @@ function MenuAction({ icon, label, onClick, danger, iconRight }: { icon: React.R
       onClick={onClick}
       className={`flex items-center gap-3 w-full h-11 px-4 text-sm font-semibold text-left transition-colors focus:outline-none ${
         iconRight ? "justify-between" : ""
-      } ${danger ? "text-[#ef4444] hover:bg-[#ef4444]/10" : "text-white hover:bg-white/5"}`}
+      } ${danger ? "text-[#ef4444] hover:bg-[#ef4444]/10" : "text-[var(--ink)] hover:bg-[var(--surface-hover)]"}`}
     >
       {iconRight ? <>{label}{iconEl}</> : <>{iconEl}{label}</>}
     </button>
@@ -1196,9 +1196,9 @@ function PaymentToggle({ status, onConfirm }: { status: PaymentStatus; onConfirm
   const confirmedAndSet = isConfirmed && status !== "unpaid";
 
   const label = pending === "cash" ? t.admin.paymentCash : pending === "online" ? t.admin.paymentOnline : t.admin.paymentUnpaid;
-  const fillColor = pending === "online" ? "bg-[#462ed1]" : "bg-[#4dcd5e]";
-  const confirmedBg = status === "online" ? "bg-[#462ed1]/10" : "bg-[#4dcd5e]/10";
-  const confirmedText = status === "online" ? "text-[#462ed1]" : "text-[#4dcd5e]";
+  const fillColor = pending === "online" ? "bg-[var(--brand)]" : "bg-[#4dcd5e]";
+  const confirmedBg = status === "online" ? "bg-[var(--brand)]/10" : "bg-[#4dcd5e]/10";
+  const confirmedText = status === "online" ? "text-[var(--brand)]" : "text-[#4dcd5e]";
   const ConfirmedIcon = status === "online" ? CreditCard : Banknote;
 
   return (
@@ -1207,7 +1207,7 @@ function PaymentToggle({ status, onConfirm }: { status: PaymentStatus; onConfirm
       onPointerUp={onPointerUp}
       onPointerLeave={stopHold}
       className={`relative w-[76px] h-8 rounded-full overflow-hidden shrink-0 select-none touch-none ${
-        confirmedAndSet ? `${confirmedBg}` : "bg-white/5"
+        confirmedAndSet ? `${confirmedBg}` : "bg-[var(--ink)]/5"
       }`}
     >
       {progress > 0 && (
@@ -1230,7 +1230,7 @@ function LegendDot({ color, label, textColor }: { color: string; label: string; 
   return (
     <div className="flex items-center gap-1.5">
       <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />
-      <span className={`text-[11px] font-bold ${textColor ?? "text-white"}`}>{label}</span>
+      <span className={`text-[11px] font-bold ${textColor ?? "text-[var(--ink)]"}`}>{label}</span>
     </div>
   );
 }

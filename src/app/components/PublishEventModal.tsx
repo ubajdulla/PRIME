@@ -124,22 +124,22 @@ export function PublishEventModal({
       overlayClassName={`transition-opacity duration-200 ${entered ? "opacity-100" : "opacity-0"}`}
     >
       {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/5">
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--ink)]/5">
           <button
             onClick={onClose}
             onPointerDown={closeRipple.onPointerDown}
-            className="relative overflow-hidden w-8 h-8 flex items-center justify-center rounded-full text-[#79828b] hover:text-white hover:bg-white/5 transition-colors"
+            className="relative overflow-hidden w-8 h-8 flex items-center justify-center rounded-full text-[#79828b] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)] transition-colors"
           >
             <X size={22} />
             <RippleLayer ripples={closeRipple.ripples} />
           </button>
-          <h3 className="font-black italic uppercase tracking-widest text-white text-sm">{t.admin.publishEventTitle}</h3>
+          <h3 className="font-black italic uppercase tracking-widest text-[var(--ink)] text-sm">{t.admin.publishEventTitle}</h3>
           <div className="flex items-center gap-1">
             <button
               onClick={() => scrollToMonth(monthIndex - 1)}
               onPointerDown={upRipple.onPointerDown}
               disabled={monthIndex <= 0}
-              className="relative overflow-hidden w-8 h-8 flex items-center justify-center rounded-full text-[#462ed1] hover:bg-[#462ed1]/10 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+              className="relative overflow-hidden w-8 h-8 flex items-center justify-center rounded-full text-[var(--brand)] hover:bg-[var(--brand)]/10 transition-colors disabled:opacity-30 disabled:pointer-events-none"
             >
               <ChevronUp size={16} />
               <RippleLayer ripples={upRipple.ripples} />
@@ -148,7 +148,7 @@ export function PublishEventModal({
               onClick={() => scrollToMonth(monthIndex + 1)}
               onPointerDown={downRipple.onPointerDown}
               disabled={monthIndex >= months.length - 1}
-              className="relative overflow-hidden w-8 h-8 flex items-center justify-center rounded-full text-[#462ed1] hover:bg-[#462ed1]/10 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+              className="relative overflow-hidden w-8 h-8 flex items-center justify-center rounded-full text-[var(--brand)] hover:bg-[var(--brand)]/10 transition-colors disabled:opacity-30 disabled:pointer-events-none"
             >
               <ChevronDown size={16} />
               <RippleLayer ripples={downRipple.ripples} />
@@ -190,7 +190,7 @@ export function PublishEventModal({
                 : [];
               return (
                 <div key={m.toISOString()} ref={el => { monthRefs.current[i] = el; }}>
-                  <div className={`text-center text-white font-bold text-sm py-2 ${i > 0 ? "mt-1" : ""}`}>
+                  <div className={`text-center text-[var(--ink)] font-bold text-sm py-2 ${i > 0 ? "mt-1" : ""}`}>
                     {format(m, "MMMM yyyy")}
                   </div>
                   <div className="grid grid-cols-7 gap-y-1">
@@ -235,7 +235,7 @@ export function PublishEventModal({
           {/* Time */}
           <div className="flex items-center justify-center gap-4 mt-5">
             <TimeBox value={hour} onChange={v => setHour(String(clampInt(v, 0, 23)).padStart(2, "0"))} />
-            <span className="text-white font-black text-lg">:</span>
+            <span className="text-[var(--ink)] font-black text-lg">:</span>
             <TimeBox value={minute} onChange={v => setMinute(String(clampInt(v, 0, 59)).padStart(2, "0"))} />
           </div>
 
@@ -243,7 +243,7 @@ export function PublishEventModal({
           <button
             onClick={() => onConfirm(isNow ? null : target.toISOString())}
             onPointerDown={ctaRipple.onPointerDown}
-            className="relative overflow-hidden w-full mt-5 py-3.5 rounded-full bg-[#462ed1] text-white font-black text-sm uppercase tracking-wider transition-transform"
+            className="relative overflow-hidden w-full mt-5 py-3.5 rounded-full bg-[var(--brand)] text-white font-black text-sm uppercase tracking-wider transition-transform"
           >
             {label}
             <RippleLayer ripples={ctaRipple.ripples} />
@@ -266,14 +266,14 @@ function DayButton({
         onPointerDown={ripple.onPointerDown}
         className={`relative overflow-hidden w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
           selected
-            ? "bg-[#462ed1] text-white"
+            ? "bg-[var(--brand)] text-white"
             : isTodayDate
-              ? `border border-[#462ed1]/50 ${muted ? "text-white/40" : "text-white"}`
+              ? `border border-[var(--brand)]/50 ${muted ? "text-[var(--ink)]/40" : "text-[var(--ink)]"}`
               : muted
-                ? weekend ? "text-[#ef4444]/30 hover:bg-white/5" : "text-white/25 hover:bg-white/5"
+                ? weekend ? "text-[#ef4444]/30 hover:bg-[var(--surface-hover)]" : "text-[var(--ink)]/25 hover:bg-[var(--surface-hover)]"
                 : weekend
-                  ? "text-[#ef4444]/80 hover:bg-white/5"
-                  : "text-white hover:bg-white/5"
+                  ? "text-[#ef4444]/80 hover:bg-[var(--surface-hover)]"
+                  : "text-[var(--ink)] hover:bg-[var(--surface-hover)]"
         }`}
       >
         {day.getDate()}
@@ -291,7 +291,7 @@ function TimeBox({ value, onChange }: { value: string; onChange: (v: string) => 
       pattern="[0-9]*"
       value={value}
       onChange={e => onChange(e.target.value.replace(/[^0-9]/g, "") || "0")}
-      className="w-16 h-12 bg-[#212121] border border-white/10 rounded-xl text-white text-lg font-black text-center outline-none focus:border-[#462ed1]/50 transition-colors"
+      className="w-16 h-12 bg-[var(--surface-1)] border border-[var(--ink)]/10 rounded-xl text-[var(--ink)] text-lg font-black text-center outline-none focus:border-[var(--brand)]/50 transition-colors"
     />
   );
 }

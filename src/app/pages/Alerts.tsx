@@ -59,7 +59,7 @@ const TYPE_CONFIG: Record<
   AlertType,
   { icon: React.ComponentType<{ size?: number; className?: string }>; bg: string; color: string; stripe: string; linkPrefix: "/admin/events/" | "/events/" }
 > = {
-  moderator_swap_request:   { icon: ArrowLeftRight, bg: "bg-[#462ed1]/15", color: "text-[#462ed1]", stripe: "#462ed1", linkPrefix: "/admin/events/" },
+  moderator_swap_request:   { icon: ArrowLeftRight, bg: "bg-[var(--brand)]/15", color: "text-[var(--brand)]", stripe: "var(--brand)", linkPrefix: "/admin/events/" },
   moderator_swap_accepted:  { icon: CheckCircle2,   bg: "bg-[#22c55e]/15", color: "text-[#22c55e]", stripe: "#22c55e", linkPrefix: "/admin/events/" },
   moderator_swap_declined:  { icon: XCircle,        bg: "bg-[#ef4444]/15", color: "text-[#ef4444]", stripe: "#ef4444", linkPrefix: "/admin/events/" },
   event_canceled:           { icon: Ban,            bg: "bg-[#ef4444]/15", color: "text-[#ef4444]", stripe: "#ef4444", linkPrefix: "/events/" },
@@ -73,7 +73,7 @@ const TYPE_CONFIG: Record<
 // Fallback for notification rows whose type has since been retired (e.g. old
 // waitlist_promoted rows from before that type was removed) - render them
 // generically instead of crashing.
-const FALLBACK_CONFIG = { icon: Bell, bg: "bg-white/10", color: "text-white/70", stripe: "#79828b", linkPrefix: "/events/" } as const;
+const FALLBACK_CONFIG = { icon: Bell, bg: "bg-[var(--ink)]/10", color: "text-[var(--ink)]/70", stripe: "#79828b", linkPrefix: "/events/" } as const;
 
 type Filter = "all" | "unread";
 
@@ -292,15 +292,15 @@ export function Alerts() {
   const isEmpty = filteredGroups.length === 0;
 
   return (
-    <div className="flex flex-col min-h-full bg-[#181818] w-full">
+    <div className="flex flex-col min-h-full bg-[var(--surface-0)] w-full">
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
       <div className="w-full max-w-[640px] mx-auto flex flex-col pt-8 pb-10 px-4">
 
         {/* Header */}
-        <h2 className="font-black italic text-white tracking-widest uppercase text-2xl mb-6">
+        <h2 className="font-black italic text-[var(--ink)] tracking-widest uppercase text-2xl mb-6">
           {t.alerts.title}
           {totalUnread > 0 && (
-            <span className="ml-2 inline-flex items-center justify-center text-[11px] font-bold bg-[#462ed1] text-white rounded-full w-5 h-5 not-italic tracking-normal align-middle">
+            <span className="ml-2 inline-flex items-center justify-center text-[11px] font-bold bg-[var(--brand)] text-white rounded-full w-5 h-5 not-italic tracking-normal align-middle">
               {totalUnread}
             </span>
           )}
@@ -308,7 +308,7 @@ export function Alerts() {
 
         {/* Filter bar */}
         <div className="flex items-center justify-between gap-3 mb-8">
-          <div className="flex gap-1 bg-[#212121] rounded-full p-1.5">
+          <div className="flex gap-1 bg-[var(--surface-1)] rounded-full p-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.12)]">
             <FilterPillTrack activeKey={filter}>
               {(["all", "unread"] as Filter[]).map(f => (
                 <FilterPill
@@ -327,10 +327,10 @@ export function Alerts() {
         {/* Empty state */}
         {isEmpty && (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <div className="w-16 h-16 rounded-full bg-[#212121] flex items-center justify-center">
-              <Bell size={32} className="text-[#462ed1]" />
+            <div className="w-16 h-16 rounded-full bg-[var(--surface-1)] flex items-center justify-center">
+              <Bell size={32} className="text-[var(--brand)]" />
             </div>
-            <h3 className="text-xl font-bold text-white">
+            <h3 className="text-xl font-bold text-[var(--ink)]">
               {filter === "unread" ? t.alerts.allCaughtUp : t.alerts.noAlerts}
             </h3>
             <p className="text-[#79828b] text-center text-sm max-w-xs leading-relaxed">
@@ -356,7 +356,7 @@ export function Alerts() {
                   />
                 )}
               </div>
-              <div className="flex flex-col rounded-2xl bg-[#212121] overflow-hidden">
+              <div className="flex flex-col rounded-2xl bg-[var(--surface-1)] overflow-hidden">
                 {items.map(alert => (
                   <AlertRow
                     key={alert.id}
@@ -389,7 +389,7 @@ export function Alerts() {
           className="fixed bottom-6 right-6 z-30 w-12 h-12 rounded-full bg-[#ef4444] flex items-center justify-center"
         >
           <Trash2 size={19} className="text-white" />
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#181818] border-2 border-[#181818] flex items-center justify-center text-[10px] font-bold text-white">
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--surface-0)] border-2 border-[var(--surface-0)] flex items-center justify-center text-[10px] font-bold text-[var(--ink)]">
             {selectedIds.size}
           </span>
         </button>
@@ -438,7 +438,7 @@ function AlertRow({
 
   const inner = (
     <div
-      className="w-full flex items-start gap-3 pl-[13px] pr-4 py-3.5 border-l-[3px] transition-colors hover:bg-white/[0.03]"
+      className="w-full flex items-start gap-3 pl-[13px] pr-4 py-3.5 border-l-[3px] transition-colors hover:bg-[var(--surface-hover)]"
       style={{ borderLeftColor: alert.unread ? cfg.stripe : "transparent" }}
     >
       {/* Icon */}
@@ -448,7 +448,7 @@ function AlertRow({
 
       {/* Text */}
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-bold leading-snug ${alert.unread ? "text-white" : "text-white/70"}`}>
+        <p className={`text-sm font-bold leading-snug ${alert.unread ? "text-[var(--ink)]" : "text-[var(--ink)]/70"}`}>
           {alert.title}
         </p>
         <p className="text-[#79828b] text-xs mt-0.5 leading-relaxed line-clamp-2">
@@ -471,7 +471,7 @@ function AlertRow({
         >
           <span
             className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-              selected ? "bg-[#462ed1] border-[#462ed1]" : "border-white/20"
+              selected ? "bg-[var(--brand)] border-[var(--brand)]" : "border-[var(--ink)]/20"
             }`}
           >
             {selected && <Check size={12} className="text-white" strokeWidth={3} />}
@@ -488,27 +488,27 @@ function AlertRow({
               <button
                 onClick={e => { e.preventDefault(); e.stopPropagation(); onAccept(alert); }}
                 tabIndex={selectMode ? -1 : 0}
-                className="text-[#22c55e] text-[11px] font-bold hover:text-white transition-colors"
+                className="text-[#22c55e] text-[11px] font-bold hover:text-[var(--ink)] transition-colors"
               >
                 {acceptLabel}
               </button>
               <button
                 onClick={e => { e.preventDefault(); e.stopPropagation(); onDecline(alert); }}
                 tabIndex={selectMode ? -1 : 0}
-                className="text-[#79828b] text-[11px] font-bold hover:text-white transition-colors"
+                className="text-[#79828b] text-[11px] font-bold hover:text-[var(--ink)] transition-colors"
               >
                 {declineLabel}
               </button>
             </div>
           ) : (
-            !alert.unread && alert.eventId && <ChevronRight size={14} className="text-white/20" />
+            !alert.unread && alert.eventId && <ChevronRight size={14} className="text-[var(--ink)]/20" />
           )}
         </div>
       </div>
     </div>
   );
 
-  const dividerClass = "relative before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden";
+  const dividerClass = "relative before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden";
 
   // Same wrapper element across select-mode toggles (branching only on
   // eventId, not selectMode) so the crossfades above actually animate
@@ -551,12 +551,12 @@ function SelectModeToggle({
       onClick={onClick}
       onPointerDown={ripple.onPointerDown}
       className={`relative overflow-hidden shrink-0 h-7 px-3.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-colors ${
-        active ? "" : "bg-white/5 text-white/70 hover:bg-white/10"
+        active ? "" : "bg-[var(--ink)]/5 text-[var(--ink)]/70 hover:bg-[var(--ink)]/10"
       }`}
     >
       <span
         aria-hidden
-        className={`absolute inset-0 bg-[#462ed1] transition-transform duration-300 ease-out ${active ? "translate-x-0" : "translate-x-full"}`}
+        className={`absolute inset-0 bg-[var(--brand)] transition-transform duration-300 ease-out ${active ? "translate-x-0" : "translate-x-full"}`}
       />
       <span className={`relative z-10 transition-colors duration-200 ${active ? "text-white" : ""}`}>
         {active ? cancelLabel : selectLabel}
@@ -589,18 +589,18 @@ function MarkAllReadButton({ totalUnread, onMarkAll, label }: { totalUnread: num
       disabled={totalUnread === 0}
       onClick={handleClick}
       onPointerDown={ripple.onPointerDown}
-      className="group relative overflow-hidden shrink-0 w-9 h-9 rounded-full bg-[#212121] flex items-center justify-center transition-opacity disabled:opacity-30"
+      className="group relative overflow-hidden shrink-0 w-9 h-9 rounded-full bg-[var(--surface-1)] flex items-center justify-center transition-opacity disabled:opacity-30"
     >
       <span className="relative w-4 h-4 block">
         <Mail
           size={16}
-          className={`absolute inset-0 text-[#462ed1] transition-all duration-300 ease-in-out group-hover:opacity-0 group-hover:-translate-y-1 ${
+          className={`absolute inset-0 text-[var(--brand)] transition-all duration-300 ease-in-out group-hover:opacity-0 group-hover:-translate-y-1 ${
             opening ? "opacity-0 -translate-y-1" : "opacity-100 translate-y-0"
           }`}
         />
         <MailOpen
           size={16}
-          className={`absolute inset-0 text-[#462ed1] transition-all duration-300 ease-in-out group-hover:opacity-100 group-hover:translate-y-0 ${
+          className={`absolute inset-0 text-[var(--brand)] transition-all duration-300 ease-in-out group-hover:opacity-100 group-hover:translate-y-0 ${
             opening ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"
           }`}
         />
@@ -608,7 +608,7 @@ function MarkAllReadButton({ totalUnread, onMarkAll, label }: { totalUnread: num
           <Check size={16} strokeWidth={3} className="absolute inset-0 text-[#22c55e] animate-check-flash" />
         )}
         <span
-          className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#462ed1] transition-all duration-300 ease-in-out ${
+          className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[var(--brand)] transition-all duration-300 ease-in-out ${
             dotVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"
           }`}
         />

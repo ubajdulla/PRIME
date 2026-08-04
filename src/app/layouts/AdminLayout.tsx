@@ -15,9 +15,9 @@ export function AdminLayout() {
   if (!isAdmin) return <Navigate to="/" replace />;
 
   return (
-    <div className="bg-[#181818]">
+    <div className="bg-[var(--surface-0)]">
       {!isSubPage && (
-        <div className="sticky top-0 z-10 bg-[#181818] border-b border-white/5 px-4">
+        <div className="sticky top-0 z-10 bg-[var(--surface-0)] border-b border-[var(--ink)]/5 px-4">
           <div className="max-w-[640px] mx-auto flex">
             <AdminTab to="/admin/events" label={t.nav.events} icon={<CalendarDays size={15} />} />
             <AdminTab to="/admin/players" label={t.admin.players} icon={<Users size={15} />} />
@@ -38,8 +38,8 @@ function AdminTab({ to, label, icon }: { to: string; label: string; icon: React.
       className={({ isActive }) =>
         `flex items-center gap-2 px-1 py-3 mr-6 text-sm font-bold border-b-2 transition-colors ${
           isActive
-            ? "border-white/70 text-white"
-            : "border-transparent text-[#79828b] hover:text-white"
+            ? "border-[var(--ink)]/70 text-[var(--ink)]"
+            : "border-transparent text-[#79828b] hover:text-[var(--ink)]"
         }`
       }
     >

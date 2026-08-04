@@ -31,9 +31,9 @@ export function DateOfBirthRow({
 }) {
   const { t } = useLang();
   return (
-    <div className="relative flex items-center gap-3 px-4 h-[56px] shrink-0 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden">
-      <div className="w-8 h-8 rounded-full bg-[#462ed1]/15 flex items-center justify-center shrink-0">
-        <Calendar size={15} className="text-[#462ed1]" />
+    <div className="relative flex items-center gap-3 px-4 h-[56px] shrink-0 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
+      <div className="w-8 h-8 rounded-full bg-[var(--brand)]/15 flex items-center justify-center shrink-0">
+        <Calendar size={15} className="text-[var(--brand)]" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-[11px] text-[#aaa] mb-0.5 h-[13px]">{t.signin.birthDateLabel}</div>
@@ -56,7 +56,7 @@ export function DateOfBirthRow({
             }`}
           >
             {value ? (
-              <div className="text-sm text-white leading-5 truncate">
+              <div className="text-sm text-[var(--ink)] leading-5 truncate">
                 {formatDate(value)}
                 <span className="text-[#79828b] ml-1.5">· {calcAge(value)}</span>
               </div>

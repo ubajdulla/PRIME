@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Check, ChevronDown, FileText, X } from "lucide-react";
+import { Camera, Check, ChevronDown, FileText, X } from "lucide-react";
 import { SKILL_ORDER } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
 import { SelectField } from "../../components/ui/SelectField";
@@ -30,8 +30,8 @@ function suggestedTitle(category: string, level: string): string {
 // Borderless field styles — used *inside* a FieldGroup card, which already
 // supplies the background/border/rounding. Individual fields stay flush
 // (no nested boxes) to match the grouped-list look used across the app.
-const F_INPUT = "block w-full bg-transparent text-white text-sm font-bold placeholder:text-[#79828b] focus:outline-none";
-const F_SEL   = "flex items-center justify-between gap-2 w-full text-white text-sm font-bold focus:outline-none cursor-pointer";
+const F_INPUT = "block w-full bg-transparent text-[var(--ink)] text-sm font-bold placeholder:text-[#79828b] focus:outline-none";
+const F_SEL   = "flex items-center justify-between gap-2 w-full text-[var(--ink)] text-sm font-bold focus:outline-none cursor-pointer";
 
 export function AdminCreateEvent() {
   const navigate = useNavigate();
@@ -50,6 +50,7 @@ export function AdminCreateEvent() {
   const [titleTouched, setTitleTouched] = useState(false);
   const [locations, setLocations] = useState<string[]>([]);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   // Snapshot of the published event as loaded, so handleSave can tell whether
   // date/time/location actually changed and roster players need a heads-up -
   // status is included since only an already-visible ("upcoming") event has
@@ -67,7 +68,7 @@ export function AdminCreateEvent() {
     title: suggestedTitle("GAMES", "Rookie"), description: "", category: "GAMES", level: "Rookie", location: "",
     price: "150", capacity: "12", date: "",
     startH: "00", startM: "00", endH: "00", endM: "00",
-    attachmentUrl: "", attachmentName: "",
+    attachmentUrl: "", attachmentName: "", imageUrl: "",
   });
 
   useEffect(() => {
@@ -98,6 +99,7 @@ export function AdminCreateEvent() {
         startH: startTime.h, startM: startTime.m,
         endH: endTime.h, endM: endTime.m,
         attachmentUrl: data.attachment_url ?? "", attachmentName: data.attachment_name ?? "",
+        imageUrl: data.image_url ?? "",
       });
       setOriginal({ status: data.status, date: data.event_date ?? "", time: data.event_time ?? "", location: data.location ?? "", capacity: data.capacity ?? 0, moderatorId: data.moderator_id });
       setLoadingEdit(false);
@@ -127,6 +129,19 @@ export function AdminCreateEvent() {
     const { data } = supabase.storage.from("event-attachments").getPublicUrl(path);
     setF(p => ({ ...p, attachmentUrl: data.publicUrl, attachmentName: file.name }));
     setUploadingAttachment(false);
+  }
+
+  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingImage(true);
+    const path = `${editId ?? "new"}/${Date.now()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage.from("event-images").upload(path, file, { upsert: true });
+    if (uploadError) { triggerShake(uploadError.message); setUploadingImage(false); return; }
+    const { data } = supabase.storage.from("event-images").getPublicUrl(path);
+    setF(p => ({ ...p, imageUrl: data.publicUrl }));
+    setUploadingImage(false);
   }
 
   // Only date/time/location are worth a push - title/price/description edits
@@ -210,6 +225,7 @@ export function AdminCreateEvent() {
       capacity: capacityNum,
       attachment_url: f.attachmentUrl || null,
       attachment_name: f.attachmentUrl ? f.attachmentName : null,
+      image_url: f.imageUrl || null,
     };
 
     setSaving(true);
@@ -248,7 +264,7 @@ export function AdminCreateEvent() {
         <div className="w-16 h-16 rounded-full bg-[#4dcd5e]/10 border border-[#4dcd5e]/30 flex items-center justify-center">
           <Check size={28} className="text-[#4dcd5e]" />
         </div>
-        <p className="text-white font-black text-lg uppercase tracking-widest">
+        <p className="text-[var(--ink)] font-black text-lg uppercase tracking-widest">
           {isEditMode ? t.admin.changesSaved : t.admin.draftSaved}
         </p>
       </div>
@@ -278,15 +294,15 @@ export function AdminCreateEvent() {
           <Field label={t.admin.attachmentPdf}>
             {f.attachmentName ? (
               <div className="flex items-center gap-2.5">
-                <FileText size={15} className="text-white/60 shrink-0" />
-                <span className="flex-1 text-white text-sm font-bold truncate">{f.attachmentName}</span>
+                <FileText size={15} className="text-[var(--ink)]/60 shrink-0" />
+                <span className="flex-1 text-[var(--ink)] text-sm font-bold truncate">{f.attachmentName}</span>
                 <button type="button" onClick={() => setF(p => ({ ...p, attachmentUrl: "", attachmentName: "" }))}
-                  className="text-[#79828b] hover:text-white transition-colors">
+                  className="text-[#79828b] hover:text-[var(--ink)] transition-colors">
                   <X size={15} />
                 </button>
               </div>
             ) : (
-              <label className="flex items-center gap-2 text-[#79828b] text-sm font-bold cursor-pointer hover:text-white transition-colors">
+              <label className="flex items-center gap-2 text-[#79828b] text-sm font-bold cursor-pointer hover:text-[var(--ink)] transition-colors">
                 <FileText size={15} />
                 <span>{uploadingAttachment ? t.admin.uploading : t.admin.uploadPdf}</span>
                 <input type="file" accept="application/pdf" className="hidden" disabled={uploadingAttachment} onChange={handleAttachmentChange} />
@@ -295,22 +311,35 @@ export function AdminCreateEvent() {
           </Field>
         </FieldGroup>
 
-        {/* Image — auto-picked from category, no upload yet */}
+        {/* Image — defaults to the category art; tap the icon to upload a custom
+            cover. Sized/rounded exactly like the feed EventCard's image slot
+            (px-3 pt-3 wrapper + h-36 md:h-44 rounded-xl) so this preview shows
+            the real size players will see, not an approximation. */}
         <div>
           <span className="block text-[#79828b] text-[11px] font-black uppercase tracking-widest mb-2">{t.admin.eventImage}</span>
-          <div className="w-full h-28 rounded-2xl overflow-hidden bg-[var(--surface-1)] border border-white/10">
-            <img src={image} alt="" className="w-full h-full object-cover" />
+          <div className="bg-[var(--surface-1)] rounded-2xl px-3 pt-3 pb-3 border border-[var(--ink)]/10">
+            <label className="relative block cursor-pointer">
+              <div className="w-full h-36 md:h-44 rounded-xl overflow-hidden bg-[var(--surface-0)]">
+                <img src={f.imageUrl || image} alt="" className={`w-full h-full object-cover transition-opacity ${uploadingImage ? "opacity-50" : ""}`} />
+              </div>
+              <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <span className="w-14 h-14 rounded-full bg-[var(--brand)] border-2 border-[var(--surface-0)] flex items-center justify-center">
+                  <Camera size={22} className="text-white" />
+                </span>
+              </span>
+              <input type="file" accept="image/*" className="hidden" disabled={uploadingImage} onChange={handleImageChange} />
+            </label>
           </div>
         </div>
 
         {/* Category + Level */}
-        <FieldGroup className={`grid ${showLevel ? "grid-cols-2 divide-x divide-white/5" : "grid-cols-1"}`}>
+        <FieldGroup className={`grid ${showLevel ? "grid-cols-2 divide-x divide-[var(--ink)]/5" : "grid-cols-1"}`}>
           <Field label={t.admin.category}>
-            <SelectField value={f.category} options={CATEGORIES} onChange={v => s("category", v)} triggerClassName={F_SEL} />
+            <SelectField value={f.category} options={CATEGORIES} onChange={v => s("category", v)} triggerClassName={F_SEL} nativeOnMobile />
           </Field>
           {showLevel && (
             <Field label={t.admin.level}>
-              <SelectField value={f.level} options={SKILL_ORDER} onChange={v => s("level", v)} triggerClassName={F_SEL} />
+              <SelectField value={f.level} options={SKILL_ORDER} onChange={v => s("level", v)} triggerClassName={F_SEL} nativeOnMobile />
             </Field>
           )}
         </FieldGroup>
@@ -329,7 +358,7 @@ export function AdminCreateEvent() {
               placeholder={t.admin.locationPlaceholder}
               className={`${F_INPUT} pr-6`} />
             <button type="button" onClick={() => setLocationOpen(v => !v)}
-              className="absolute right-4 bottom-3 text-[#79828b] hover:text-white transition-colors focus:outline-none">
+              className="absolute right-4 bottom-3 text-[#79828b] hover:text-[var(--ink)] transition-colors focus:outline-none">
               <ChevronDown size={15} className={`transition-transform ${locationOpen ? "rotate-180" : ""}`} />
             </button>
             {locationOpen && (
@@ -337,7 +366,7 @@ export function AdminCreateEvent() {
                 <DropdownPanel scrollable>
                   {locations.filter(l => !f.location || l.toLowerCase().includes(f.location.toLowerCase())).map(l => (
                     <button key={l} type="button" onClick={() => { s("location", l); setLocationOpen(false); }}
-                      className="block w-full px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--surface-active)] transition-colors text-left focus:outline-none">
+                      className="block w-full px-4 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-active)] transition-colors text-left focus:outline-none">
                       {l}
                     </button>
                   ))}
@@ -348,17 +377,17 @@ export function AdminCreateEvent() {
 
           <Field label={t.admin.startTime}>
             <div className="flex items-center gap-1">
-              <div className="flex-1"><SelectField value={f.startH} options={HOURS} onChange={v => s("startH", v)} triggerClassName={F_SEL} /></div>
+              <div className="flex-1"><SelectField value={f.startH} options={HOURS} onChange={v => s("startH", v)} triggerClassName={F_SEL} nativeOnMobile /></div>
               <span className="text-[#79828b] font-bold text-sm shrink-0">:</span>
-              <div className="flex-1"><SelectField value={f.startM} options={MINUTES} onChange={v => s("startM", v)} triggerClassName={F_SEL} /></div>
+              <div className="flex-1"><SelectField value={f.startM} options={MINUTES} onChange={v => s("startM", v)} triggerClassName={F_SEL} nativeOnMobile /></div>
             </div>
           </Field>
 
           <Field label={t.admin.endTime}>
             <div className="flex items-center gap-1">
-              <div className="flex-1"><SelectField value={f.endH} options={HOURS} onChange={v => s("endH", v)} triggerClassName={F_SEL} /></div>
+              <div className="flex-1"><SelectField value={f.endH} options={HOURS} onChange={v => s("endH", v)} triggerClassName={F_SEL} nativeOnMobile /></div>
               <span className="text-[#79828b] font-bold text-sm shrink-0">:</span>
-              <div className="flex-1"><SelectField value={f.endM} options={MINUTES} onChange={v => s("endM", v)} triggerClassName={F_SEL} /></div>
+              <div className="flex-1"><SelectField value={f.endM} options={MINUTES} onChange={v => s("endM", v)} triggerClassName={F_SEL} nativeOnMobile /></div>
             </div>
           </Field>
 
@@ -378,7 +407,7 @@ export function AdminCreateEvent() {
         {/* Save — Back lives in the header (BackBar) already, no need to repeat it here */}
         <button type="button" onClick={handleSave} disabled={saving} onPointerDown={saveRipple.onPointerDown}
           onAnimationEnd={() => setShake(false)}
-          className={`relative overflow-hidden w-full py-4 rounded-2xl font-bold text-base bg-[#462ed1] text-white focus:outline-none disabled:opacity-50 ${shake ? "animate-shake" : ""}`}>
+          className={`relative overflow-hidden w-full py-4 rounded-2xl font-bold text-base bg-[var(--brand)] text-white focus:outline-none disabled:opacity-50 ${shake ? "animate-shake" : ""}`}>
           {saving ? "…" : isEditMode ? t.admin.saveChanges : t.admin.saveDraft}
           <RippleLayer ripples={saveRipple.ripples} />
         </button>
@@ -388,7 +417,7 @@ export function AdminCreateEvent() {
   );
 }
 
-function FieldGroup({ children, className = "divide-y divide-white/5" }: { children: React.ReactNode; className?: string }) {
+function FieldGroup({ children, className = "divide-y divide-[var(--ink)]/5" }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={`bg-[var(--surface-1)] rounded-2xl ${className}`}>
       {children}
@@ -401,7 +430,7 @@ function Field({ label, children, required, className = "" }: { label: string; c
     <div className={`group px-4 py-3 ${className}`}>
       <div className="flex items-center justify-between mb-1.5">
         <span className={`text-[11px] font-black uppercase tracking-widest transition-colors ${
-          required ? "text-[#462ed1]" : "text-[#79828b] group-focus-within:text-[#462ed1]"
+          required ? "text-[var(--brand)]" : "text-[#79828b] group-focus-within:text-[var(--brand)]"
         }`}>
           {label}
         </span>

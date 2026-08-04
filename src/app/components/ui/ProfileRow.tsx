@@ -50,29 +50,29 @@ export function ProfileRow({
   const clickable = !!onClick;
   const rowClickable = clickable && !avatarOnly;
   const Tag = rowClickable ? "button" : "div";
-  const shellClass = variant === "card" ? "bg-[#212121] rounded-xl p-2.5" : "p-2.5";
+  const shellClass = variant === "card" ? "bg-[var(--surface-1)] rounded-xl p-2.5" : "p-2.5";
   // The background-hover cue stays even in avatarOnly mode (nice on the
   // card variant), just without `cursor-pointer` - the row itself no longer
   // performs a click action, only the avatar button nested inside it does.
-  const hoverClass = clickable ? `hover:bg-white/[0.07] ${rowClickable ? "cursor-pointer" : ""} ${variant === "card" ? "rounded-xl" : ""}` : "";
-  const dividerClass = divider ? "relative before:absolute before:top-0 before:left-2.5 before:right-2.5 before:h-px before:bg-white/[0.06] first:before:hidden" : "";
+  const hoverClass = clickable ? `hover:bg-[var(--surface-hover)] ${rowClickable ? "cursor-pointer" : ""} ${variant === "card" ? "rounded-xl" : ""}` : "";
+  const dividerClass = divider ? "relative before:absolute before:top-0 before:left-2.5 before:right-2.5 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden" : "";
 
   const avatarInner = (
     <>
       {avatar ? (
-        <img src={avatar} alt={avatarAlt} className="w-full h-full rounded-full object-cover border border-white/10" />
+        <img src={avatar} alt={avatarAlt} className="w-full h-full rounded-full object-cover border border-[var(--ink)]/10" />
       ) : (
-        <div className="w-full h-full rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-          <User size={Math.round(avatarSize * 0.4)} className="text-white/30" />
+        <div className="w-full h-full rounded-full bg-[var(--ink)]/5 border border-[var(--ink)]/10 flex items-center justify-center">
+          <User size={Math.round(avatarSize * 0.4)} className="text-[var(--ink)]/30" />
         </div>
       )}
       {checkmark && (
-        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#462ed1] rounded-full flex items-center justify-center border-2 border-[#212121]">
+        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[var(--brand)] rounded-full flex items-center justify-center border-2 border-[var(--surface-1)]">
           <CheckCircle2 size={10} className="text-white" strokeWidth={3} />
         </div>
       )}
-      {verified !== undefined && <VerifiedBadge verified={verified} size={13} ringClassName="border-[#212121]" />}
-      {trustLabel !== undefined && <TrustDot label={trustLabel} size={10} ringClassName="border-[#212121]" />}
+      {verified !== undefined && <VerifiedBadge verified={verified} size={13} ringClassName="border-[var(--surface-1)]" />}
+      {trustLabel !== undefined && <TrustDot label={trustLabel} size={10} ringClassName="border-[var(--surface-1)]" />}
     </>
   );
 

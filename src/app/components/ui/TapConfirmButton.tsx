@@ -14,7 +14,7 @@ export function TapConfirmButton({
   confirmLabel,
   fillCls,
   armedTextCls = "text-white",
-  idleCls = "bg-white/5 text-white/70 hover:bg-white/10",
+  idleCls = "bg-[var(--ink)]/5 text-[var(--ink)]/70 hover:bg-[var(--ink)]/10",
   onConfirm,
   disabled,
   className = "w-24 h-8",

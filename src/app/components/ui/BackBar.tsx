@@ -19,17 +19,17 @@ export function BackBar({ label, to, title, children, zIndex = "z-20" }: BackBar
   const navigate = useNavigate();
 
   return (
-    <div className={`sticky top-0 ${zIndex} flex items-center justify-between px-4 py-3 bg-[#181818] border-b border-white/5`}>
+    <div className={`sticky top-0 ${zIndex} flex items-center justify-between px-4 py-3 bg-[var(--surface-0)] border-b border-[var(--ink)]/5`}>
       <button
         onClick={() => { navDir.back(); to ? navigate(to, { replace: true }) : navigate(-1); }}
-        className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
+        className="flex items-center gap-1.5 text-[#79828b] hover:text-[var(--ink)] transition-colors text-sm font-bold"
       >
         <ChevronLeft size={18} />
         {label}
       </button>
 
       {title && (
-        <span className="absolute left-1/2 -translate-x-1/2 font-black text-white text-base tracking-tight pointer-events-none">
+        <span className="absolute left-1/2 -translate-x-1/2 font-black text-[var(--ink)] text-base tracking-tight pointer-events-none">
           {title}
         </span>
       )}

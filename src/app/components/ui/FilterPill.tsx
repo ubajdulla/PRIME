@@ -31,7 +31,7 @@ export function FilterPillTrack({
       {indicator && (
         <div
           aria-hidden
-          className="absolute top-0 bottom-0 bg-[#462ed1] rounded-full transition-[left,width] duration-300 ease-out"
+          className="absolute top-0 bottom-0 bg-[var(--brand)] rounded-full transition-[left,width] duration-300 ease-out"
           style={{ left: indicator.left, width: indicator.width }}
         />
       )}
@@ -61,7 +61,7 @@ export function FilterPill({
       onClick={onClick}
       onPointerDown={ripple.onPointerDown}
       className={`relative z-10 overflow-hidden px-5 py-2 rounded-full font-bold text-xs uppercase tracking-wider whitespace-nowrap flex-shrink-0 transition-colors duration-200 ${
-        active ? "text-white" : "text-white/70 hover:text-white"
+        active ? "text-white" : "text-[var(--ink)]/70 hover:text-[var(--ink)]"
       }`}
     >
       {label}

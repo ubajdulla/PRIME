@@ -8,12 +8,12 @@ import type { ReactNode } from "react";
 // while a suspension/ban is active, so the two always read as the same thing.
 export function ModAvatarIcon({ avatar, tint, icon }: { avatar: string | null; tint: string; icon: ReactNode }) {
   return (
-    <div className="w-full h-full rounded-full overflow-hidden relative bg-[#2a2a2a]">
+    <div className="w-full h-full rounded-full overflow-hidden relative bg-[var(--surface-1)]">
       {avatar ? (
         <img src={avatar} alt="" className="w-full h-full object-cover grayscale" />
       ) : (
         <div className="w-full h-full flex items-center justify-center">
-          <User size={16} className="text-white/20" />
+          <User size={16} className="text-[var(--ink)]/20" />
         </div>
       )}
       <div className={`absolute inset-0 flex items-center justify-center ${tint}`}>

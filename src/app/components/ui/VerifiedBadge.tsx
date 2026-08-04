@@ -10,7 +10,7 @@ interface VerifiedBadgeProps {
 // admin-only) - always bottom-right on a `relative`-positioned avatar
 // wrapper, matching the badge already used on the admin player profile
 // header avatar.
-export function VerifiedBadge({ verified, size = 16, ringClassName = "border-[#181818]" }: VerifiedBadgeProps) {
+export function VerifiedBadge({ verified, size = 16, ringClassName = "border-[var(--surface-0)]" }: VerifiedBadgeProps) {
   if (!verified) return null;
   const iconSize = Math.max(8, Math.round(size * 0.62));
   return (

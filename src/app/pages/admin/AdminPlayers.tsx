@@ -17,7 +17,7 @@ const CATEGORIES = ["Admin", ...LEVELS] as const;
 type Category = typeof CATEGORIES[number];
 
 // Admin reuses the existing Verified-badge blue (not a new color); the six
-// skill tiers are shades of the app's own accent (#462ed1) running from
+// skill tiers are shades of the app's own accent (var(--brand)) running from
 // almost-white at Rookie to maximally saturated at PRIME.
 const CATEGORY_COLOR: Record<string, string> = {
   Admin: "#3897f0", Rookie: "#d9d4f7", Beginner: "#b3a3ef", Intermediate: "#8b78e8",
@@ -139,7 +139,7 @@ function classifyActivity(n: NoteRow, t: Dict): ActivityKind {
   if (b === "Verification revoked")        return { Icon: BadgeCheck, color: "#79828b", title: t.admin.activityVerificationRevoked };
   if (b.startsWith("Skill level changed")) return { Icon: ChevronDown, color: "#a855f7", title: t.admin.activitySkillChange };
   if (b.startsWith("Label cleared"))       return { Icon: Flag, color: "#79828b", title: t.admin.activityLabelCleared };
-  return { Icon: MessageSquare, color: "#462ed1", title: t.admin.activityNote };
+  return { Icon: MessageSquare, color: "var(--brand)", title: t.admin.activityNote };
 }
 
 export function AdminPlayers() {
@@ -294,7 +294,7 @@ export function AdminPlayers() {
         type="button"
         onClick={onClick}
         disabled={!onClick}
-        className="flex items-stretch w-full text-left rounded-2xl bg-[#212121] overflow-hidden transition-colors disabled:cursor-default focus:outline-none"
+        className="flex items-stretch w-full text-left rounded-2xl bg-[var(--surface-1)] overflow-hidden transition-colors disabled:cursor-default focus:outline-none"
       >
         {/* Severity stripe — the one colored element on the card, always there */}
         <span className="w-[3px] shrink-0" style={{ background: color }} />
@@ -302,15 +302,15 @@ export function AdminPlayers() {
         <div className="flex items-center gap-3 px-3 py-3 flex-1 min-w-0">
           <div className="shrink-0">
             {avatar
-              ? <img src={avatar} alt={name} className="w-10 h-10 rounded-full object-cover border-2 border-[#181818]" />
-              : <div className="w-10 h-10 rounded-full bg-white/5 border-2 border-[#181818]" />}
+              ? <img src={avatar} alt={name} className="w-10 h-10 rounded-full object-cover border-2 border-[var(--surface-0)]" />
+              : <div className="w-10 h-10 rounded-full bg-[var(--ink)]/5 border-2 border-[var(--surface-0)]" />}
           </div>
 
           <div className="flex-1 min-w-0">
             <p className="text-[13px] leading-snug truncate flex items-center gap-1.5">
-              <span className="font-bold text-white">{name}</span>
+              <span className="font-bold text-[var(--ink)]">{name}</span>
               <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
-              <span className="font-bold text-white">{title}</span>
+              <span className="font-bold text-[var(--ink)]">{title}</span>
             </p>
             <p className="text-[11px] text-[#79828b] mt-0.5 truncate">{subtitle}</p>
           </div>
@@ -325,24 +325,24 @@ export function AdminPlayers() {
       <button
         type="button"
         onClick={() => goToPlayer(p)}
-        className="relative flex items-center gap-3 px-4 py-3 w-full text-left transition-colors hover:bg-white/[0.07] focus:outline-none before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden"
+        className="relative flex items-center gap-3 px-4 py-3 w-full text-left transition-colors hover:bg-[var(--surface-hover)] focus:outline-none before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden"
       >
         <div className="relative shrink-0">
           {p.avatar
-            ? <img src={p.avatar} alt={p.name} className="w-11 h-11 rounded-full border-2 border-[#181818] object-cover" />
-            : <div className="w-11 h-11 rounded-full border-2 border-[#181818] bg-white/5" />}
-          <VerifiedBadge verified={p.is_verified} size={14} ringClassName="border-[#181818]" />
-          <TrustDot label={eff?.label} opacity={eff?.opacity} size={11} ringClassName="border-[#181818]" />
+            ? <img src={p.avatar} alt={p.name} className="w-11 h-11 rounded-full border-2 border-[var(--surface-0)] object-cover" />
+            : <div className="w-11 h-11 rounded-full border-2 border-[var(--surface-0)] bg-[var(--ink)]/5" />}
+          <VerifiedBadge verified={p.is_verified} size={14} ringClassName="border-[var(--surface-0)]" />
+          <TrustDot label={eff?.label} opacity={eff?.opacity} size={11} ringClassName="border-[var(--surface-0)]" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-white text-sm truncate">{p.name}</div>
+          <div className="font-bold text-[var(--ink)] text-sm truncate">{p.name}</div>
           <div className="flex items-center gap-1.5 text-[#79828b] text-[11px] uppercase tracking-wider">
             <span className={CATEGORY_TEXT_CLASS[p.skill_level] ?? ""}>{levelLabel(p.skill_level, t)}</span>
             {p.position && <span>· {positionLabel(p.position, t)}</span>}
           </div>
         </div>
         <div className="text-right shrink-0 mr-1">
-          <div className="text-white text-sm font-black">{p.eventsJoined}</div>
+          <div className="text-[var(--ink)] text-sm font-black">{p.eventsJoined}</div>
           <div className="text-[#79828b] text-[10px]">events</div>
         </div>
       </button>
@@ -354,7 +354,7 @@ export function AdminPlayers() {
       return <p className="text-[#79828b] text-sm text-center py-6">{empty}</p>;
     }
     return (
-      <div className="bg-[#212121] rounded-2xl overflow-hidden">
+      <div className="bg-[var(--surface-1)] rounded-2xl overflow-hidden">
         {list.map(p => <PlayerRowButton key={p.id} p={p} />)}
       </div>
     );
@@ -378,7 +378,7 @@ export function AdminPlayers() {
       {...swipeHandlers}
     >
       <div className="flex items-center justify-between mb-4">
-        <h1 className="font-black italic text-2xl text-white uppercase tracking-widest">{t.admin.players}</h1>
+        <h1 className="font-black italic text-2xl text-[var(--ink)] uppercase tracking-widest">{t.admin.players}</h1>
         <span className="text-[#79828b] text-xs font-bold">{players.length} {t.admin.total}</span>
       </div>
 
@@ -393,14 +393,14 @@ export function AdminPlayers() {
             onFocus={enterFocus}
             onChange={e => setSearch(e.target.value)}
             placeholder={t.admin.searchPlaceholder}
-            className="w-full bg-[#212121] border border-white/10 rounded-full pl-11 pr-4 py-2.5 text-white text-sm font-bold placeholder:text-[#79828b]/60 focus:outline-none focus:border-[#462ed1]/50 transition-colors"
+            className="w-full bg-[var(--surface-1)] border border-[var(--ink)]/10 rounded-full pl-11 pr-4 py-2.5 text-[var(--ink)] text-sm font-bold placeholder:text-[#79828b]/60 focus:outline-none focus:border-[var(--brand)]/50 transition-colors"
           />
         </div>
         <button
           onClick={exitFocus}
           aria-label="Cancel"
           tabIndex={focused ? 0 : -1}
-          className={`h-9 shrink-0 rounded-full bg-white/10 hover:bg-white/20 text-white/85 hover:text-white flex items-center justify-center overflow-hidden transition-all duration-200 ease-out ${
+          className={`h-9 shrink-0 rounded-full bg-[var(--surface-hover)] hover:bg-[var(--surface-active)] text-[var(--ink)]/85 hover:text-[var(--ink)] flex items-center justify-center overflow-hidden transition-all duration-200 ease-out ${
             focused ? "w-9 opacity-100 ml-2" : "w-0 opacity-0 ml-0 pointer-events-none"
           }`}
         >
@@ -412,7 +412,7 @@ export function AdminPlayers() {
         <FadeIn key="landing">
           {/* Status filter bar — the exact Home event-feed filter bar component (same
               container, edge-fade mask, and click-drag-to-scroll behavior) */}
-          <div className="relative mb-6 w-full bg-[#212121] rounded-full p-1.5 overflow-hidden">
+          <div className="relative mb-6 w-full bg-[var(--surface-1)] rounded-full p-1.5 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.12)]">
             <div
               ref={filterScrollRef}
               className="overflow-x-auto overscroll-x-contain touch-pan-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] select-none"
@@ -530,11 +530,11 @@ export function AdminPlayers() {
                   className="w-14 h-14 rounded-full p-[3px] transition-opacity"
                   style={{ background: CATEGORY_COLOR[c], opacity: category && category !== c ? 0.35 : 1 }}
                 >
-                  <div className="w-full h-full rounded-full bg-[#2a2b33] border-2 border-[#181818] flex items-center justify-center" style={{ color: CATEGORY_COLOR[c] }}>
+                  <div className="w-full h-full rounded-full bg-[var(--surface-1)] border-2 border-[var(--surface-0)] flex items-center justify-center" style={{ color: CATEGORY_COLOR[c] }}>
                     <CategoryIcon category={c} size={c === "Admin" ? 22 : 18} />
                   </div>
                 </div>
-                <span className="text-[10px] font-bold text-white truncate w-14">{catLabel(c)}</span>
+                <span className="text-[10px] font-bold text-[var(--ink)] truncate w-14">{catLabel(c)}</span>
               </button>
             ))}
           </div>
@@ -558,7 +558,7 @@ export function AdminPlayers() {
                 {recentPlayers.length > 0 && (
                   <button
                     onClick={() => { clearRecent(); setRecentTick(t => t + 1); }}
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-[#79828b] hover:bg-white/10 hover:text-white transition-colors"
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-[#79828b] hover:bg-[var(--surface-hover)] hover:text-[var(--ink)] transition-colors"
                     aria-label="Clear recently searched"
                   >
                     <Brush size={13} />

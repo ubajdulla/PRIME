@@ -33,7 +33,12 @@ export function MiniDropdown({
   const listRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number; openUp: boolean } | null>(null);
   const current = options.find(o => o.value === value);
-  useExclusiveOpen(open, () => setOpen(false));
+  useExclusiveOpen(
+    open,
+    () => setOpen(false),
+    t => (btnRef.current?.contains(t) || panelRef.current?.contains(t)) ?? false,
+    btnRef.current
+  );
 
   useLayoutEffect(() => {
     if (!open || !btnRef.current) return;
@@ -75,7 +80,7 @@ export function MiniDropdown({
         ref={btnRef}
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between gap-1.5 pl-3 pr-2 py-1.5 bg-white/5 rounded-lg text-sm text-white hover:bg-white/10 transition-colors focus:outline-none"
+        className="w-full flex items-center justify-between gap-1.5 pl-3 pr-2 py-1.5 bg-[var(--surface-hover)] rounded-lg text-sm text-[var(--ink)] hover:bg-[var(--surface-active)] transition-colors focus:outline-none"
       >
         <span className="truncate">{current?.label}</span>
         <ChevronDown size={13} className={`text-[#79828b] shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
@@ -98,7 +103,7 @@ export function MiniDropdown({
           <div
             ref={listRef}
             style={{ transformOrigin: coords.openUp ? "bottom" : "top" }}
-            className="animate-dropdown-in bg-[var(--surface-hover)] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] overflow-y-auto max-h-48 p-1.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            className="animate-dropdown-in bg-[var(--surface-1)] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] overflow-y-auto max-h-48 p-1.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           >
             {options.map(o => (
               <button
@@ -107,7 +112,7 @@ export function MiniDropdown({
                 type="button"
                 onClick={() => { onChange(o.value); setOpen(false); }}
                 className={`block w-full px-3 py-2 rounded-lg text-sm text-left transition-colors focus:outline-none ${
-                  o.value === value ? "bg-[#462ed1]/20 text-white font-semibold" : "text-white hover:bg-[var(--surface-active)]"
+                  o.value === value ? "bg-[var(--brand)]/20 text-[var(--ink)] font-semibold" : "text-[var(--ink)] hover:bg-[var(--surface-active)]"
                 }`}
               >
                 {o.label}

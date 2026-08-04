@@ -27,7 +27,7 @@ const STATUS_TREATMENT: Record<DisplayStatus, {
 }> = {
   upcoming:  { label: null,          labelColor: "",              border: "",                opacity: "opacity-100" },
   scheduled: { label: "Scheduled",   labelColor: "text-[#a855f7]", border: "border border-dashed border-[#a855f7]/25", opacity: "opacity-100" },
-  draft:     { label: null,          labelColor: "text-white",     icon: PenLine, border: "border border-dashed border-white/15", opacity: "opacity-90" },
+  draft:     { label: null,          labelColor: "text-[var(--ink)]",     icon: PenLine, border: "border border-dashed border-[var(--ink)]/15", opacity: "opacity-90" },
   past:      { label: null,          labelColor: "",              border: "",                opacity: "opacity-60" },
   canceled:  { label: "Canceled",    labelColor: "text-[#ef4444]", border: "",                opacity: "opacity-55", strikethrough: true },
 };
@@ -77,7 +77,7 @@ export function AdminEventCard({
 
   return (
     <div
-      className={`group relative bg-[#212121] rounded-xl transition-colors overflow-hidden cursor-pointer hover:border-white/10 ${treatment.border} ${treatment.opacity}`}
+      className={`group relative bg-[var(--surface-1)] rounded-xl transition-colors overflow-hidden cursor-pointer hover:border-[var(--ink)]/10 ${treatment.border} ${treatment.opacity}`}
       onClick={() => onNavigate(`/admin/events/${event.id}`)}
       onPointerDown={cardRipple.onPointerDown}
     >
@@ -90,7 +90,7 @@ export function AdminEventCard({
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="flex items-center justify-between gap-2 mb-2.5">
             <div className="flex items-center gap-2 min-w-0">
-              <span className={`font-black text-white text-base tracking-wide leading-tight truncate ${treatment.strikethrough ? "line-through decoration-2 decoration-white/40" : ""}`}>
+              <span className={`font-black text-[var(--ink)] text-base tracking-wide leading-tight truncate ${treatment.strikethrough ? "line-through decoration-2 decoration-[var(--ink)]/40" : ""}`}>
                 {event.title}
               </span>
               <CategoryIcon size={15} className="text-[#79828b] shrink-0 -translate-y-px" />
@@ -107,36 +107,36 @@ export function AdminEventCard({
           {/* Date + Time */}
           <div className="flex items-center gap-2 text-xs mb-1.5 flex-wrap">
             <span className="flex items-center gap-1.5 shrink-0">
-              <Calendar size={12} className="text-[#462ed1]" />
-              <span className="text-white/90 font-medium">{event.date}</span>
+              <Calendar size={12} className="text-[var(--brand)]" />
+              <span className="text-[var(--ink)]/90 font-medium">{event.date}</span>
             </span>
             <span className="text-[#79828b]">·</span>
             <span className="flex items-center gap-1.5 shrink-0">
-              <Clock size={12} className="text-[#462ed1]" />
-              <span className="text-white/90 font-medium">{event.time}</span>
+              <Clock size={12} className="text-[var(--brand)]" />
+              <span className="text-[var(--ink)]/90 font-medium">{event.time}</span>
             </span>
           </div>
 
           {/* Location + Price */}
           <div className="flex items-center gap-x-2 gap-y-1 text-xs mb-3 flex-wrap">
             <span className="flex items-center gap-1.5">
-              <MapPin size={12} className="text-[#462ed1] shrink-0" />
+              <MapPin size={12} className="text-[var(--brand)] shrink-0" />
               <span className="text-[#79828b]">{event.location}</span>
             </span>
-            <span className="text-[#462ed1] font-black shrink-0">{event.priceLabel}</span>
+            <span className="text-[var(--brand)] font-black shrink-0">{event.priceLabel}</span>
           </div>
 
           {/* Capacity — pinned to bottom of left column */}
           <div className="mt-auto">
             <div className="flex items-center justify-between text-[11px] font-bold mb-1.5">
               <span className="text-[#79828b]">{t.admin.roster}</span>
-              <span className={isFull ? "text-[#4dcd5e]" : "text-white"}>
+              <span className={isFull ? "text-[#4dcd5e]" : "text-[var(--ink)]"}>
                 {event.rosterCount} / {event.capacity}
               </span>
             </div>
-            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-[var(--ink)]/5 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full ${isFull ? "bg-[#4dcd5e]" : "bg-[#462ed1]"}`}
+                className={`h-full rounded-full ${isFull ? "bg-[#4dcd5e]" : "bg-[var(--brand)]"}`}
                 style={{ width: `${fillPct}%` }}
               />
             </div>
@@ -157,23 +157,23 @@ export function AdminEventCard({
       </div>
 
       {/* Footer: moderator + arrow */}
-      <div className="relative flex items-center gap-3 px-4 py-3 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06]">
+      <div className="relative flex items-center gap-3 px-4 py-3 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06]">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           {event.moderatorAvatar ? (
             <img
               src={event.moderatorAvatar}
               alt={event.moderatorName}
-              className="w-9 h-9 rounded-full object-cover shrink-0 ring-1 ring-white/10"
+              className="w-9 h-9 rounded-full object-cover shrink-0 ring-1 ring-[var(--ink)]/10"
             />
           ) : (
-            <div className="w-9 h-9 rounded-full bg-white/5 shrink-0 ring-1 ring-white/10 flex items-center justify-center">
-              <User size={14} className="text-white/30" />
+            <div className="w-9 h-9 rounded-full bg-[var(--ink)]/5 shrink-0 ring-1 ring-[var(--ink)]/10 flex items-center justify-center">
+              <User size={14} className="text-[var(--ink)]/30" />
             </div>
           )}
           <span className="text-[#79828b] text-[11px] font-bold truncate">{event.moderatorName}</span>
         </div>
 
-        <div className="w-8 h-8 rounded-full bg-[#242f3d] flex items-center justify-center text-white/50 group-hover:text-white group-hover:bg-[#462ed1] transition-colors shrink-0">
+        <div className="w-8 h-8 rounded-full bg-[var(--surface-hover)] flex items-center justify-center text-[var(--ink)]/50 group-hover:text-white group-hover:bg-[var(--brand)] transition-colors shrink-0">
           <ChevronRight size={18} />
         </div>
       </div>

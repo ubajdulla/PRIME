@@ -52,7 +52,7 @@ export function StatusBadge({ color, icon, tooltip, opacity = 1 }: StatusBadgePr
           onMouseDown={e => e.stopPropagation()}
           className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-[220px] z-20"
         >
-          <div className="origin-top animate-dropdown-in bg-[#212121] border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white/90 leading-snug shadow-[0_8px_20px_rgba(0,0,0,0.4)]">
+          <div className="origin-top animate-dropdown-in bg-[var(--surface-1)] border border-[var(--ink)]/10 rounded-lg px-3 py-2 text-[11px] text-[var(--ink)]/90 leading-snug shadow-[0_8px_20px_rgba(0,0,0,0.4)]">
             {tooltip}
           </div>
         </div>

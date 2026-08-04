@@ -177,7 +177,7 @@ export function Profile() {
     : "";
 
   return (
-    <div className="min-h-full bg-[#181818] pb-4 font-sans">
+    <div className="min-h-full bg-[var(--surface-0)] pb-4 font-sans">
 
       {/* ── Profile identity ── */}
       <div className="flex flex-col items-center pt-8 pb-6 px-4">
@@ -189,14 +189,14 @@ export function Profile() {
             <img
               src={profile.avatar}
               alt=""
-              className={`w-28 h-28 rounded-full object-cover bg-[#212121] ${uploadingAvatar ? "opacity-50" : ""}`}
+              className={`w-28 h-28 rounded-full object-cover bg-[var(--surface-1)] ${uploadingAvatar ? "opacity-50" : ""}`}
             />
           ) : (
-            <div className={`w-28 h-28 rounded-full bg-[#212121] flex items-center justify-center ${uploadingAvatar ? "opacity-50" : ""}`}>
+            <div className={`w-28 h-28 rounded-full bg-[var(--surface-1)] flex items-center justify-center ${uploadingAvatar ? "opacity-50" : ""}`}>
               <User size={44} className="text-[#79828b]" />
             </div>
           )}
-          <span className="absolute bottom-0.5 right-0.5 w-7 h-7 rounded-full bg-[#462ed1] border-2 border-[#181818] flex items-center justify-center pointer-events-none">
+          <span className="absolute bottom-0.5 right-0.5 w-7 h-7 rounded-full bg-[var(--brand)] border-2 border-[var(--surface-0)] flex items-center justify-center pointer-events-none">
             <Camera size={13} className="text-white" />
           </span>
           <input type="file" accept="image/*" className="hidden" disabled={uploadingAvatar} onChange={handleAvatar} />
@@ -204,7 +204,7 @@ export function Profile() {
 
         {/* Name — display only, updates when contact is saved */}
         <div className="flex items-center gap-2 mb-1">
-          <h1 className="text-xl font-semibold text-white">{profile.name}</h1>
+          <h1 className="text-xl font-semibold text-[var(--ink)]">{profile.name}</h1>
           {statusColor && (
             <StatusBadge color={statusColor} icon={profile.is_banned ? "ban" : "suspend"} tooltip={statusTooltip} />
           )}
@@ -225,14 +225,14 @@ export function Profile() {
       <div className="max-w-[640px] mx-auto px-4 flex flex-col gap-6">
 
         {/* Position — always-editable dropdown, no edit button needed */}
-        <div className="bg-[#212121] rounded-xl">
+        <div className="bg-[var(--surface-1)] rounded-xl">
           <div className="flex items-center justify-between px-4 py-3.5">
             <span className="text-sm text-[#aaa]">{t.profile.position}</span>
             <SelectField
               value={profile.position ?? POSITIONS[0]}
               options={POSITIONS.map(p => ({ value: p, label: positionLabel(p, t) }))}
               onChange={v => updateProfile({ position: v })}
-              triggerClassName="flex items-center gap-1.5 text-white text-sm hover:opacity-80 transition-opacity focus:outline-none"
+              triggerClassName="flex items-center gap-1.5 text-[var(--ink)] text-sm hover:opacity-80 transition-opacity focus:outline-none"
               panelClassName="absolute right-0 top-full mt-1.5 z-30"
               panelWidthClassName="w-40"
             />
@@ -255,7 +255,7 @@ export function Profile() {
                   <button
                     onMouseDown={e => e.stopPropagation()}
                     onClick={() => setMenuOpen(v => !v)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${menuOpen ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/5 hover:text-white"}`}
+                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${menuOpen ? "bg-[var(--surface-active)] text-[var(--ink)]" : "text-[#79828b] hover:bg-[var(--surface-hover)] hover:text-[var(--ink)]"}`}
                   >
                     <MoreVertical size={16} />
                   </button>
@@ -286,13 +286,13 @@ export function Profile() {
             />
           </div>
 
-          <div className="bg-[#212121] rounded-xl overflow-hidden">
+          <div className="bg-[var(--surface-1)] rounded-xl overflow-hidden">
 
             {/* Name row */}
             <ContactRow
               editing={editingContact}
-              icon={<User size={15} className="text-[#462ed1]" />}
-              iconBg="bg-[#462ed1]/15"
+              icon={<User size={15} className="text-[var(--brand)]" />}
+              iconBg="bg-[var(--brand)]/15"
               label={t.profile.name}
               displayValue={profile.name}
               editValue={draft.name}
@@ -309,8 +309,8 @@ export function Profile() {
             <ContactRow
               editing={editingContact}
               href={`tel:${(profile.phone ?? "").replace(/\s/g, "")}`}
-              icon={<Phone size={15} className="text-[#462ed1]" />}
-              iconBg="bg-[#462ed1]/15"
+              icon={<Phone size={15} className="text-[var(--brand)]" />}
+              iconBg="bg-[var(--brand)]/15"
               label={t.profile.phone}
               displayValue={profile.phone ?? ""}
               editValue={draft.phone}
@@ -319,8 +319,8 @@ export function Profile() {
             <ContactRow
               editing={editingContact}
               href={`mailto:${profile.email ?? ""}`}
-              icon={<Mail size={15} className="text-[#462ed1]" />}
-              iconBg="bg-[#462ed1]/15"
+              icon={<Mail size={15} className="text-[var(--brand)]" />}
+              iconBg="bg-[var(--brand)]/15"
               label={t.profile.email}
               displayValue={profile.email ?? ""}
               editValue={draft.email}
@@ -331,7 +331,7 @@ export function Profile() {
               href={`https://t.me/${profile.telegram ?? ""}`}
               external
               icon={<Send size={14} className="text-white -ml-0.5" />}
-              iconBg="bg-[#462ed1]"
+              iconBg="bg-[var(--brand)]"
               label={t.profile.telegram}
               displayValue={`@${profile.telegram ?? ""}`}
               editValue={draft.telegram}
@@ -371,7 +371,7 @@ export function Profile() {
                     <OctagonX size={13} className="text-[#ef4444] shrink-0" />
                     <span className="text-[11px] font-bold uppercase tracking-wider text-[#ef4444]">Banned</span>
                   </div>
-                  <p className="text-sm text-white/80 leading-relaxed">
+                  <p className="text-sm text-[var(--ink)]/80 leading-relaxed">
                     {profile.ban_reason || "You've been permanently banned and can't join any events."}
                   </p>
                 </div>
@@ -383,17 +383,17 @@ export function Profile() {
                       Suspended — {profile.suspended_until ? formatDistanceToNowStrict(new Date(profile.suspended_until)) : ""} left
                     </span>
                   </div>
-                  <p className="text-sm text-white/80 leading-relaxed">
+                  <p className="text-sm text-[var(--ink)]/80 leading-relaxed">
                     {profile.suspend_reason || "You can't join events until the suspension ends."}
                   </p>
                 </div>
               )}
 
               {notes.map(n => (
-                <div key={n.id} className="bg-[#212121] rounded-xl px-3 py-3">
+                <div key={n.id} className="bg-[var(--surface-1)] rounded-xl px-3 py-3">
                   <div className="flex items-center gap-2 mb-1">
                     <Globe size={11} className="text-[#79828b] shrink-0" />
-                    <span className="text-[11px] font-bold text-white/70">{n.author_name || "Admin"}</span>
+                    <span className="text-[11px] font-bold text-[var(--ink)]/70">{n.author_name || "Admin"}</span>
                     <span className="text-[10px] text-[#79828b]">· {new Date(n.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
                     {n.label && (
                       <span
@@ -407,7 +407,7 @@ export function Profile() {
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap break-words">{n.body}</p>
+                  <p className="text-sm text-[var(--ink)]/80 leading-relaxed whitespace-pre-wrap break-words">{n.body}</p>
                 </div>
               ))}
             </div>
@@ -422,15 +422,15 @@ export function Profile() {
           ) : (
             <div className="flex flex-col gap-2">
               {upcomingEvents.slice(0, 7).map(({ event: e, pending }) => (
-                <Link key={e.id} to={`/events/${e.id}`} state={{ hub: "profile" }} className="block bg-[#212121] rounded-xl px-4 py-3.5 hover:bg-white/5 transition-colors">
+                <Link key={e.id} to={`/events/${e.id}`} state={{ hub: "profile" }} className="block bg-[var(--surface-1)] rounded-xl px-4 py-3.5 hover:bg-[var(--surface-hover)] transition-colors">
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-sm font-bold text-white uppercase tracking-wide">{e.title}</span>
+                    <span className="text-sm font-bold text-[var(--ink)] uppercase tracking-wide">{e.title}</span>
                     {pending && <Clock size={14} className="text-[#f5c542] shrink-0" />}
                   </div>
                   <div className="flex flex-wrap gap-3 text-xs text-[#aaa]">
-                    <span className="flex items-center gap-1"><Calendar size={11} className="text-[#462ed1]" />{shortDate(e.event_date, t, true)}</span>
-                    <span className="flex items-center gap-1"><Clock    size={11} className="text-[#462ed1]" />{e.event_time}</span>
-                    <span className="flex items-center gap-1"><MapPin   size={11} className="text-[#462ed1]" />{e.location}</span>
+                    <span className="flex items-center gap-1"><Calendar size={11} className="text-[var(--brand)]" />{shortDate(e.event_date, t, true)}</span>
+                    <span className="flex items-center gap-1"><Clock    size={11} className="text-[var(--brand)]" />{e.event_time}</span>
+                    <span className="flex items-center gap-1"><MapPin   size={11} className="text-[var(--brand)]" />{e.location}</span>
                   </div>
                 </Link>
               ))}
@@ -444,15 +444,15 @@ export function Profile() {
           {pastEvents.length === 0 ? (
             <Empty />
           ) : (
-            <div className="bg-[#212121] rounded-xl overflow-hidden">
+            <div className="bg-[var(--surface-1)] rounded-xl overflow-hidden">
               {pastEvents.slice(0, 7).map((e) => (
                 <Link
                   key={e.id}
                   to={`/events/${e.id}`}
                   state={{ hub: "profile" }}
-                  className={`relative flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden`}
+                  className={`relative flex items-center justify-between px-4 py-2.5 hover:bg-[var(--surface-hover)] transition-colors before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden`}
                 >
-                  <span className="text-sm text-white/75 truncate">{e.title}</span>
+                  <span className="text-sm text-[var(--ink)]/75 truncate">{e.title}</span>
                   <span className="text-xs text-[#aaa] shrink-0 ml-3">{shortDate(e.event_date, t, true)}</span>
                 </Link>
               ))}
@@ -479,7 +479,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 function Empty() {
   const { t } = useLang();
   return (
-    <div className="bg-[#212121] rounded-xl py-6 flex items-center justify-center">
+    <div className="bg-[var(--surface-1)] rounded-xl py-6 flex items-center justify-center">
       <span className="text-sm text-[#aaa]">{t.common.nothingHere}</span>
     </div>
   );

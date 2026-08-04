@@ -85,7 +85,7 @@ export function ModalOverlay({
       <div
         ref={boxRef}
         style={boxStyle}
-        className={`w-full max-w-sm bg-[#212121] border border-white/10 ${rounded} shadow-2xl ${clipOverflow ? "overflow-hidden" : ""} ${boxClassName}`}
+        className={`w-full max-w-sm bg-[var(--surface-1)] border border-[var(--ink)]/10 ${rounded} shadow-2xl ${clipOverflow ? "overflow-hidden" : ""} ${boxClassName}`}
       >
         {children}
       </div>
@@ -109,7 +109,7 @@ export function ConfirmModal({
   onCancel,
   confirmLabel,
   onConfirm,
-  confirmCls = "bg-[#462ed1] text-white",
+  confirmCls = "bg-[var(--brand)] text-white",
   confirmDisabled,
   origin,
 }: {
@@ -141,19 +141,19 @@ export function ConfirmModal({
         <div className="flex items-center gap-3 mb-3">
           <div className={`w-10 h-10 rounded-full border flex items-center justify-center shrink-0 ${iconBg}`}>{icon}</div>
           <div>
-            <h3 className="font-black italic uppercase tracking-widest text-white text-base">{title}</h3>
+            <h3 className="font-black italic uppercase tracking-widest text-[var(--ink)] text-base">{title}</h3>
             {sub && <p className="text-[#79828b] text-xs">{sub}</p>}
           </div>
         </div>
       ) : (
-        <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">{title}</h3>
+        <h3 className="font-black italic uppercase tracking-widest text-[var(--ink)] text-lg mb-1">{title}</h3>
       )}
       {body && <p className={`text-[#79828b] text-sm ${icon ? "mb-5" : "mb-6"}`}>{body}</p>}
       {children && <div className="mb-4">{children}</div>}
       <div className="flex gap-3">
         <button
           onClick={onCancel}
-          className="flex-1 py-2.5 rounded-full border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
+          className="flex-1 py-2.5 rounded-full border border-[var(--ink)]/10 text-[#79828b] font-bold text-sm hover:text-[var(--ink)] transition-colors"
         >
           {cancelLabel}
         </button>

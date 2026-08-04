@@ -13,7 +13,7 @@ export function DropdownPanel({
 }) {
   return (
     <div
-      className={`origin-top animate-dropdown-in bg-[var(--surface-hover)] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] ${
+      className={`origin-top animate-dropdown-in bg-[var(--surface-1)] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] ${
         scrollable
           ? "overflow-y-auto max-h-64 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           : "overflow-hidden"
@@ -38,7 +38,7 @@ export function DropdownItem({
   const color =
     variant === "destructive" ? "text-[#ef4444] hover:bg-[#ef4444]/10" :
     variant === "warning" ? "text-[#eab308] hover:bg-[#eab308]/10" :
-    "text-white hover:bg-[var(--surface-active)]";
+    "text-[var(--ink)] hover:bg-[var(--surface-active)]";
   return (
     <button
       onClick={onClick}
@@ -92,16 +92,16 @@ export function ConfirmDropdownItem({
   const fill =
     variant === "destructive" ? "bg-[#ef4444]" :
     variant === "warning" ? "bg-[#eab308]" :
-    "bg-white/10";
+    "bg-[var(--ink)]/10";
   const idleColor =
     variant === "destructive" ? "text-[#ef4444]" :
     variant === "warning" ? "text-[#eab308]" :
-    "text-white";
+    "text-[var(--ink)]";
   const idleHover =
     variant === "destructive" ? "hover:bg-[#ef4444]/10" :
     variant === "warning" ? "hover:bg-[#eab308]/10" :
     "hover:bg-[var(--surface-active)]";
-  const armedColor = variant === "warning" ? "text-black" : "text-white";
+  const armedColor = variant === "warning" ? "text-black" : variant === "destructive" ? "text-white" : "text-[var(--ink)]";
 
   return (
     <button

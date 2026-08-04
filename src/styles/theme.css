@@ -2,12 +2,33 @@
 
 /* Telegram dark UI — neutral surface elevation scale (page bg -> card/dropdown -> hover -> active).
    Each step is a flat color, not a translucent white overlay, so it looks identical regardless of
-   what it's stacked on (e.g. a dropdown panel sitting on a card of the same --surface-1). */
+   what it's stacked on (e.g. a dropdown panel sitting on a card of the same --surface-1).
+   Light theme overrides live in [data-theme="light"] below — dark stays the untouched default so
+   existing dark-mode appearance never changes. --ink-muted/--ink-faint (the app's two grays) are
+   deliberately IDENTICAL in both themes, so components can keep using the literal #79828b/#8899a6
+   hex directly without going through a variable. */
 :root {
   --surface-0: #181818;
   --surface-1: #212121;
   --surface-hover: hsl(0 0% 17%);
   --surface-active: hsl(0 0% 21%);
+  --divider: #101923;
+  --ink: #ffffff;
+  --ink-line: rgba(255, 255, 255, 0.15);
+  --brand: #462ed1;
+  --brand-hover: #5a3ff0;
+}
+
+:root[data-theme="light"] {
+  --surface-0: #e4e7eb;
+  --surface-1: #ffffff;
+  --surface-hover: #f3f3f4;
+  --surface-active: rgba(0, 0, 0, 0.06);
+  --divider: rgba(121, 130, 139, 0.3);
+  --ink: #181818;
+  --ink-line: rgba(24, 24, 24, 0.15);
+  --brand: #3897f0;
+  --brand-hover: #2f81cf;
 }
 
 :root {
@@ -204,6 +225,19 @@
     min-width: 0 !important;
     max-width: 100% !important;
     width: 100% !important;
+  }
+
+  /* Chrome/Safari autofill paints its own opaque background (the black bars on
+     email/password fields) instead of respecting our transparent inputs - the
+     huge inset box-shadow repaints over it with the real surface color, and a
+     long transition delay stops the yellow flash before it applies. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--ink);
+    -webkit-box-shadow: 0 0 0px 1000px var(--surface-1) inset;
+    box-shadow: 0 0 0px 1000px var(--surface-1) inset;
+    transition: background-color 9999s ease-in-out 0s;
   }
 }
 

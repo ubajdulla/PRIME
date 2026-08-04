@@ -141,7 +141,7 @@ export function AdminEvents() {
           <button
             onClick={() => setShowFilter(v => !v)}
             aria-label={activeLabel}
-            className="flex items-center justify-center w-11 h-11 rounded-full bg-white/10 text-[#79828b] hover:bg-white/20 hover:text-white transition-colors"
+            className="flex items-center justify-center w-11 h-11 rounded-full bg-[var(--surface-hover)] text-[#79828b] hover:bg-[var(--surface-active)] hover:text-[var(--ink)] transition-colors"
           >
             <SlidersHorizontal size={16} />
           </button>
@@ -153,10 +153,10 @@ export function AdminEvents() {
                   <button
                     key={f.value}
                     onClick={() => { setFilter(f.value); setShowFilter(false); }}
-                    className="flex items-center justify-between w-full px-4 py-3 text-sm font-semibold text-left hover:bg-white/5 transition-colors"
+                    className="flex items-center justify-between w-full px-4 py-3 text-sm font-semibold text-left hover:bg-[var(--surface-hover)] transition-colors"
                   >
-                    <span className={filter === f.value ? "text-[#462ed1]" : "text-white"}>{f.label}</span>
-                    {filter === f.value && <Check size={13} className="text-[#462ed1]" />}
+                    <span className={filter === f.value ? "text-[var(--brand)]" : "text-[var(--ink)]"}>{f.label}</span>
+                    {filter === f.value && <Check size={13} className="text-[var(--brand)]" />}
                   </button>
                 ))}
               </DropdownPanel>
@@ -168,7 +168,7 @@ export function AdminEvents() {
         <button
           onClick={() => navigate("/admin/events/create")}
           onPointerDown={createRipple.onPointerDown}
-          className="relative overflow-hidden flex items-center gap-2 h-11 bg-[#462ed1] text-white text-xs font-black uppercase tracking-widest px-4 rounded-full"
+          className="relative overflow-hidden flex items-center gap-2 h-11 bg-[var(--brand)] text-white text-xs font-black uppercase tracking-widest px-4 rounded-full"
         >
           <Plus size={15} />
           {t.admin.createBtn}

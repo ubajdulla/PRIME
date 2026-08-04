@@ -43,7 +43,7 @@ export function EditToggleButtons({
           onClick={onSave}
           disabled={saving}
           tabIndex={editing ? 0 : -1}
-          className="text-sm text-[#462ed1] font-medium active:opacity-70 transition-opacity disabled:opacity-50"
+          className="text-sm text-[var(--brand)] font-medium active:opacity-70 transition-opacity disabled:opacity-50"
         >
           {saving ? "…" : resolvedSaveLabel}
         </button>

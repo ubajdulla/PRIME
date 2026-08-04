@@ -27,7 +27,7 @@ export function ContactRow({
   const isHidden = showToOthers === false;
   const shownValue = isHidden ? HIDDEN_MASK : (displayValue || "—");
   return (
-    <div className="relative flex items-center gap-3 px-4 h-[56px] shrink-0 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden">
+    <div className="relative flex items-center gap-3 px-4 h-[56px] shrink-0 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
       <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}>
         {icon}
       </div>
@@ -45,7 +45,7 @@ export function ContactRow({
               onChange={e => onChange(e.target.value)}
               onClick={e => e.preventDefault()}
               tabIndex={editing ? 0 : -1}
-              className="flex-1 bg-transparent text-white text-sm leading-5 focus:outline-none shadow-[0_1px_0_0_rgba(255,255,255,0.15)] focus:shadow-[0_1px_0_0_#462ed1] transition-shadow min-w-0"
+              className="flex-1 bg-transparent text-[var(--ink)] text-sm leading-5 focus:outline-none shadow-[0_1px_0_0_var(--ink-line)] focus:shadow-[0_1px_0_0_var(--brand)] transition-shadow min-w-0"
             />
           </div>
           <div
@@ -55,11 +55,11 @@ export function ContactRow({
           >
             {href && !isHidden ? (
               <a href={href} tabIndex={editing ? -1 : 0} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                className="text-sm leading-5 truncate block text-white">
+                className="text-sm leading-5 truncate block text-[var(--ink)]">
                 {shownValue}
               </a>
             ) : (
-              <div className={`text-sm leading-5 truncate ${isHidden ? "text-white/40" : "text-white"}`}>{shownValue}</div>
+              <div className={`text-sm leading-5 truncate ${isHidden ? "text-[var(--ink)]/40" : "text-[var(--ink)]"}`}>{shownValue}</div>
             )}
           </div>
         </div>
@@ -68,7 +68,7 @@ export function ContactRow({
         <button
           onClick={onToggleShowToOthers}
           disabled={editing}
-          className={`text-[#79828b] hover:text-white transition-all duration-200 ease-out shrink-0 ${editing ? "opacity-0 pointer-events-none" : ""}`}
+          className={`text-[#79828b] hover:text-[var(--ink)] transition-all duration-200 ease-out shrink-0 ${editing ? "opacity-0 pointer-events-none" : ""}`}
         >
           {showToOthers ? <Eye size={14} /> : <EyeOff size={14} />}
         </button>

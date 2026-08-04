@@ -33,7 +33,7 @@ const SUPERADMIN_EMAIL = "ubajdulla@seznam.cz";
 
 const SKILL_COLOR: Record<string, string> = {
   PRIME:        "text-[#ccff00]",
-  Pro:          "text-[#462ed1]",
+  Pro:          "text-[var(--brand)]",
   Advanced:     "text-[#a855f7]",
   Intermediate: "text-[#eab308]",
   Beginner:     "text-[#f97316]",
@@ -230,7 +230,7 @@ export function AdminPlayerProfile() {
     logAction(profile.id, "Profile photo changed");
   }
 
-  if (loading) return <div className="min-h-screen bg-[#181818]" />;
+  if (loading) return <div className="min-h-screen bg-[var(--surface-0)]" />;
 
   if (!profile) {
     return (
@@ -461,19 +461,19 @@ export function AdminPlayerProfile() {
   const ringColor = skillRingColor;
 
   return (
-    <div className="min-h-full bg-[#181818] pb-8 font-sans">
+    <div className="min-h-full bg-[var(--surface-0)] pb-8 font-sans">
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={() => setToast(p => ({ ...p, visible: false }))} />
 
       {/* ── Modals ─────────────────────────────────────────── */}
       {showSkillConfirm && (
         <ConfirmModal
           origin={skillOrigin}
-          icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[#462ed1]/75" icon={<ChevronDown size={18} className="text-white" />} />}
-          iconBg="border-[#462ed1]/25"
+          icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[var(--brand)]/75" icon={<ChevronDown size={18} className="text-white" />} />}
+          iconBg="border-[var(--brand)]/25"
           title={t.admin.changeSkillTitle} sub={`${levelLabel(displaySkill, t)} → ${levelLabel(pendingSkill, t)}`}
-          body={<>This will move <span className="text-white font-bold">{player.name}</span> to the <span className="text-white font-bold">{pendingSkill}</span> group.</>}
+          body={<>This will move <span className="text-[var(--ink)] font-bold">{player.name}</span> to the <span className="text-[var(--ink)] font-bold">{pendingSkill}</span> group.</>}
           cancelLabel={t.common.cancel} onCancel={() => { setShowSkillConfirm(false); setPendingSkill(""); }}
-          confirmLabel={t.common.confirm} confirmCls="bg-[#462ed1] text-white"
+          confirmLabel={t.common.confirm} confirmCls="bg-[var(--brand)] text-white"
           onConfirm={confirmSkillChange} />
       )}
       {/* Suspend modal */}
@@ -487,7 +487,7 @@ export function AdminPlayerProfile() {
           confirmLabel={t.admin.suspend} confirmCls="bg-[#b45309] text-white"
           confirmDisabled={!suspendDate} onConfirm={confirmSuspend}
         >
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02]">
+          <div className="rounded-xl border border-[var(--ink)]/[0.06] bg-[var(--ink)]/[0.02]">
             <div className="flex items-center gap-3 px-3 h-[52px] shrink-0">
               <div className="w-8 h-8 rounded-full bg-[#eab308]/10 flex items-center justify-center shrink-0">
                 <Calendar size={14} className="text-[#eab308]" />
@@ -497,18 +497,18 @@ export function AdminPlayerProfile() {
                 <DatePickerField
                   value={suspendDate}
                   onChange={setSuspendDate}
-                  triggerClassName="flex items-center gap-1.5 text-white text-sm font-bold outline-none focus:outline-none"
+                  triggerClassName="flex items-center gap-1.5 text-[var(--ink)] text-sm font-bold outline-none focus:outline-none"
                 />
               </div>
             </div>
-            <div className="flex items-center gap-3 px-3 h-[52px] shrink-0 border-t border-white/[0.06]">
+            <div className="flex items-center gap-3 px-3 h-[52px] shrink-0 border-t border-[var(--ink)]/[0.06]">
               <div className="w-8 h-8 rounded-full bg-[#eab308]/10 flex items-center justify-center shrink-0">
                 <Pencil size={14} className="text-[#eab308]" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[10px] text-[#79828b] mb-0.5">{t.admin.reasonOptional}</div>
                 <input type="text" value={suspendReason} onChange={e => setSuspendReason(e.target.value)} placeholder={t.common.reasonPlaceholder}
-                  className="w-full bg-transparent text-white text-sm font-bold outline-none placeholder:text-[#79828b] placeholder:font-normal" />
+                  className="w-full bg-transparent text-[var(--ink)] text-sm font-bold outline-none placeholder:text-[#79828b] placeholder:font-normal" />
               </div>
             </div>
           </div>
@@ -526,7 +526,7 @@ export function AdminPlayerProfile() {
           confirmLabel={t.admin.ban} confirmCls="bg-[#dc2626] text-white"
           onConfirm={confirmBan}
         >
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+          <div className="rounded-xl border border-[var(--ink)]/[0.06] bg-[var(--ink)]/[0.02] overflow-hidden">
             <div className="flex items-center gap-3 px-3 h-[52px] shrink-0">
               <div className="w-8 h-8 rounded-full bg-[#ef4444]/10 flex items-center justify-center shrink-0">
                 <Pencil size={14} className="text-[#ef4444]" />
@@ -534,7 +534,7 @@ export function AdminPlayerProfile() {
               <div className="flex-1 min-w-0">
                 <div className="text-[10px] text-[#79828b] mb-0.5">{t.admin.reasonOptional}</div>
                 <input type="text" value={banReason} onChange={e => setBanReason(e.target.value)} placeholder={t.common.reasonPlaceholder}
-                  className="w-full bg-transparent text-white text-sm font-bold outline-none placeholder:text-[#79828b] placeholder:font-normal" />
+                  className="w-full bg-transparent text-[var(--ink)] text-sm font-bold outline-none placeholder:text-[#79828b] placeholder:font-normal" />
               </div>
             </div>
           </div>
@@ -550,8 +550,8 @@ export function AdminPlayerProfile() {
       {addingNote && (
         <ConfirmModal
           origin={noteOrigin}
-          icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[#462ed1]/75" icon={<Pencil size={18} className="text-white" />} />}
-          iconBg="border-[#462ed1]/25"
+          icon={<ModAvatarIcon avatar={player.avatar} tint="bg-[var(--brand)]/75" icon={<Pencil size={18} className="text-white" />} />}
+          iconBg="border-[var(--brand)]/25"
           title={t.admin.addNoteTitle} sub={t.admin.aboutPlayer(player.name)}
           cancelLabel={t.common.cancel} onCancel={() => { setAddingNote(false); setNoteDraft(""); setNoteLabel(""); }}
           confirmLabel={t.common.save} confirmDisabled={!noteDraft.trim() || savingNote}
@@ -568,13 +568,13 @@ export function AdminPlayerProfile() {
               onKeyDown={handleNoteKeyDown}
               placeholder={t.admin.addNotePlaceholder} rows={2}
               enterKeyHint="send"
-              className="w-full max-h-[160px] bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-y-auto" />
+              className="w-full max-h-[160px] bg-[var(--ink)]/5 border border-[var(--ink)]/10 rounded-xl px-3 py-2 text-[var(--ink)] text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[var(--brand)]/50 transition-colors resize-none overflow-y-auto" />
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setNoteVisibility(v => v === "admin" ? "all" : "admin")}
                 title={noteVisibility === "admin" ? t.admin.adminsOnly : t.admin.visibleToEveryone}
-                className={`relative w-[52px] h-[30px] rounded-full shrink-0 transition-colors ${noteVisibility === "all" ? "bg-[#462ed1]" : "bg-white/15"}`}
+                className={`relative w-[52px] h-[30px] rounded-full shrink-0 transition-colors ${noteVisibility === "all" ? "bg-[var(--brand)]" : "bg-[var(--ink)]/15"}`}
               >
                 <span className={`absolute top-[3px] w-6 h-6 rounded-full bg-white transition-all ${noteVisibility === "all" ? "left-[25px]" : "left-[3px]"}`} />
               </button>
@@ -593,7 +593,7 @@ export function AdminPlayerProfile() {
                     { value: "trustworthy", label: labelName("trustworthy", t), icon: noteLabelIcon("trustworthy") },
                   ]}
                   onChange={v => setNoteLabel(v as TrustLabel | "")}
-                  triggerClassName="w-48 h-11 flex items-center justify-between gap-1.5 bg-white/5 rounded-lg px-3 text-white/80 text-sm font-bold transition-colors hover:bg-white/10 hover:text-white focus:outline-none cursor-pointer"
+                  triggerClassName="w-48 h-11 flex items-center justify-between gap-1.5 bg-[var(--ink)]/5 rounded-lg px-3 text-[var(--ink)]/80 text-sm font-bold transition-colors hover:bg-[var(--ink)]/10 hover:text-[var(--ink)] focus:outline-none cursor-pointer"
                   panelClassName="absolute right-0 top-full mt-1.5 z-30"
                   panelWidthClassName="w-48"
                 />
@@ -623,7 +623,7 @@ export function AdminPlayerProfile() {
               if (e.key === "Escape") { setEditingNoteId(null); setEditNoteDraft(""); }
             }}
             rows={2}
-            className="w-full max-h-[160px] bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[#462ed1]/50 transition-colors resize-none overflow-y-auto"
+            className="w-full max-h-[160px] bg-[var(--ink)]/5 border border-[var(--ink)]/10 rounded-xl px-3 py-2 text-[var(--ink)] text-sm placeholder:text-[#79828b]/50 focus:outline-none focus:border-[var(--brand)]/50 transition-colors resize-none overflow-y-auto"
           />
         </ConfirmModal>
       )}
@@ -635,23 +635,23 @@ export function AdminPlayerProfile() {
         <label className="relative mb-4 cursor-pointer">
           {player.avatar ? (
             <img src={player.avatar} alt={player.name}
-              className={`w-28 h-28 rounded-full object-cover bg-[#212121] ${uploadingAvatar ? "opacity-50" : ""}`}
+              className={`w-28 h-28 rounded-full object-cover bg-[var(--surface-1)] ${uploadingAvatar ? "opacity-50" : ""}`}
               style={{ boxShadow: `0 0 0 3px ${ringColor}` }} />
           ) : (
-            <div className={`w-28 h-28 rounded-full bg-[#212121] flex items-center justify-center ${uploadingAvatar ? "opacity-50" : ""}`}
+            <div className={`w-28 h-28 rounded-full bg-[var(--surface-1)] flex items-center justify-center ${uploadingAvatar ? "opacity-50" : ""}`}
               style={{ boxShadow: `0 0 0 3px ${ringColor}` }}>
-              <User size={36} className="text-white/20" />
+              <User size={36} className="text-[var(--ink)]/20" />
             </div>
           )}
           {/* Admin-only override: tap to replace this player's photo, same
               upload path and badge styling as their own Profile page avatar picker. */}
-          <span className="absolute bottom-0.5 right-0.5 w-7 h-7 rounded-full bg-[#462ed1] border-2 border-[#181818] flex items-center justify-center pointer-events-none">
+          <span className="absolute bottom-0.5 right-0.5 w-7 h-7 rounded-full bg-[var(--brand)] border-2 border-[var(--surface-0)] flex items-center justify-center pointer-events-none">
             <Camera size={13} className="text-white" />
           </span>
           <input type="file" accept="image/*" className="hidden" disabled={uploadingAvatar} onChange={handleAvatar} />
         </label>
         <div className="flex items-center gap-2 mb-1">
-          <h1 className="text-xl font-semibold text-white">{player.name}</h1>
+          <h1 className="text-xl font-semibold text-[var(--ink)]">{player.name}</h1>
           {player.is_verified && <BadgeCheck size={18} className="text-[#3897f0] shrink-0" />}
           {/* Status badge - ban/suspension/trust-label, one priority order
               (see avatarStatus above). Lives next to the name, not on the
@@ -660,7 +660,7 @@ export function AdminPlayerProfile() {
             <StatusBadge color={avatarStatus.color} icon={avatarStatus.icon} tooltip={avatarStatus.tooltip} opacity={avatarStatus.opacity} />
           )}
         </div>
-        <span className={`text-sm font-medium mb-2 ${SKILL_COLOR[displaySkill] ?? "text-white"}`}>{levelLabel(displaySkill, t)}</span>
+        <span className={`text-sm font-medium mb-2 ${SKILL_COLOR[displaySkill] ?? "text-[var(--ink)]"}`}>{levelLabel(displaySkill, t)}</span>
       </div>
 
       <div className="max-w-[640px] mx-auto px-4 flex flex-col gap-6">
@@ -675,16 +675,16 @@ export function AdminPlayerProfile() {
               onSave={saveDetails}
               idle={
                 <button onClick={openDetailsEdit}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-[#79828b] hover:bg-white/20 hover:text-white transition-colors">
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface-hover)] text-[#79828b] hover:bg-[var(--surface-active)] hover:text-[var(--ink)] transition-colors">
                   <Pencil size={16} />
                 </button>
               }
             />
           </div>
-          <div className="bg-[#212121] rounded-xl overflow-hidden">
+          <div className="bg-[var(--surface-1)] rounded-xl overflow-hidden">
             <ContactRow
               editing={editingDetails}
-              icon={<User size={15} className="text-[#462ed1]" />} iconBg="bg-[#462ed1]/15"
+              icon={<User size={15} className="text-[var(--brand)]" />} iconBg="bg-[var(--brand)]/15"
               label={t.admin.firstName} displayValue={player.name} editValue={detailsDraft.name}
               onChange={v => setDetailsField("name", v)}
             />
@@ -699,21 +699,21 @@ export function AdminPlayerProfile() {
             <ContactRow
               editing={editingDetails}
               href={`tel:${(player.phone ?? "").replace(/\s/g, "")}`}
-              icon={<Phone size={15} className="text-[#462ed1]" />} iconBg="bg-[#462ed1]/15"
+              icon={<Phone size={15} className="text-[var(--brand)]" />} iconBg="bg-[var(--brand)]/15"
               label={t.profile.phone} displayValue={player.phone ?? ""} editValue={detailsDraft.phone}
               onChange={v => setDetailsField("phone", v)}
             />
             <ContactRow
               editing={editingDetails}
               href={`mailto:${player.email ?? ""}`}
-              icon={<Mail size={15} className="text-[#462ed1]" />} iconBg="bg-[#462ed1]/15"
+              icon={<Mail size={15} className="text-[var(--brand)]" />} iconBg="bg-[var(--brand)]/15"
               label={t.profile.email} displayValue={player.email ?? ""} editValue={detailsDraft.email}
               onChange={v => setDetailsField("email", v)}
             />
             <ContactRow
               editing={editingDetails}
               href={`https://t.me/${(player.telegram ?? "").replace("@", "")}`} external
-              icon={<Send size={14} className="text-white -ml-0.5" />} iconBg="bg-[#462ed1]"
+              icon={<Send size={14} className="text-white -ml-0.5" />} iconBg="bg-[var(--brand)]"
               label={t.profile.telegram} displayValue={player.telegram ?? ""} editValue={detailsDraft.telegram}
               onChange={v => setDetailsField("telegram", v)}
             />
@@ -747,7 +747,7 @@ export function AdminPlayerProfile() {
                   setOpenNoteMenuId(null);
                   setDeleteArmedId(null);
                 }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-[#79828b] hover:bg-white/20 hover:text-white transition-colors">
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface-hover)] text-[#79828b] hover:bg-[var(--surface-active)] hover:text-[var(--ink)] transition-colors">
                 <Send size={14} />
               </button>
             )}
@@ -762,14 +762,14 @@ export function AdminPlayerProfile() {
                 const isExpanded = expandedNoteId === n.id;
                 const isEditing = editingNoteId === n.id;
                 return (
-                  <div key={n.id} className={`bg-[#212121] rounded-xl px-3 py-3 transition-opacity ${isEditing ? "opacity-40" : ""}`}>
+                  <div key={n.id} className={`bg-[var(--surface-1)] rounded-xl px-3 py-3 transition-opacity ${isEditing ? "opacity-40" : ""}`}>
                     <div className="flex items-center gap-2 mb-1">
                       {n.is_legacy ? (
                         <span className="text-[10px] font-bold uppercase tracking-wider text-[#79828b]">Legacy note</span>
                       ) : (
                         <>
                           {n.visibility === "admin" ? <Lock size={11} className="text-[#79828b] shrink-0" /> : <Globe size={11} className="text-[#79828b] shrink-0" />}
-                          <span className="text-[11px] font-bold text-white/70">{n.author_name || "Admin"}</span>
+                          <span className="text-[11px] font-bold text-[var(--ink)]/70">{n.author_name || "Admin"}</span>
                           <span className="text-[10px] text-[#79828b]">· {formatDateTime(n.created_at)}</span>
                         </>
                       )}
@@ -794,7 +794,7 @@ export function AdminPlayerProfile() {
                           type="button"
                           onMouseDown={e => e.stopPropagation()}
                           onClick={() => setOpenNoteMenuId(v => v === n.id ? null : n.id)}
-                          className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors ${openNoteMenuId === n.id ? "bg-white/10 text-white" : "text-[#79828b] hover:bg-white/10 hover:text-white"}`}
+                          className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors ${openNoteMenuId === n.id ? "bg-[var(--surface-active)] text-[var(--ink)]" : "text-[#79828b] hover:bg-[var(--surface-hover)] hover:text-[var(--ink)]"}`}
                         >
                           <MoreVertical size={14} />
                         </button>
@@ -816,7 +816,7 @@ export function AdminPlayerProfile() {
                         )}
                       </div>
                     </div>
-                    <p className={`text-sm text-white/80 leading-relaxed whitespace-pre-wrap break-words ${isLong && !isExpanded ? "line-clamp-4" : ""}`}>
+                    <p className={`text-sm text-[var(--ink)]/80 leading-relaxed whitespace-pre-wrap break-words ${isLong && !isExpanded ? "line-clamp-4" : ""}`}>
                       {n.body}
                     </p>
                     {isLong && (
@@ -824,7 +824,7 @@ export function AdminPlayerProfile() {
                         <button
                           type="button"
                           onClick={() => setExpandedNoteId(prev => prev === n.id ? null : n.id)}
-                          className="text-[11px] font-bold text-[#462ed1] hover:text-white transition-colors"
+                          className="text-[11px] font-bold text-[var(--brand)] hover:text-[var(--ink)] transition-colors"
                         >
                           {isExpanded ? t.admin.showLess : t.admin.readMore}
                         </button>
@@ -840,17 +840,17 @@ export function AdminPlayerProfile() {
         {/* ── Admin Actions ─────────────────────────────────── */}
         <section>
           <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2 px-1">{t.admin.adminTab}</h2>
-          <div className="bg-[#212121] rounded-xl overflow-hidden">
+          <div className="bg-[var(--surface-1)] rounded-xl overflow-hidden">
 
             {/* Skill Level */}
-            <div className="relative flex items-center gap-3 px-4 py-3.5 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden">
-              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0">
-                <span className={`text-[10px] font-black ${SKILL_COLOR[displaySkill] ?? "text-white"}`}>
+            <div className="relative flex items-center gap-3 px-4 py-3.5 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
+              <div className="w-8 h-8 rounded-full bg-[var(--ink)]/5 flex items-center justify-center shrink-0">
+                <span className={`text-[10px] font-black ${SKILL_COLOR[displaySkill] ?? "text-[var(--ink)]"}`}>
                   {displaySkill.slice(0, 3).toUpperCase()}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-white">{t.admin.skillLevel}</div>
+                <div className="text-sm font-bold text-[var(--ink)]">{t.admin.skillLevel}</div>
                 <div className="text-[11px] text-[#79828b]">{t.admin.current}: {levelLabel(displaySkill, t)}</div>
               </div>
               <div className="shrink-0" ref={skillFieldRef}>
@@ -859,7 +859,7 @@ export function AdminPlayerProfile() {
                   options={skillOptions.map(lvl => ({ value: lvl, label: levelLabel(lvl, t) }))}
                   onChange={openSkillPicker}
                   disabled={hierarchyLocked}
-                  triggerClassName="w-24 h-8 flex items-center justify-between gap-1.5 bg-white/5 rounded-full pl-3 pr-2.5 text-white/70 text-[11px] font-black uppercase tracking-wider transition-colors hover:bg-white/10 hover:text-white focus:outline-none cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                  triggerClassName="w-24 h-8 flex items-center justify-between gap-1.5 bg-[var(--ink)]/5 rounded-full pl-3 pr-2.5 text-[var(--ink)]/70 text-[11px] font-black uppercase tracking-wider transition-colors hover:bg-[var(--ink)]/10 hover:text-[var(--ink)] focus:outline-none cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                   panelClassName="absolute right-0 top-full mt-1.5 z-30"
                   panelWidthClassName="w-36"
                 />
@@ -872,12 +872,12 @@ export function AdminPlayerProfile() {
             )}
 
             {/* Verification */}
-            <div className="relative flex items-center gap-3 px-4 py-3.5 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${player.is_verified ? "bg-[#3897f0]" : "bg-white/5"}`}>
+            <div className="relative flex items-center gap-3 px-4 py-3.5 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${player.is_verified ? "bg-[#3897f0]" : "bg-[var(--ink)]/5"}`}>
                 <BadgeCheck size={16} className={player.is_verified ? "text-white" : "text-[#79828b]"} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-white">{t.admin.identityVerified}</div>
+                <div className="text-sm font-bold text-[var(--ink)]">{t.admin.identityVerified}</div>
                 <div className="text-[11px] text-[#79828b]">{player.is_verified ? t.admin.badgeVisible : t.admin.notVerified}</div>
               </div>
               {player.is_verified ? (
@@ -909,12 +909,12 @@ export function AdminPlayerProfile() {
             </div>
 
             {/* Suspension */}
-            <div className="relative flex items-center gap-3 px-4 py-3.5 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${player.is_suspended ? "bg-[#eab308]/15" : "bg-white/5"}`}>
+            <div className="relative flex items-center gap-3 px-4 py-3.5 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${player.is_suspended ? "bg-[#eab308]/15" : "bg-[var(--ink)]/5"}`}>
                 <Clock size={16} className={player.is_suspended ? "text-[#eab308]" : "text-[#79828b]"} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-white">{t.admin.suspension}</div>
+                <div className="text-sm font-bold text-[var(--ink)]">{t.admin.suspension}</div>
                 <div className="text-[11px] text-[#79828b]">
                   {player.is_suspended ? `${t.admin.suspendedUntil} ${formatDate(player.suspended_until ?? "")}` : player.is_verified ? t.admin.cantBeSuspended : t.admin.notSuspended}
                 </div>
@@ -932,19 +932,19 @@ export function AdminPlayerProfile() {
               ) : (
                 <button ref={suspendBtnRef} onClick={openSuspendModal} disabled={player.is_banned || player.is_verified || hierarchyLocked}
                   title={player.is_verified ? t.admin.cantBeSuspended : undefined}
-                  className="w-24 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/70 text-[11px] font-black uppercase tracking-wider hover:bg-white/10 hover:text-white transition-colors focus:outline-none shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
+                  className="w-24 h-8 flex items-center justify-center rounded-full bg-[var(--ink)]/5 text-[var(--ink)]/70 text-[11px] font-black uppercase tracking-wider hover:bg-[var(--ink)]/10 hover:text-[var(--ink)] transition-colors focus:outline-none shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
                   {t.admin.suspendBtn}
                 </button>
               )}
             </div>
 
             {/* Ban */}
-            <div className="relative flex items-center gap-3 px-4 py-3.5 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${player.is_banned ? "bg-[#ef4444]/15" : "bg-white/5"}`}>
+            <div className="relative flex items-center gap-3 px-4 py-3.5 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${player.is_banned ? "bg-[#ef4444]/15" : "bg-[var(--ink)]/5"}`}>
                 <OctagonX size={16} className={player.is_banned ? "text-[#ef4444]" : "text-[#79828b]"} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-white">{t.admin.ban}</div>
+                <div className="text-sm font-bold text-[var(--ink)]">{t.admin.ban}</div>
                 <div className="text-[11px] text-[#79828b]">{player.is_banned ? t.admin.permanentlyBanned : t.admin.notBanned}</div>
               </div>
               {player.is_banned ? (
@@ -966,7 +966,7 @@ export function AdminPlayerProfile() {
             </div>
 
             {/* Current Label — set only by picking a reason on a new note, not from here */}
-            <div className="relative flex items-center gap-3 px-4 py-3.5 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden">
+            <div className="relative flex items-center gap-3 px-4 py-3.5 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
                 style={{ background: currentLabel ? `${SENTIMENT_COLOR[LABEL_META[currentLabel.label].sentiment]}26` : "rgba(255,255,255,.05)", opacity: currentLabel?.opacity ?? 1 }}
@@ -974,7 +974,7 @@ export function AdminPlayerProfile() {
                 <Flag size={16} style={{ color: currentLabel ? SENTIMENT_COLOR[LABEL_META[currentLabel.label].sentiment] : "#79828b" }} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-white">{t.admin.currentLabel}</div>
+                <div className="text-sm font-bold text-[var(--ink)]">{t.admin.currentLabel}</div>
                 <div className="text-[11px] text-[#79828b]">
                   {currentLabel ? t.admin.labelDecayNote(labelName(currentLabel.label, t)) : t.admin.noLabelSet}
                 </div>
@@ -999,17 +999,17 @@ export function AdminPlayerProfile() {
         <section>
           <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2">{t.profile.upcomingEvents}</h2>
           {upcomingEvents.length === 0 ? (
-            <div className="bg-[#212121] rounded-xl py-6 flex items-center justify-center">
+            <div className="bg-[var(--surface-1)] rounded-xl py-6 flex items-center justify-center">
               <span className="text-sm text-[#aaa]">{t.common.nothingHere}</span>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
               {upcomingEvents.slice(0, 7).map(e => (
-                <Link key={e.id} to={`/admin/events/${e.id}`} className="block bg-[#212121] rounded-xl px-4 py-3.5 hover:bg-white/5 transition-colors">
-                  <span className="text-sm font-bold text-white uppercase tracking-wide block mb-1.5">{e.title}</span>
+                <Link key={e.id} to={`/admin/events/${e.id}`} className="block bg-[var(--surface-1)] rounded-xl px-4 py-3.5 hover:bg-[var(--surface-hover)] transition-colors">
+                  <span className="text-sm font-bold text-[var(--ink)] uppercase tracking-wide block mb-1.5">{e.title}</span>
                   <div className="flex flex-wrap gap-3 text-xs text-[#aaa]">
-                    <span className="flex items-center gap-1"><Calendar size={11} className="text-[#462ed1]" />{formatDate(e.event_date)}</span>
-                    <span className="flex items-center gap-1"><MapPin size={11} className="text-[#462ed1]" />{e.location}</span>
+                    <span className="flex items-center gap-1"><Calendar size={11} className="text-[var(--brand)]" />{formatDate(e.event_date)}</span>
+                    <span className="flex items-center gap-1"><MapPin size={11} className="text-[var(--brand)]" />{e.location}</span>
                   </div>
                 </Link>
               ))}
@@ -1021,14 +1021,14 @@ export function AdminPlayerProfile() {
         <section>
           <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#aaa] mb-2">{t.profile.pastEvents}</h2>
           {pastEvents.length === 0 ? (
-            <div className="bg-[#212121] rounded-xl py-6 flex items-center justify-center">
+            <div className="bg-[var(--surface-1)] rounded-xl py-6 flex items-center justify-center">
               <span className="text-sm text-[#aaa]">{t.common.nothingHere}</span>
             </div>
           ) : (
-            <div className="bg-[#212121] rounded-xl overflow-hidden">
+            <div className="bg-[var(--surface-1)] rounded-xl overflow-hidden">
               {pastEvents.slice(0, 7).map((e) => (
-                <Link key={e.id} to={`/admin/events/${e.id}`} className="relative flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-white/[0.06] first:before:hidden">
-                  <span className="text-sm text-white/75 truncate">{e.title}</span>
+                <Link key={e.id} to={`/admin/events/${e.id}`} className="relative flex items-center justify-between px-4 py-2.5 hover:bg-[var(--surface-hover)] transition-colors before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
+                  <span className="text-sm text-[var(--ink)]/75 truncate">{e.title}</span>
                   <span className="text-xs text-[#aaa] shrink-0 ml-3">{formatDate(e.event_date)}</span>
                 </Link>
               ))}
@@ -1057,8 +1057,8 @@ function noteLabelIcon(l: TrustLabel) {
 
 function dotColor(skillLevel: string): string {
   const map: Record<string, string> = {
-    PRIME: "#ccff00", Pro: "#462ed1", Advanced: "#a855f7",
+    PRIME: "#ccff00", Pro: "var(--brand)", Advanced: "#a855f7",
     Intermediate: "#eab308", Beginner: "#f97316", Rookie: "#79828b",
   };
-  return map[skillLevel] ?? "#462ed1";
+  return map[skillLevel] ?? "var(--brand)";
 }

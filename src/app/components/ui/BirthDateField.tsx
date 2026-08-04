@@ -42,7 +42,7 @@ export function BirthDateField({
   const panelRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
   const selected = value ? new Date(value + "T00:00:00") : null;
-  useExclusiveOpen(open, () => setOpen(false));
+  useExclusiveOpen(open, () => setOpen(false), t => (ref.current?.contains(t) || panelRef.current?.contains(t)) ?? false);
 
   useEffect(() => {
     setText(value ? format(new Date(value + "T00:00:00"), "dd/MM/yyyy") : "");
@@ -118,7 +118,7 @@ export function BirthDateField({
         className={
           inline
             ? "flex items-center gap-1.5"
-            : "flex items-center gap-3 px-4 py-3.5 bg-[#181818]/60 border border-white/10 rounded-xl focus-within:border-white/20 transition-colors"
+            : "flex items-center gap-3 px-4 py-3.5 bg-[var(--surface-0)]/60 border border-[var(--ink)]/10 rounded-xl focus-within:border-[var(--ink)]/20 transition-colors"
         }
       >
         <input
@@ -129,15 +129,15 @@ export function BirthDateField({
           onChange={e => handleTextChange(e.target.value)}
           className={
             inline
-              ? "flex-1 min-w-0 bg-transparent text-white text-sm leading-5 placeholder:text-[#79828b]/60 focus:outline-none shadow-[0_1px_0_0_rgba(255,255,255,0.15)] focus:shadow-[0_1px_0_0_#462ed1] transition-shadow"
-              : "flex-1 bg-transparent text-white text-sm placeholder:text-[#79828b]/60 focus:outline-none"
+              ? "flex-1 min-w-0 bg-transparent text-[var(--ink)] text-sm leading-5 placeholder:text-[#79828b]/60 focus:outline-none shadow-[0_1px_0_0_var(--ink-line)] focus:shadow-[0_1px_0_0_var(--brand)] transition-shadow"
+              : "flex-1 bg-transparent text-[var(--ink)] text-sm placeholder:text-[#79828b]/60 focus:outline-none"
           }
         />
         <button
           ref={calendarBtnRef}
           type="button"
           onClick={() => setOpen(v => !v)}
-          className="text-[#79828b] hover:text-white transition-colors shrink-0"
+          className="text-[#79828b] hover:text-[var(--ink)] transition-colors shrink-0"
         >
           <CalendarIcon size={inline ? 14 : 16} />
         </button>

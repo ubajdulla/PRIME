@@ -27,7 +27,7 @@ export function DatePickerField({
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const selected = value ? new Date(value + "T00:00:00") : null;
-  useExclusiveOpen(open, () => setOpen(false));
+  useExclusiveOpen(open, () => setOpen(false), t => ref.current?.contains(t) ?? false);
 
   useEffect(() => {
     if (!open) return;
@@ -168,20 +168,20 @@ export function CalendarPanel({
             />
           </>
         ) : (
-          <span className="flex-1 text-white font-bold text-sm">{t.event.date}</span>
+          <span className="flex-1 text-[var(--ink)] font-bold text-sm">{t.event.date}</span>
         )}
         <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
             onClick={() => scrollToMonth(monthIndex - 1)}
-            className="relative overflow-hidden w-7 h-7 flex items-center justify-center rounded-full text-[#462ed1] hover:bg-[#462ed1]/10 transition-colors focus:outline-none"
+            className="relative overflow-hidden w-7 h-7 flex items-center justify-center rounded-full text-[var(--brand)] hover:bg-[var(--brand)]/10 transition-colors focus:outline-none"
           >
             <ChevronUp size={14} />
           </button>
           <button
             type="button"
             onClick={() => scrollToMonth(monthIndex + 1)}
-            className="relative overflow-hidden w-7 h-7 flex items-center justify-center rounded-full text-[#462ed1] hover:bg-[#462ed1]/10 transition-colors focus:outline-none"
+            className="relative overflow-hidden w-7 h-7 flex items-center justify-center rounded-full text-[var(--brand)] hover:bg-[var(--brand)]/10 transition-colors focus:outline-none"
           >
             <ChevronDown size={14} />
           </button>
@@ -217,7 +217,7 @@ export function CalendarPanel({
             : [];
           return (
             <div key={m.toISOString()} ref={el => { monthRefs.current[i] = el; }}>
-              <div className={`text-center text-white font-bold text-sm py-2 ${i > 0 ? "mt-1" : ""}`}>
+              <div className={`text-center text-[var(--ink)] font-bold text-sm py-2 ${i > 0 ? "mt-1" : ""}`}>
                 {format(m, "MMMM yyyy")}
               </div>
               <div className="grid grid-cols-7 gap-y-1">
@@ -261,7 +261,7 @@ export function CalendarPanel({
           type="button"
           onClick={() => onPick(today)}
           onPointerDown={todayRipple.onPointerDown}
-          className="relative overflow-hidden w-full mt-3 py-2 text-[#462ed1] text-xs font-bold uppercase tracking-wider hover:bg-[var(--surface-active)] rounded-full transition-colors focus:outline-none"
+          className="relative overflow-hidden w-full mt-3 py-2 text-[var(--brand)] text-xs font-bold uppercase tracking-wider hover:bg-[var(--surface-active)] rounded-full transition-colors focus:outline-none"
         >
           {t.days.today}
           <RippleLayer ripples={todayRipple.ripples} />
@@ -285,12 +285,12 @@ export function DayButton({
         onPointerDown={ripple.onPointerDown}
         className={`relative overflow-hidden w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors focus:outline-none ${
           selected
-            ? "bg-[#462ed1] text-white"
+            ? "bg-[var(--brand)] text-white"
             : isTodayDate
-              ? `border border-[#462ed1]/50 ${muted ? "text-white/40" : "text-white"}`
+              ? `border border-[var(--brand)]/50 ${muted ? "text-[var(--ink)]/40" : "text-[var(--ink)]"}`
               : muted
-                ? "text-white/25 hover:bg-[var(--surface-active)] hover:text-white/50"
-                : "text-white hover:bg-[var(--surface-active)]"
+                ? "text-[var(--ink)]/25 hover:bg-[var(--surface-active)] hover:text-[var(--ink)]/50"
+                : "text-[var(--ink)] hover:bg-[var(--surface-active)]"
         }`}
       >
         {day.getDate()}

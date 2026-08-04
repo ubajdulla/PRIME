@@ -248,9 +248,9 @@ export function EventDetail() {
   const title = event?.title ?? "";
 
   const theme = {
-    primary: isRequestOnly ? "text-[#eab308]" : "text-[#462ed1]",
-    bg: isRequestOnly ? "bg-[#eab308]" : "bg-[#462ed1]",
-    button: isRequestOnly ? "bg-[#eab308] text-black" : "bg-[#462ed1] text-white",
+    primary: isRequestOnly ? "text-[#eab308]" : "text-[var(--brand)]",
+    bg: isRequestOnly ? "bg-[#eab308]" : "bg-[var(--brand)]",
+    button: isRequestOnly ? "bg-[#eab308] text-black" : "bg-[var(--brand)] text-white",
   };
 
   function handleJoinClick() {
@@ -331,11 +331,11 @@ export function EventDetail() {
     return isRequestOnly ? t.event.sendRequest : t.event.joinDirectly;
   };
 
-  if (loading) return <div className="min-h-full bg-[#181818]" />;
+  if (loading) return <div className="min-h-full bg-[var(--surface-0)]" />;
 
   if (notFound || !event) {
     return (
-      <div className="min-h-full bg-[#181818] text-white">
+      <div className="min-h-full bg-[var(--surface-0)] text-[var(--ink)]">
         <BackBar label={t.nav.events} to="/" />
         <div className="px-4 py-16 text-center text-[#79828b] text-sm">{t.common.nothingHere}</div>
       </div>
@@ -343,7 +343,7 @@ export function EventDetail() {
   }
 
 return (
-    <div className="min-h-full bg-[#181818] text-white font-sans">
+    <div className="min-h-full bg-[var(--surface-0)] text-[var(--ink)] font-sans">
       <Toast message={toast.message} visible={toast.visible} variant="copied" onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
 
       {/* Join confirmation modal — pops open from the CTA button's on-screen
@@ -355,7 +355,7 @@ return (
           overlayClassName={`transition-opacity duration-200 ${joinModalEntered ? "opacity-100" : "opacity-0"}`}
           boxRef={joinModalBoxRef}
         >
-          <h3 className="font-black italic uppercase tracking-widest text-white text-lg mb-1">
+          <h3 className="font-black italic uppercase tracking-widest text-[var(--ink)] text-lg mb-1">
             {isRequestOnly ? t.event.sendRequest : isFull ? "Join Waitlist" : t.event.joinTitle}
           </h3>
           <p className="text-[#79828b] text-sm mb-5">
@@ -385,7 +385,7 @@ return (
                 value={teamName}
                 onChange={e => setTeamName(e.target.value)}
                 placeholder={t.event.teamNamePlaceholder}
-                className="w-full h-10 bg-white/5 border border-white/10 rounded-lg px-3 text-white text-sm font-bold outline-none focus:border-white/25 transition-colors placeholder:text-[#79828b] placeholder:font-normal"
+                className="w-full h-10 bg-[var(--ink)]/5 border border-[var(--ink)]/10 rounded-lg px-3 text-[var(--ink)] text-sm font-bold outline-none focus:border-[var(--ink)]/25 transition-colors placeholder:text-[#79828b] placeholder:font-normal"
               />
             </div>
           )}
@@ -393,7 +393,7 @@ return (
           <div className="flex gap-3">
             <button
               onClick={() => setShowJoinModal(false)}
-              className="flex-1 py-2.5 rounded-full border border-white/10 text-[#79828b] font-bold text-sm hover:text-white transition-colors"
+              className="flex-1 py-2.5 rounded-full border border-[var(--ink)]/10 text-[#79828b] font-bold text-sm hover:text-[var(--ink)] transition-colors"
             >
               {t.common.cancel}
             </button>
@@ -419,7 +419,7 @@ return (
               navigator.clipboard.writeText(url).then(() => fireToast(t.common.linkCopied));
             }
           }}
-          className="flex items-center gap-1.5 text-[#79828b] hover:text-white transition-colors text-sm font-bold"
+          className="flex items-center gap-1.5 text-[#79828b] hover:text-[var(--ink)] transition-colors text-sm font-bold"
         >
           <Share2 size={16} />
           <span>{t.event.share}</span>
@@ -431,7 +431,7 @@ return (
         {/* COMPACT UPPER SECTION */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <h1 className="text-3xl font-black italic uppercase tracking-tight leading-none text-white">
+            <h1 className="text-3xl font-black italic uppercase tracking-tight leading-none text-[var(--ink)]">
               {title}
             </h1>
             <CategoryIcon category={event.category} size={20} className="text-[#79828b] shrink-0" />
@@ -443,7 +443,7 @@ return (
             avatarAlt="Organizer"
             avatarSize={44}
             eyebrow={t.event.organizer}
-            primary={<span className="text-white font-bold text-sm">{event.moderator?.name ?? "—"}</span>}
+            primary={<span className="text-[var(--ink)] font-bold text-sm">{event.moderator?.name ?? "—"}</span>}
             checkmark
             variant="card"
             className="mb-4 shadow-sm"
@@ -453,28 +453,28 @@ return (
           {/* Info Panel */}
           <div className="relative">
             {event.level && <LevelBookmark level={event.level} insufficient={isRequestOnly} />}
-            <div className="bg-[#212121] rounded-2xl overflow-hidden">
-              <div className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
+            <div className="bg-[var(--surface-1)] rounded-2xl overflow-hidden">
+              <div className="relative flex items-center gap-2.5 p-3 hover:bg-[var(--surface-hover)] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
                 <Calendar size={16} className={theme.primary} />
-                <span className="text-sm font-semibold text-white/90">{shortDate(event.event_date, t, true)} · {event.event_time}</span>
+                <span className="text-sm font-semibold text-[var(--ink)]/90">{shortDate(event.event_date, t, true)} · {event.event_time}</span>
               </div>
-              <div className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
+              <div className="relative flex items-center gap-2.5 p-3 hover:bg-[var(--surface-hover)] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
                 <Ticket size={16} className={theme.primary} />
-                <span className="text-sm font-semibold text-white/90">{event.price_label ?? "FREE"}</span>
+                <span className="text-sm font-semibold text-[var(--ink)]/90">{event.price_label ?? "FREE"}</span>
               </div>
               <a
                 href={`https://www.google.com/maps/search/${encodeURIComponent(event.location)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden"
+                className="relative flex items-center gap-2.5 p-3 hover:bg-[var(--surface-hover)] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden"
               >
                 <MapPin size={16} className={theme.primary} />
-                <span className="text-sm font-semibold text-white/90 truncate">
+                <span className="text-sm font-semibold text-[var(--ink)]/90 truncate">
                   {event.location}
                 </span>
               </a>
               {event.description && (
-                <div className="relative p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden">
+                <div className="relative p-3 hover:bg-[var(--surface-hover)] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
                   <p className="text-[#79828b] text-xs leading-relaxed">{event.description}</p>
                 </div>
               )}
@@ -484,12 +484,12 @@ return (
                   target="_blank"
                   rel="noopener noreferrer"
                   download={event.attachment_name ?? undefined}
-                  className="relative flex items-center gap-2.5 p-3 hover:bg-white/[0.07] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06] first:before:hidden"
+                  className="relative flex items-center gap-2.5 p-3 hover:bg-[var(--surface-hover)] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden"
                 >
-                  <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center shrink-0">
-                    <FileText size={13} className="text-white/60" />
+                  <div className="w-7 h-7 rounded-full bg-[var(--ink)]/5 flex items-center justify-center shrink-0">
+                    <FileText size={13} className="text-[var(--ink)]/60" />
                   </div>
-                  <span className="text-sm font-semibold text-white/90 truncate flex-1">{event.attachment_name ?? "Attachment"}</span>
+                  <span className="text-sm font-semibold text-[var(--ink)]/90 truncate flex-1">{event.attachment_name ?? "Attachment"}</span>
                   <Download size={14} className="text-[#79828b] shrink-0" />
                 </a>
               )}
@@ -500,7 +500,7 @@ return (
         {/* ROSTER SECTION */}
         <div>
           <div className="flex justify-between items-center mb-3 px-1">
-            <h2 className="font-bold text-lg text-white">
+            <h2 className="font-bold text-lg text-[var(--ink)]">
               {currentCapacity}{" "}
               <span className="text-[#79828b]">/ {maxCapacity} Players</span>
             </h2>
@@ -520,7 +520,7 @@ return (
                       ? "text-white"
                       : isRequestOnly
                         ? "bg-[#eab308]/10 hover:bg-[#eab308]/20 text-[#eab308]"
-                        : "bg-[#462ed1]/10 hover:bg-[#462ed1]/20 text-[#462ed1]"
+                        : "bg-[var(--brand)]/10 hover:bg-[var(--brand)]/20 text-[var(--brand)]"
                     : `hover:brightness-110 ${theme.button}`
                 }`}
               >
@@ -546,7 +546,7 @@ return (
           </div>
 
           {/* Capacity Bar */}
-          <div className="w-full h-1.5 bg-white/5 rounded-full mb-4 overflow-hidden">
+          <div className="w-full h-1.5 bg-[var(--ink)]/5 rounded-full mb-4 overflow-hidden">
             <div
               className={`h-full ${theme.bg} rounded-full transition-all duration-500`}
               style={{ width: `${maxCapacity > 0 ? Math.min(100, (currentCapacity / maxCapacity) * 100) : 0}%` }}
@@ -559,7 +559,7 @@ return (
           {roster.length === 0 ? (
             <p className="text-[#79828b] text-sm py-4 text-center">No one has joined yet — be the first!</p>
           ) : (
-            <div className="bg-[#212121] rounded-2xl overflow-hidden">
+            <div className="bg-[var(--surface-1)] rounded-2xl overflow-hidden">
               {roster.map((player) => {
                 const clickable = isLoggedIn && !player.isGuest;
                 const isMe = player.id === authUser?.id;
@@ -575,11 +575,11 @@ return (
                     onClick={clickable ? () => { navDir.forward(); navigate(playerProfilePath(player.id), { state: { hub } }); } : undefined}
                     primary={
                       requiresTeamName ? (
-                        <span className={`font-bold text-sm block truncate ${player.teamName ? "text-white" : "text-[#79828b]/50 italic font-normal"}`}>
+                        <span className={`font-bold text-sm block truncate ${player.teamName ? "text-[var(--ink)]" : "text-[#79828b]/50 italic font-normal"}`}>
                           {player.teamName || "No team name set"}
                         </span>
                       ) : (
-                        <span className="font-bold text-sm block text-white truncate">{player.name}</span>
+                        <span className="font-bold text-sm block text-[var(--ink)] truncate">{player.name}</span>
                       )
                     }
                     secondary={
@@ -620,7 +620,7 @@ return (
                   divider
                   onClick={() => { if (isMe) navigate("/profile", { state: { hub } }); else { navDir.forward(); navigate(playerProfilePath(player.id), { state: { hub } }); } }}
                   primary={
-                    <span className={`font-bold text-sm block truncate ${isMe ? theme.primary : "text-white"}`}>{player.name}</span>
+                    <span className={`font-bold text-sm block truncate ${isMe ? theme.primary : "text-[var(--ink)]"}`}>{player.name}</span>
                   }
                   trailing={
                     isMe && (
@@ -635,7 +635,7 @@ return (
               return (
                 <div className="mt-4 mb-4">
                   <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">{t.event.waitlist}</p>
-                  <div className="bg-[#212121] rounded-xl overflow-hidden">
+                  <div className="bg-[var(--surface-1)] rounded-xl overflow-hidden">
                     {renderRow(waitlist[0])}
                   </div>
                 </div>
@@ -645,10 +645,10 @@ return (
             return (
               <div className="mt-4 mb-4">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-1">{t.event.waitlist}</p>
-                <div ref={waitlistBoxRef} className="bg-[#212121] rounded-xl overflow-hidden">
+                <div ref={waitlistBoxRef} className="bg-[var(--surface-1)] rounded-xl overflow-hidden">
                   {/* Avatar stack + count stays put whether collapsed or expanded - only
                       the chevron and the rows below react to waitlistOpen. */}
-                  <button onClick={() => setWaitlistOpen(v => !v)} className="w-full flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-white/[0.07] transition-colors">
+                  <button onClick={() => setWaitlistOpen(v => !v)} className="w-full flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-[var(--surface-hover)] transition-colors">
                     <div className="flex -space-x-2.5">
                       {waitlist.slice(0, 3).map((p, i) => (
                         <div key={p.id} className="relative" style={{ zIndex: 3 - i }}>
@@ -656,30 +656,30 @@ return (
                             <img
                               src={p.avatar}
                               alt={p.name}
-                              className="w-8 h-8 rounded-full border-2 border-[#212121] object-cover"
+                              className="w-8 h-8 rounded-full border-2 border-[var(--surface-1)] object-cover"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-full border-2 border-[#212121] bg-white/5 flex items-center justify-center">
-                              <User size={12} className="text-white/30" />
+                            <div className="w-8 h-8 rounded-full border-2 border-[var(--surface-1)] bg-[var(--ink)]/5 flex items-center justify-center">
+                              <User size={12} className="text-[var(--ink)]/30" />
                             </div>
                           )}
-                          <VerifiedBadge verified={p.verified} size={10} ringClassName="border-[#212121]" />
-                          <TrustDot label={p.trustLabel} size={8} ringClassName="border-[#212121]" />
+                          <VerifiedBadge verified={p.verified} size={10} ringClassName="border-[var(--surface-1)]" />
+                          <TrustDot label={p.trustLabel} size={8} ringClassName="border-[var(--surface-1)]" />
                         </div>
                       ))}
                       {waitlist.length > 3 && (
-                        <div className="w-8 h-8 rounded-full border-2 border-[#212121] bg-white/10 flex items-center justify-center text-[9px] font-bold text-white/50" style={{ zIndex: 0 }}>
+                        <div className="w-8 h-8 rounded-full border-2 border-[var(--surface-1)] bg-[var(--ink)]/10 flex items-center justify-center text-[9px] font-bold text-[var(--ink)]/50" style={{ zIndex: 0 }}>
                           +{waitlist.length - 3}
                         </div>
                       )}
                     </div>
-                    <span className="flex-1 text-left text-white font-bold text-sm">{t.event.players(waitlist.length)}</span>
+                    <span className="flex-1 text-left text-[var(--ink)] font-bold text-sm">{t.event.players(waitlist.length)}</span>
                     <ChevronDown size={15} className={`text-[#79828b] shrink-0 transition-transform duration-200 ${waitlistOpen ? "rotate-180" : ""}`} />
                   </button>
                   <div
                     className={`grid transition-[grid-template-rows] duration-200 ease-in-out ${waitlistOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
                   >
-                    <div ref={waitlistRowsRef} className="relative overflow-hidden min-h-0 before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-white/[0.06]">
+                    <div ref={waitlistRowsRef} className="relative overflow-hidden min-h-0 before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-[var(--ink)]/[0.06]">
                       {waitlist.map(player => renderRow(player))}
                     </div>
                   </div>

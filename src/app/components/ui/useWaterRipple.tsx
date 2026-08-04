@@ -36,7 +36,7 @@ export function RippleLayer({ ripples }: { ripples: { id: number; x: number; y: 
       {ripples.map((r) => (
         <span
           key={r.id}
-          className="pointer-events-none absolute rounded-full bg-white/30 animate-water-drop"
+          className="pointer-events-none absolute rounded-full bg-[var(--ink)]/30 animate-water-drop"
           style={{
             left: r.x,
             top: r.y,
