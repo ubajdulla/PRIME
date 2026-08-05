@@ -20,6 +20,7 @@ import { EditToggleButtons } from "../components/ui/EditToggleButtons";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { LABEL_META, SENTIMENT_COLOR, labelName, type TrustLabel } from "../lib/trustLabel";
 import { useExclusiveOpen } from "../lib/exclusiveOpen";
+import { useWaterRipple, RippleLayer } from "../components/ui/useWaterRipple";
 
 type EventRow = { id: string; title: string; event_date: string; event_time: string; location: string; status: string };
 type NoteRow = { id: string; author_name: string; body: string; created_at: string; label: TrustLabel | null };
@@ -427,17 +428,7 @@ export function Profile() {
           ) : (
             <div className="flex flex-col gap-2">
               {upcomingEvents.slice(0, 7).map(({ event: e, pending }) => (
-                <Link key={e.id} to={`/events/${e.id}`} state={{ hub: "profile" }} className="block bg-[var(--surface-1)] rounded-xl px-4 py-3.5 hover:bg-[var(--surface-hover)] transition-colors">
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-sm font-bold text-[var(--ink)] uppercase tracking-wide">{e.title}</span>
-                    {pending && <Clock size={14} className="text-[#f5c542] shrink-0" />}
-                  </div>
-                  <div className="flex flex-wrap gap-3 text-xs text-[#aaa]">
-                    <span className="flex items-center gap-1"><Calendar size={11} className="text-[var(--brand)]" />{shortDate(e.event_date, t, true)}</span>
-                    <span className="flex items-center gap-1"><Clock    size={11} className="text-[var(--brand)]" />{e.event_time}</span>
-                    <span className="flex items-center gap-1"><MapPin   size={11} className="text-[var(--brand)]" />{e.location}</span>
-                  </div>
-                </Link>
+                <UpcomingEventRow key={e.id} event={e} pending={pending} />
               ))}
             </div>
           )}
@@ -474,6 +465,30 @@ export function Profile() {
 
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function UpcomingEventRow({ event: e, pending }: { event: EventRow; pending: boolean }) {
+  const { t } = useLang();
+  const ripple = useWaterRipple();
+  return (
+    <Link
+      to={`/events/${e.id}`}
+      state={{ hub: "profile" }}
+      onPointerDown={ripple.onPointerDown}
+      className="relative block overflow-hidden bg-[var(--surface-1)] rounded-xl px-4 py-3.5 hover:bg-[var(--surface-hover)] transition-colors"
+    >
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="text-sm font-bold text-[var(--ink)] uppercase tracking-wide">{e.title}</span>
+        {pending && <Clock size={14} className="text-[#f5c542] shrink-0" />}
+      </div>
+      <div className="flex flex-wrap gap-3 text-xs text-[#aaa]">
+        <span className="flex items-center gap-1"><Calendar size={11} className="text-[var(--brand)]" />{shortDate(e.event_date, t, true)}</span>
+        <span className="flex items-center gap-1"><Clock    size={11} className="text-[var(--brand)]" />{e.event_time}</span>
+        <span className="flex items-center gap-1"><MapPin   size={11} className="text-[var(--brand)]" />{e.location}</span>
+      </div>
+      <RippleLayer ripples={ripple.ripples} />
+    </Link>
+  );
+}
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (

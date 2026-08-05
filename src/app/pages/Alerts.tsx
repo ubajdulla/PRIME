@@ -196,8 +196,8 @@ export function Alerts() {
   // Tapping anywhere that isn't a row or the select toggle exits select mode
   // - it's a transient mode, not a sticky one. Skipped while the delete
   // confirm is open so the modal's own backdrop click (which bubbles up to
-  // this same container) doesn't also exit select mode entirely - canceling
-  // the modal clears just the selection instead, via its own onCancel.
+  // this same container) doesn't also trigger this same exit - canceling
+  // the modal exits select mode via its own onCancel instead.
   // Deliberately NOT tied to scroll: on mobile, scrolling to reach more rows
   // is core to multi-select, and a scroll-triggered exit wiped the
   // selection before it could be used.
@@ -435,7 +435,7 @@ export function Alerts() {
           cancelLabel={t.common.cancel}
           onCancel={() => {
             setShowDeleteConfirm(false);
-            setSelectedIds(new Set());
+            exitSelectMode();
           }}
           confirmLabel={t.alerts.deleteLabel}
           confirmCls="bg-[#dc2626] text-white"

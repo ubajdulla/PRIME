@@ -29,6 +29,7 @@ import { stripHandle, displayHandle } from "../../lib/handle";
 import { encodeNotification } from "../../lib/notificationText";
 import { LABEL_META, SENTIMENT_COLOR, effectiveLabel, labelName, type TrustLabel } from "../../lib/trustLabel";
 import { useExclusiveOpen } from "../../lib/exclusiveOpen";
+import { useWaterRipple, RippleLayer } from "../../components/ui/useWaterRipple";
 import { useLang } from "../../i18n";
 
 const SUPERADMIN_EMAIL = "ubajdulla@seznam.cz";
@@ -1001,13 +1002,7 @@ export function AdminPlayerProfile() {
           ) : (
             <div className="flex flex-col gap-2">
               {upcomingEvents.slice(0, 7).map(e => (
-                <Link key={e.id} to={`/admin/events/${e.id}`} className="block bg-[var(--surface-1)] rounded-xl px-4 py-3.5 hover:bg-[var(--surface-hover)] transition-colors">
-                  <span className="text-sm font-bold text-[var(--ink)] uppercase tracking-wide block mb-1.5">{e.title}</span>
-                  <div className="flex flex-wrap gap-3 text-xs text-[#aaa]">
-                    <span className="flex items-center gap-1"><Calendar size={11} className="text-[var(--brand)]" />{formatDate(e.event_date)}</span>
-                    <span className="flex items-center gap-1"><MapPin size={11} className="text-[var(--brand)]" />{e.location}</span>
-                  </div>
-                </Link>
+                <UpcomingEventRow key={e.id} event={e} />
               ))}
             </div>
           )}
@@ -1034,6 +1029,28 @@ export function AdminPlayerProfile() {
 
       </div>
     </div>
+  );
+}
+
+function UpcomingEventRow({ event: e }: { event: EventRow }) {
+  const { lang } = useLang();
+  const ripple = useWaterRipple();
+  const formatted = e.event_date
+    ? new Date(e.event_date).toLocaleDateString(lang === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "short", year: "numeric" })
+    : "";
+  return (
+    <Link
+      to={`/admin/events/${e.id}`}
+      onPointerDown={ripple.onPointerDown}
+      className="relative block overflow-hidden bg-[var(--surface-1)] rounded-xl px-4 py-3.5 hover:bg-[var(--surface-hover)] transition-colors"
+    >
+      <span className="text-sm font-bold text-[var(--ink)] uppercase tracking-wide block mb-1.5">{e.title}</span>
+      <div className="flex flex-wrap gap-3 text-xs text-[#aaa]">
+        <span className="flex items-center gap-1"><Calendar size={11} className="text-[var(--brand)]" />{formatted}</span>
+        <span className="flex items-center gap-1"><MapPin size={11} className="text-[var(--brand)]" />{e.location}</span>
+      </div>
+      <RippleLayer ripples={ripple.ripples} />
+    </Link>
   );
 }
 
