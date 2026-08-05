@@ -18,16 +18,21 @@
   --brand: #462ed1;
   --brand-hover: #5a3ff0;
 
-  /* Skill-level ring/badge scale (Players search, profile avatars) - shades
-     of the app's own accent, almost-white at Rookie to maximally saturated
-     at PRIME. Dark theme runs the violet side of --brand; Admin borrows the
-     light theme's brand blue so it stays visually distinct from the levels. */
-  --level-rookie: #d9d4f7;
-  --level-beginner: #b3a3ef;
-  --level-intermediate: #8b78e8;
-  --level-advanced: #6b52e2;
-  --level-pro: #5136da;
-  --level-prime: #4b1eff;
+  /* Same six belt hues as the light theme, pushed to high saturation to
+     match the app's own vivid accent style instead of reading as a muted
+     office palette - each still individually contrast-solved against this
+     theme's dark #212121 surface (~4.8-5.4:1), just saturated rather than
+     desaturated to get there. PRIME is the deliberate exception: it stays a
+     near-black wine (~1.3:1 against #212121) by design, not vivid - see
+     light theme comment below for why.
+     Admin borrows the light theme's brand blue so it stays visually distinct
+     from the levels. */
+  --level-rookie: #868f98;
+  --level-beginner: #b0ab9e;
+  --level-intermediate: #318df6;
+  --level-advanced: #c35ef5;
+  --level-pro: #e9630a;
+  --level-prime: #69162b;
   --level-admin: #3897f0;
 }
 
@@ -42,14 +47,27 @@
   --brand: #3897f0;
   --brand-hover: #2f81cf;
 
-  /* Same scale, blue side of --brand - Admin borrows the dark theme's
-     brand violet so it still reads as distinct from the levels. */
-  --level-rookie: #e5f0fa;
-  --level-beginner: #c5dff7;
-  --level-intermediate: #9ac8f4;
-  --level-advanced: #73b5f2;
-  --level-pro: #55a6f1;
-  --level-prime: #3897f0;
+  /* BJJ belt rank, not a shade of --brand: grey/white/blue/purple/brown/red
+     is the actual kids-through-adult belt progression (grey precedes white
+     in youth grading), so the color now matches what the tier name means
+     instead of being an arbitrary tint. Pushed to high saturation (blue/
+     violet/orange all ~90%) to match the app's own vivid accent style
+     rather than read as a muted, desaturated set. Beginner's "white" is a
+     warm off-white, not literal #fff - flat white text on a white card is
+     invisible at any "contrast number", it needs a border, not a color, so
+     this is the closest legible read (LevelBookmark switches to dark text
+     on this one tier for the same reason). Admin still borrows the dark
+     theme's brand violet to stay distinct. */
+  --level-rookie: #6c757f;
+  --level-beginner: #a5a192;
+  --level-intermediate: #0a76f2;
+  --level-advanced: #b53af2;
+  --level-pro: #cb5608;
+  /* Black, but the same hue as the rest of the palette (h≈345, this ramp's
+     cherry-red) rather than a neutral #000 - dropping lightness to ~10%
+     keeps the faint red identity while reading as black at a glance. Stays
+     black on purpose even though the rest of the ramp just got more vivid. */
+  --level-prime: #2b0811;
   --level-admin: #462ed1;
 }
 

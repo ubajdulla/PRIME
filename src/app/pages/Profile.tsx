@@ -4,7 +4,7 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { useLang } from "../i18n";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
-import { LEVEL_TEXT_CLASS, levelLabel, POSITIONS, positionLabel, avatarRingColor } from "../data/adminData";
+import { LEVEL_TEXT_CLASS, levelLabel, POSITIONS, positionLabel } from "../data/adminData";
 import { shortDate, isPastDate } from "../lib/eventDate";
 import { stripHandle, displayHandle } from "../lib/handle";
 import {
@@ -168,7 +168,6 @@ export function Profile() {
   if (!profile) return null;
 
   const skillTextClass = LEVEL_TEXT_CLASS[profile.skill_level] ?? LEVEL_TEXT_CLASS.Rookie;
-  const ringColor = avatarRingColor(profile.skill_level, profile.is_admin);
   // Status badge sits next to the name, not on the avatar - a badge/ring on
   // the avatar itself competed with its own tap target (change photo).
   // Same colors/icon/tooltip as before, just relocated.
@@ -185,19 +184,16 @@ export function Profile() {
       {/* ── Profile identity ── */}
       <div className="flex flex-col items-center pt-8 pb-6 px-4">
 
-        {/* Avatar — always tappable; the ring is decorative (skill level /
-            admin color) and never competes with the tap target itself. */}
+        {/* Avatar — always tappable. */}
         <label className="relative cursor-pointer mb-4 w-28 h-28">
           {profile.avatar ? (
             <img
               src={profile.avatar}
               alt=""
               className={`w-28 h-28 rounded-full object-cover bg-[var(--surface-1)] ${uploadingAvatar ? "opacity-50" : ""}`}
-              style={{ boxShadow: `0 0 0 3px ${ringColor}` }}
             />
           ) : (
-            <div className={`w-28 h-28 rounded-full bg-[var(--surface-1)] flex items-center justify-center ${uploadingAvatar ? "opacity-50" : ""}`}
-              style={{ boxShadow: `0 0 0 3px ${ringColor}` }}>
+            <div className={`w-28 h-28 rounded-full bg-[var(--surface-1)] flex items-center justify-center ${uploadingAvatar ? "opacity-50" : ""}`}>
               <User size={44} className="text-[#79828b]" />
             </div>
           )}

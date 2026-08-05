@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router";
 import { Navigate } from "react-router";
 import { Send, Instagram, Calendar, MapPin, User } from "lucide-react";
-import { SKILL_STYLE, levelLabel, positionLabel } from "../data/adminData";
+import { LEVEL_TEXT_CLASS, levelLabel, positionLabel } from "../data/adminData";
 import { BackBar } from "../components/ui/BackBar";
 import { TrustDot } from "../components/ui/TrustDot";
 import { VerifiedBadge } from "../components/ui/VerifiedBadge";
@@ -13,15 +13,6 @@ import { shortDate, isPastDate } from "../lib/eventDate";
 import { stripHandle, displayHandle } from "../lib/handle";
 import { getHub } from "../lib/hub";
 import { useLang } from "../i18n";
-
-const SKILL_COLOR: Record<string, string> = {
-  PRIME:        "text-[#ccff00]",
-  Pro:          "text-[var(--brand)]",
-  Advanced:     "text-[#a855f7]",
-  Intermediate: "text-[#eab308]",
-  Beginner:     "text-[#f97316]",
-  Rookie:       "text-[#79828b]",
-};
 
 type ProfileRow = {
   id: string; name: string; avatar: string | null; position: string | null; skill_level: string;
@@ -75,9 +66,6 @@ export function PlayerProfile() {
     );
   }
 
-  const style = SKILL_STYLE[player.skill_level];
-  const ringColor = dotColor(player.skill_level);
-
   const upcomingEvents = events.filter(e => e.status === "upcoming" && !isPastDate(e.event_date));
   const pastEvents = events.filter(e => isPastDate(e.event_date));
 
@@ -93,10 +81,9 @@ export function PlayerProfile() {
               src={player.avatar}
               alt={player.name}
               className="w-28 h-28 rounded-full object-cover bg-[var(--surface-1)]"
-              style={{ boxShadow: `0 0 0 3px ${ringColor}` }}
             />
           ) : (
-            <div className="w-28 h-28 rounded-full bg-[var(--surface-1)] flex items-center justify-center" style={{ boxShadow: `0 0 0 3px ${ringColor}` }}>
+            <div className="w-28 h-28 rounded-full bg-[var(--surface-1)] flex items-center justify-center">
               <User size={36} className="text-[var(--ink)]/20" />
             </div>
           )}
@@ -104,7 +91,7 @@ export function PlayerProfile() {
           <TrustDot label={player.visible_trust_label} size={20} ringClassName="border-[var(--surface-0)]" />
         </div>
         <h1 className="text-xl font-semibold text-[var(--ink)] mb-1">{player.name}</h1>
-        <span className={`flex items-center gap-1 text-sm font-medium ${SKILL_COLOR[player.skill_level] ?? "text-[var(--ink)]"}`}>
+        <span className={`flex items-center gap-1 text-sm font-medium ${LEVEL_TEXT_CLASS[player.skill_level] ?? "text-[var(--ink)]"}`}>
           <SkillLevelIcon level={player.skill_level} size={14} />
           {levelLabel(player.skill_level, t)}
         </span>
@@ -223,16 +210,4 @@ export function PlayerProfile() {
       </div>
     </div>
   );
-}
-
-function dotColor(skillLevel: string): string {
-  const map: Record<string, string> = {
-    PRIME:        "#ccff00",
-    Pro:          "var(--brand)",
-    Advanced:     "#a855f7",
-    Intermediate: "#eab308",
-    Beginner:     "#f97316",
-    Rookie:       "#79828b",
-  };
-  return map[skillLevel] ?? "var(--brand)";
 }

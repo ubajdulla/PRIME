@@ -37,10 +37,6 @@ export function positionLabel(position: string, t: Dict): string {
   return key ? t.positions[key] : position;
 }
 
-// One color for every tier — the app's accent violet. Only the numeric
-// range in the bookmark changes between levels, not the color. Shared
-// between EventCard's ribbon and the event detail info panel bookmark.
-export const LEVEL_ACCENT = "var(--brand)";
 export const LEVEL_RANGE: Record<string, string> = {
   Rookie:       "1–2",
   Beginner:     "2–3",
@@ -68,6 +64,16 @@ export function avatarRingColor(skillLevel: string, isAdmin?: boolean): string {
   return isAdmin ? "var(--level-admin)" : LEVEL_COLOR_VAR[skillLevel] ?? LEVEL_COLOR_VAR.Rookie;
 }
 
+// Same belt colors as LEVEL_COLOR_VAR (theme.css), not the old hardcoded
+// rainbow (lime/blue/violet/gold/orange/grey) this used to be - kept as
+// fully literal class strings (not built with template-literal
+// interpolation) because Tailwind's build-time scanner only picks up
+// arbitrary-value classes it can find as literal text in source; a
+// dynamically-assembled `bg-[${v}]` never appears as that literal
+// substring anywhere, so every one of these classes would get silently
+// dropped from the compiled CSS. Beginner is the one pale tier (warm
+// off-white belt), so its activeBadge flips to dark text same as
+// LevelBookmark does for the same reason.
 export const SKILL_STYLE: Record<string, {
   text: string;
   badge: string;      // inactive badge
@@ -75,12 +81,12 @@ export const SKILL_STYLE: Record<string, {
   dot: string;
   border: string;
 }> = {
-  PRIME:        { text: "text-[#ccff00]", badge: "bg-[#ccff00]/10 text-[#ccff00] border border-[#ccff00]/20",          activeBadge: "bg-[#ccff00] text-black border border-[#ccff00]",          dot: "bg-[#ccff00]",   border: "border-[#ccff00]/30" },
-  Pro:          { text: "text-[var(--brand)]", badge: "bg-[var(--brand)]/10 text-[var(--brand)] border border-[var(--brand)]/20",          activeBadge: "bg-[var(--brand)] text-white border border-[var(--brand)]",          dot: "bg-[var(--brand)]",   border: "border-[var(--brand)]/30" },
-  Advanced:     { text: "text-[#a855f7]", badge: "bg-[#a855f7]/10 text-[#a855f7] border border-[#a855f7]/20",          activeBadge: "bg-[#a855f7] text-white border border-[#a855f7]",          dot: "bg-[#a855f7]",   border: "border-[#a855f7]/30" },
-  Intermediate: { text: "text-[#eab308]", badge: "bg-[#eab308]/10 text-[#eab308] border border-[#eab308]/20",          activeBadge: "bg-[#eab308] text-black border border-[#eab308]",          dot: "bg-[#eab308]",   border: "border-[#eab308]/30" },
-  Beginner:     { text: "text-[#f97316]", badge: "bg-[#f97316]/10 text-[#f97316] border border-[#f97316]/20",          activeBadge: "bg-[#f97316] text-white border border-[#f97316]",          dot: "bg-[#f97316]",   border: "border-[#f97316]/30" },
-  Rookie:       { text: "text-[#79828b]", badge: "bg-[var(--ink)]/5 text-[#79828b] border border-[var(--ink)]/10",                   activeBadge: "bg-[#79828b] text-white border border-[#79828b]",          dot: "bg-[#79828b]",   border: "border-[var(--ink)]/15" },
+  PRIME:        { text: "text-[var(--level-prime)]", badge: "bg-[var(--level-prime)]/10 text-[var(--level-prime)] border border-[var(--level-prime)]/20", activeBadge: "bg-[var(--level-prime)] text-white border border-[var(--level-prime)]", dot: "bg-[var(--level-prime)]", border: "border-[var(--level-prime)]/30" },
+  Pro:          { text: "text-[var(--level-pro)]", badge: "bg-[var(--level-pro)]/10 text-[var(--level-pro)] border border-[var(--level-pro)]/20", activeBadge: "bg-[var(--level-pro)] text-white border border-[var(--level-pro)]", dot: "bg-[var(--level-pro)]", border: "border-[var(--level-pro)]/30" },
+  Advanced:     { text: "text-[var(--level-advanced)]", badge: "bg-[var(--level-advanced)]/10 text-[var(--level-advanced)] border border-[var(--level-advanced)]/20", activeBadge: "bg-[var(--level-advanced)] text-white border border-[var(--level-advanced)]", dot: "bg-[var(--level-advanced)]", border: "border-[var(--level-advanced)]/30" },
+  Intermediate: { text: "text-[var(--level-intermediate)]", badge: "bg-[var(--level-intermediate)]/10 text-[var(--level-intermediate)] border border-[var(--level-intermediate)]/20", activeBadge: "bg-[var(--level-intermediate)] text-white border border-[var(--level-intermediate)]", dot: "bg-[var(--level-intermediate)]", border: "border-[var(--level-intermediate)]/30" },
+  Beginner:     { text: "text-[var(--level-beginner)]", badge: "bg-[var(--level-beginner)]/10 text-[var(--level-beginner)] border border-[var(--level-beginner)]/20", activeBadge: "bg-[var(--level-beginner)] text-black border border-[var(--level-beginner)]", dot: "bg-[var(--level-beginner)]", border: "border-[var(--level-beginner)]/30" },
+  Rookie:       { text: "text-[var(--level-rookie)]", badge: "bg-[var(--level-rookie)]/10 text-[var(--level-rookie)] border border-[var(--level-rookie)]/20", activeBadge: "bg-[var(--level-rookie)] text-white border border-[var(--level-rookie)]", dot: "bg-[var(--level-rookie)]", border: "border-[var(--level-rookie)]/30" },
 };
 
 // Monochrome icon per category — used inline next to the event title instead
