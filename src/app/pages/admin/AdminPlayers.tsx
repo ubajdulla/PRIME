@@ -370,8 +370,10 @@ export function AdminPlayers() {
   }
   // Tapping anywhere that isn't a card or a select toggle exits select mode
   // - same "select is a transient mode, not a sticky one" behavior as
-  // Alerts.tsx. Skipped while the delete confirm is open so canceling it
-  // doesn't also blow away the selection.
+  // Alerts.tsx. Skipped while the delete confirm is open so the modal's own
+  // backdrop click (which bubbles up to this same container) doesn't also
+  // exit select mode entirely - canceling the modal clears just the
+  // selection instead, via its own onCancel.
   // Deliberately NOT tied to scroll: on mobile, scrolling to reach more
   // cards is core to multi-select, and a scroll-triggered exit wiped the
   // selection before it could be used.
@@ -903,7 +905,7 @@ export function AdminPlayers() {
         </FadeIn>
       )}
 
-      {selectMode && selectedPlayerIds.size > 0 && (
+      {selectMode && selectedPlayerIds.size > 0 && !showDeleteConfirm && (
         <button
           ref={deleteBtnRef}
           type="button"
@@ -927,7 +929,10 @@ export function AdminPlayers() {
           title={t.admin.deletePlayersTitle(selectedPlayerIds.size)}
           sub={t.admin.deletePlayersSub}
           cancelLabel={t.common.cancel}
-          onCancel={() => setShowDeleteConfirm(false)}
+          onCancel={() => {
+            setShowDeleteConfirm(false);
+            setSelected(new Map());
+          }}
           confirmLabel={t.alerts.deleteLabel}
           confirmCls="bg-[#dc2626] text-white"
           onConfirm={confirmDeleteSelected}
