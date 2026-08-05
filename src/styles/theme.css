@@ -151,8 +151,14 @@
 }
 
 @layer base {
+  /* Every clickable element in this app has its own custom press feedback
+     (the water-drop ripple, or a hover/touch background tint) - without
+     this, Android Chrome/WebView paints its own gray highlight rectangle
+     over whatever was tapped, which stacks visibly on top of (and looks
+     like a stray block inside) our custom feedback. */
   * {
     @apply border-border outline-ring/50;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
