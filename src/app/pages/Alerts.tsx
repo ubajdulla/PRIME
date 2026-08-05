@@ -193,22 +193,18 @@ export function Alerts() {
     setSelectMode(false);
     setSelectedIds(new Set());
   }
-  // Tapping anywhere that isn't a row or the select toggle, or scrolling the
-  // list, exits select mode - it's a transient mode, not a sticky one.
-  // Skipped while the delete confirm is open so canceling it doesn't also
-  // blow away the selection.
+  // Tapping anywhere that isn't a row or the select toggle exits select mode
+  // - it's a transient mode, not a sticky one. Skipped while the delete
+  // confirm is open so canceling it doesn't also blow away the selection.
+  // Deliberately NOT tied to scroll: on mobile, scrolling to reach more rows
+  // is core to multi-select, and a scroll-triggered exit wiped the
+  // selection before it could be used.
   function handleContainerClick(e: React.MouseEvent) {
     if (!selectMode || showDeleteConfirm) return;
     const target = e.target as HTMLElement;
     if (target.closest("[data-select-card], [data-select-toggle], [data-select-fab]")) return;
     exitSelectMode();
   }
-  useEffect(() => {
-    if (!selectMode || showDeleteConfirm) return;
-    const onScroll = () => exitSelectMode();
-    document.addEventListener("scroll", onScroll, { capture: true, passive: true });
-    return () => document.removeEventListener("scroll", onScroll, true);
-  }, [selectMode, showDeleteConfirm]);
 
   function toggleSelected(id: string) {
     setSelectedIds(prev => {

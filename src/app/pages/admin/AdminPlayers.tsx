@@ -368,22 +368,19 @@ export function AdminPlayers() {
     setSelectMode(false);
     setSelected(new Map());
   }
-  // Tapping anywhere that isn't a card or a select toggle, or scrolling the
-  // list, exits select mode - same "select is a transient mode, not a
-  // sticky one" behavior as Alerts.tsx. Skipped while the delete confirm is
-  // open so canceling it doesn't also blow away the selection.
+  // Tapping anywhere that isn't a card or a select toggle exits select mode
+  // - same "select is a transient mode, not a sticky one" behavior as
+  // Alerts.tsx. Skipped while the delete confirm is open so canceling it
+  // doesn't also blow away the selection.
+  // Deliberately NOT tied to scroll: on mobile, scrolling to reach more
+  // cards is core to multi-select, and a scroll-triggered exit wiped the
+  // selection before it could be used.
   function handleContainerClick(e: React.MouseEvent) {
     if (!selectMode || showDeleteConfirm) return;
     const target = e.target as HTMLElement;
     if (target.closest("[data-select-card], [data-select-toggle], [data-select-fab]")) return;
     exitSelectMode();
   }
-  useEffect(() => {
-    if (!selectMode || showDeleteConfirm) return;
-    const onScroll = () => exitSelectMode();
-    document.addEventListener("scroll", onScroll, { capture: true, passive: true });
-    return () => document.removeEventListener("scroll", onScroll, true);
-  }, [selectMode, showDeleteConfirm]);
   function toggleSelected(key: string, playerId: string) {
     setSelected(prev => {
       const next = new Map(prev);
