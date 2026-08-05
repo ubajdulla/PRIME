@@ -10,14 +10,20 @@ import { useCallback, useRef, useState } from "react";
  *   <RippleLayer ripples={ripples} />
  * </button>
  */
-export function useWaterRipple() {
+// maxSize caps the ripple's diameter - without it, a very wide/short element
+// (e.g. a full-width row) sizes the circle off its own width, which is huge
+// relative to its height. Mid-animation the growing circle already exceeds
+// the row's height and gets clipped top/bottom by overflow-hidden, so it
+// reads as a widening rectangular block instead of a circular bloom. Most
+// callers are roughly button-shaped and never hit the cap.
+export function useWaterRipple(maxSize?: number) {
   const [ripples, setRipples] = useState<{ id: number; x: number; y: number; size: number }[]>([]);
   const nextId = useRef(0);
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLElement>) => {
     const el = e.currentTarget;
     const rect = el.getBoundingClientRect();
-    const size = Math.max(rect.width, rect.height) * 2;
+    const size = Math.min(Math.max(rect.width, rect.height) * 2, maxSize ?? Infinity);
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const id = nextId.current++;
@@ -25,7 +31,7 @@ export function useWaterRipple() {
     window.setTimeout(() => {
       setRipples((prev) => prev.filter((r) => r.id !== id));
     }, 600);
-  }, []);
+  }, [maxSize]);
 
   return { ripples, onPointerDown };
 }

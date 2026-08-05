@@ -70,7 +70,10 @@ export function ProfileRow({
   const dividerClass = divider ? "relative before:absolute before:top-0 before:left-2.5 before:right-2.5 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden" : "";
   // Shared between the two mutually-exclusive clickable branches below (row
   // button vs. nested avatar+name button) - only one ever renders per row.
-  const ripple = useWaterRipple();
+  // Capped so the ripple stays a proportionate bloom instead of a rectangle
+  // - this row is wide and short, and the ripple's default sizing (based on
+  // the element's own width) way overshoots the row's height.
+  const ripple = useWaterRipple(avatarSize * 3);
 
   const avatarInner = (
     <>
