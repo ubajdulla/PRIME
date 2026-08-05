@@ -15,6 +15,17 @@ export function useEdgeFadeMask(ref: RefObject<HTMLDivElement | null>) {
     const update = () => {
       const showLeft = el.scrollLeft > 1;
       const showRight = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+      // No-op case (nothing scrolled out of view on either side): drop the
+      // mask entirely rather than applying a trivial opaque gradient. iOS
+      // WebKit keeps a masked element on its own composited layer even when
+      // the mask is a no-op, and stacking that under the pills' ripple/
+      // sliding-indicator layers is what causes label text to disappear
+      // after tapping (a known WebKit compositing repaint bug).
+      if (!showLeft && !showRight) {
+        el.style.removeProperty("mask-image");
+        el.style.removeProperty("-webkit-mask-image");
+        return;
+      }
       const left = showLeft ? "transparent 0, rgba(0,0,0,0.35) 12px, black 40px" : "black 0";
       const right = showRight ? "black calc(100% - 40px), rgba(0,0,0,0.35) calc(100% - 12px), transparent 100%" : "black 100%";
       const mask = `linear-gradient(to right, ${left}, ${right})`;
@@ -101,7 +112,7 @@ export function FilterPill({
       data-pill-key={pillKey ?? label}
       onClick={onClick}
       onPointerDown={ripple.onPointerDown}
-      className={`relative z-10 overflow-hidden px-5 py-2 rounded-full font-bold text-xs uppercase tracking-wider whitespace-nowrap flex-shrink-0 transition-colors duration-200 ${
+      className={`relative z-10 overflow-hidden px-5 py-2 rounded-full font-bold text-xs uppercase tracking-wider whitespace-nowrap flex-shrink-0 transition-colors duration-200 [transform:translateZ(0)] ${
         active ? "text-white" : "text-[var(--ink)]/70 hover:text-[var(--ink)]"
       }`}
     >
