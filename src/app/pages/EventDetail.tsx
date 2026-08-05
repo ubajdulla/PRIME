@@ -30,6 +30,7 @@ import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { computeJoinStatus } from "../lib/joinType";
 import { shortDate, isRosterLocked, addToCalendarUrl } from "../lib/eventDate";
+import { useTouchHoverList } from "../lib/useTouchHoverList";
 import { POSITIONS, positionLabel } from "../data/adminData";
 
 type EventRow = {
@@ -81,6 +82,7 @@ export function EventDetail() {
   // roster can't accidentally open someone's profile. Desktop keeps the
   // whole row clickable, same as before.
   const isMobile = useIsMobile();
+  const { containerRef: rosterHoverRef, hoveredId: rosterHoveredId } = useTouchHoverList<HTMLDivElement>();
 
   function playerProfilePath(playerId: string) {
     return isAdmin ? `/admin/player/${playerId}` : `/players/${playerId}`;
@@ -510,7 +512,7 @@ return (
         </div>
 
         {/* ROSTER SECTION */}
-        <div>
+        <div ref={rosterHoverRef}>
           <div className="flex justify-between items-center mb-3 px-1">
             <h2 className="font-bold text-lg text-[var(--ink)]">
               {currentCapacity}{" "}
@@ -584,6 +586,8 @@ return (
                     trustLabel={player.trustLabel}
                     divider
                     avatarOnly={isMobile}
+                    rowId={player.id}
+                    touchHovered={rosterHoveredId === player.id}
                     onClick={clickable ? () => { navDir.forward(); navigate(playerProfilePath(player.id), { state: { hub } }); } : undefined}
                     primary={
                       requiresTeamName ? (
@@ -631,6 +635,8 @@ return (
                   trustLabel={player.trustLabel}
                   divider
                   avatarOnly={isMobile}
+                  rowId={player.id}
+                  touchHovered={rosterHoveredId === player.id}
                   onClick={() => { if (isMe) navigate("/profile", { state: { hub } }); else { navDir.forward(); navigate(playerProfilePath(player.id), { state: { hub } }); } }}
                   primary={
                     <span className={`font-bold text-sm block truncate ${isMe ? theme.primary : "text-[var(--ink)]"}`}>{player.name}</span>

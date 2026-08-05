@@ -29,6 +29,11 @@ interface ProfileRowProps {
   variant?: "card" | "row";
   divider?: boolean;
   className?: string;
+  // Identifies this row for useTouchHoverList - set together with
+  // `touchHovered` so a finger dragging down the list highlights whichever
+  // row it's currently crossing, the touch equivalent of :hover.
+  rowId?: string;
+  touchHovered?: boolean;
 }
 
 export function ProfileRow({
@@ -47,6 +52,8 @@ export function ProfileRow({
   variant = "row",
   divider = false,
   className = "",
+  rowId,
+  touchHovered = false,
 }: ProfileRowProps) {
   const clickable = !!onClick;
   const rowClickable = clickable && !avatarOnly;
@@ -55,11 +62,11 @@ export function ProfileRow({
   // The background-hover cue stays even in avatarOnly mode (nice on the
   // card variant), just without `cursor-pointer` - the row itself no longer
   // performs a click action, only the avatar+name button nested inside it
-  // does. Press feedback on touch is the app's standard water-drop ripple
-  // (see feedback_no_scale_zoom_press_effects), not a CSS :active/:hover
-  // hack - those either don't fire reliably on touch or vanish before the
-  // tap even registers, which is why every clickable row needs the ripple.
+  // does. touchHovered (useTouchHoverList) drives the same background while
+  // a finger drags down the list - :hover never fires on touch, and press
+  // feedback (the ripple below) is a separate, one-shot thing on tap/release.
   const hoverClass = clickable ? `hover:bg-[var(--surface-hover)] ${rowClickable ? "cursor-pointer" : ""} ${variant === "card" ? "rounded-xl" : ""}` : "";
+  const touchHoverClass = touchHovered ? "bg-[var(--surface-hover)]" : "";
   const dividerClass = divider ? "relative before:absolute before:top-0 before:left-2.5 before:right-2.5 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden" : "";
   // Shared between the two mutually-exclusive clickable branches below (row
   // button vs. nested avatar+name button) - only one ever renders per row.
@@ -95,7 +102,8 @@ export function ProfileRow({
   return (
     <Tag
       {...(rowClickable ? { type: "button" as const, onClick, onPointerDown: ripple.onPointerDown } : {})}
-      className={`relative overflow-hidden flex items-center gap-3 w-full text-left transition-colors focus:outline-none ${shellClass} ${hoverClass} ${dividerClass} ${className}`}
+      {...(rowId ? { "data-touch-hover-id": rowId } : {})}
+      className={`relative overflow-hidden flex items-center gap-3 w-full text-left transition-colors focus:outline-none ${shellClass} ${hoverClass} ${touchHoverClass} ${dividerClass} ${className}`}
     >
       {avatarOnly && clickable ? (
         <button
