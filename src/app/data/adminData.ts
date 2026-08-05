@@ -37,6 +37,10 @@ export function positionLabel(position: string, t: Dict): string {
   return key ? t.positions[key] : position;
 }
 
+// One color for every tier — the app's accent violet. Only the numeric
+// range in the bookmark changes between levels, not the color. Shared
+// between EventCard's ribbon and the event detail info panel bookmark.
+export const LEVEL_ACCENT = "var(--brand)";
 export const LEVEL_RANGE: Record<string, string> = {
   Rookie:       "1–2",
   Beginner:     "2–3",
