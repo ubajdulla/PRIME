@@ -68,12 +68,10 @@ export function ProfileRow({
   const hoverClass = clickable ? `hover:bg-[var(--surface-hover)] ${rowClickable ? "cursor-pointer" : ""} ${variant === "card" ? "rounded-xl" : ""}` : "";
   const touchHoverClass = touchHovered ? "bg-[var(--surface-hover)]" : "";
   const dividerClass = divider ? "relative before:absolute before:top-0 before:left-2.5 before:right-2.5 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden" : "";
-  // Shared between the two mutually-exclusive clickable branches below (row
-  // button vs. nested avatar+name button) - only one ever renders per row.
-  // Capped so the ripple stays a proportionate bloom instead of a rectangle
-  // - this row is wide and short, and the ripple's default sizing (based on
-  // the element's own width) way overshoots the row's height.
-  const ripple = useWaterRipple(avatarSize * 3);
+  // Triggered from the outer row (not the narrower avatar+name click target
+  // in avatarOnly mode) so the ripple visually covers the whole card on any
+  // press, not just the clickable sub-area.
+  const ripple = useWaterRipple();
 
   const avatarInner = (
     <>
@@ -104,7 +102,8 @@ export function ProfileRow({
 
   return (
     <Tag
-      {...(rowClickable ? { type: "button" as const, onClick, onPointerDown: ripple.onPointerDown } : {})}
+      {...(rowClickable ? { type: "button" as const, onClick } : {})}
+      {...(clickable ? { onPointerDown: ripple.onPointerDown } : {})}
       {...(rowId ? { "data-touch-hover-id": rowId } : {})}
       className={`relative overflow-hidden flex items-center gap-3 w-full text-left transition-colors focus:outline-none ${shellClass} ${hoverClass} ${touchHoverClass} ${dividerClass} ${className}`}
     >
@@ -112,14 +111,12 @@ export function ProfileRow({
         <button
           type="button"
           onClick={e => { e.stopPropagation(); onClick(); }}
-          onPointerDown={ripple.onPointerDown}
-          className="relative overflow-hidden flex items-center gap-3 flex-1 min-w-0 text-left"
+          className="relative flex items-center gap-3 flex-1 min-w-0 text-left"
         >
           <div className="relative shrink-0" style={{ width: avatarSize, height: avatarSize }}>
             {avatarInner}
           </div>
           {nameBlock}
-          <RippleLayer ripples={ripple.ripples} />
         </button>
       ) : (
         <>
@@ -130,7 +127,7 @@ export function ProfileRow({
         </>
       )}
       {trailing}
-      {rowClickable && <RippleLayer ripples={ripple.ripples} />}
+      {clickable && <RippleLayer ripples={ripple.ripples} />}
     </Tag>
   );
 }

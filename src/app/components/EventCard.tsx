@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { MapPin, Calendar, Clock, ChevronRight, User } from "lucide-react";
 import { LevelBookmark } from "./ui/LevelBookmark";
 import { CategoryIcon } from "./ui/CategoryIcon";
+import { useWaterRipple, RippleLayer } from "./ui/useWaterRipple";
 import { useLang } from "../i18n";
 
 export interface EventCardProps {
@@ -43,10 +44,12 @@ export const EventCard = memo(function EventCard({
   const { t } = useLang();
   const fillPct = Math.min(100, (capacity.current / capacity.max) * 100);
   const initials = moderator?.name?.trim().charAt(0).toUpperCase() ?? "";
+  const ripple = useWaterRipple();
 
   return (
     <Link
       to={`/events/${id}`}
+      onPointerDown={ripple.onPointerDown}
       className={`block relative group rounded-2xl bg-[var(--surface-1)] shadow-sm hover:shadow-md hover:bg-[var(--surface-hover)] transition-[box-shadow,background-color] overflow-hidden ${
         horizontal ? 'min-w-[280px] w-[280px] flex-shrink-0' : 'w-full'
       }`}
@@ -172,6 +175,7 @@ export const EventCard = memo(function EventCard({
           </div>
         </div>
       </div>
+      <RippleLayer ripples={ripple.ripples} />
     </Link>
   );
 });
