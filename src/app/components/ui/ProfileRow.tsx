@@ -110,7 +110,7 @@ export function ProfileRow({
           type="button"
           onClick={e => { e.stopPropagation(); onClick(); }}
           onPointerDown={ripple.onPointerDown}
-          className="relative overflow-hidden flex items-center gap-3 flex-1 min-w-0 text-left rounded-xl transition-colors hover:bg-[var(--surface-hover)]"
+          className="relative overflow-hidden flex items-center gap-3 flex-1 min-w-0 text-left"
         >
           <div className="relative shrink-0" style={{ width: avatarSize, height: avatarSize }}>
             {avatarInner}
