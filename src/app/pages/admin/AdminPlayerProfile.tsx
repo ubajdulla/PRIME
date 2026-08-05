@@ -8,7 +8,7 @@ import {
   Phone, Mail, User, Pencil, Flag,
   MoreVertical, Trash2, ThumbsUp, Camera,
 } from "lucide-react";
-import { SKILL_ORDER, levelLabel, type SkillLevel } from "../../data/adminData";
+import { SKILL_ORDER, levelLabel, avatarRingColor, LEVEL_TEXT_CLASS, type SkillLevel } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
 import { Toast } from "../../components/ui/Toast";
 import { SelectField } from "../../components/ui/SelectField";
@@ -32,15 +32,6 @@ import { useExclusiveOpen } from "../../lib/exclusiveOpen";
 import { useLang } from "../../i18n";
 
 const SUPERADMIN_EMAIL = "ubajdulla@seznam.cz";
-
-const SKILL_COLOR: Record<string, string> = {
-  PRIME:        "text-[#ccff00]",
-  Pro:          "text-[var(--brand)]",
-  Advanced:     "text-[#a855f7]",
-  Intermediate: "text-[#eab308]",
-  Beginner:     "text-[#f97316]",
-  Rookie:       "text-[#79828b]",
-};
 
 type ProfileRow = {
   id: string;
@@ -444,7 +435,7 @@ export function AdminPlayerProfile() {
   // own tap target (change photo). One priority order: a ban is more urgent
   // than a suspension, which is more urgent than a trust label (Warning
   // etc.) - only the winner ever shows, never stacked.
-  const skillRingColor = dotColor(displaySkill);
+  const skillRingColor = avatarRingColor(displaySkill, player.is_admin);
   const avatarStatus: { color: string; icon: "ban" | "suspend" | "flag"; tooltip: string; opacity?: number } | null =
     player.is_banned
       ? { color: "#ef4444", icon: "ban", tooltip: `Banned${player.ban_reason ? ` — ${player.ban_reason}` : ""}` }
@@ -661,7 +652,7 @@ export function AdminPlayerProfile() {
             <StatusBadge color={avatarStatus.color} icon={avatarStatus.icon} tooltip={avatarStatus.tooltip} opacity={avatarStatus.opacity} />
           )}
         </div>
-        <span className={`flex items-center gap-1 text-sm font-medium mb-2 ${SKILL_COLOR[displaySkill] ?? "text-[var(--ink)]"}`}>
+        <span className={`flex items-center gap-1 text-sm font-medium mb-2 ${LEVEL_TEXT_CLASS[displaySkill] ?? "text-[var(--ink)]"}`}>
           <SkillLevelIcon level={displaySkill} size={14} />
           {levelLabel(displaySkill, t)}
         </span>
@@ -851,7 +842,7 @@ export function AdminPlayerProfile() {
 
             {/* Skill Level */}
             <div className="relative flex items-center gap-3 px-4 py-3.5 before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
-              <div className={`w-8 h-8 rounded-full bg-[var(--ink)]/5 flex items-center justify-center shrink-0 ${SKILL_COLOR[displaySkill] ?? "text-[var(--ink)]"}`}>
+              <div className={`w-8 h-8 rounded-full bg-[var(--ink)]/5 flex items-center justify-center shrink-0 ${LEVEL_TEXT_CLASS[displaySkill] ?? "text-[var(--ink)]"}`}>
                 <SkillLevelIcon level={displaySkill} size={16} />
               </div>
               <div className="flex-1 min-w-0">
@@ -1058,12 +1049,4 @@ function noteLabelIcon(l: TrustLabel) {
       <Icon size={11} style={{ color }} />
     </span>
   );
-}
-
-function dotColor(skillLevel: string): string {
-  const map: Record<string, string> = {
-    PRIME: "#ccff00", Pro: "var(--brand)", Advanced: "#a855f7",
-    Intermediate: "#eab308", Beginner: "#f97316", Rookie: "#79828b",
-  };
-  return map[skillLevel] ?? "var(--brand)";
 }

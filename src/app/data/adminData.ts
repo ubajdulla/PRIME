@@ -50,6 +50,24 @@ export const LEVEL_RANGE: Record<string, string> = {
   PRIME:        "6–7",
 };
 
+// Same violet/blue level scale used by the Players search list (var(--level-*),
+// theme.css) - single source for every place a skill tier gets a color: the
+// search list's category dots/labels, and the avatar ring + skill-level row
+// on Profile/AdminPlayerProfile. Admins get --level-admin instead of their
+// skill tier so the ring still reads as "this account is staff" rather than
+// just another level shade.
+export const LEVEL_COLOR_VAR: Record<string, string> = {
+  Rookie: "var(--level-rookie)", Beginner: "var(--level-beginner)", Intermediate: "var(--level-intermediate)",
+  Advanced: "var(--level-advanced)", Pro: "var(--level-pro)", PRIME: "var(--level-prime)",
+};
+export const LEVEL_TEXT_CLASS: Record<string, string> = {
+  Rookie: "text-[var(--level-rookie)]", Beginner: "text-[var(--level-beginner)]", Intermediate: "text-[var(--level-intermediate)]",
+  Advanced: "text-[var(--level-advanced)]", Pro: "text-[var(--level-pro)]", PRIME: "text-[var(--level-prime)]",
+};
+export function avatarRingColor(skillLevel: string, isAdmin?: boolean): string {
+  return isAdmin ? "var(--level-admin)" : LEVEL_COLOR_VAR[skillLevel] ?? LEVEL_COLOR_VAR.Rookie;
+}
+
 export const SKILL_STYLE: Record<string, {
   text: string;
   badge: string;      // inactive badge

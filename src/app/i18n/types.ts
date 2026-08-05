@@ -259,6 +259,9 @@ export interface Dict {
     statusDisrespect: string;
     statusTrust: string;
     statusNoLabel: string;
+    statusSkillChange: string;
+    statusBanned: string;
+    statusSuspended: string;
     activityBanned: string;
     activityUnbanned: string;
     activitySuspended: string;

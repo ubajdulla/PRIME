@@ -3,6 +3,8 @@ import { useNavigate } from "react-router";
 import { Search, X, OctagonX, CheckCircle2, Clock, BadgeCheck, ChevronDown, Flag, MessageSquare, Brush, Check, Trash2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { FilterPill, FilterPillTrack, useEdgeFadeMask } from "../../components/ui/FilterPill";
+import { TrustDot } from "../../components/ui/TrustDot";
+import { VerifiedBadge } from "../../components/ui/VerifiedBadge";
 import { SkillLevelIcon } from "../../components/ui/SkillLevelIcon";
 import { Toast } from "../../components/ui/Toast";
 import { ConfirmModal, type ModalOrigin } from "../../components/ui/Modal";
@@ -11,20 +13,19 @@ import { LABEL_META, SENTIMENT_COLOR, effectiveLabel, labelName } from "../../li
 import { navDir } from "../../lib/navDir";
 import { useHorizontalSwipe } from "../../lib/useHorizontalSwipe";
 import { supabase } from "../../lib/supabaseClient";
-import { levelLabel } from "../../data/adminData";
+import { levelLabel, positionLabel, LEVEL_COLOR_VAR, LEVEL_TEXT_CLASS } from "../../data/adminData";
 import { useLang, type Dict } from "../../i18n";
 
 const LEVELS = ["PRIME", "Pro", "Advanced", "Intermediate", "Beginner", "Rookie"] as const;
 const CATEGORIES = ["Admin", ...LEVELS] as const;
 type Category = typeof CATEGORIES[number];
 
-// Admin reuses the existing Verified-badge blue (not a new color); the six
-// skill tiers are shades of the app's own accent (var(--brand)) running from
-// almost-white at Rookie to maximally saturated at PRIME.
-const CATEGORY_COLOR: Record<string, string> = {
-  Admin: "#3897f0", Rookie: "#d9d4f7", Beginner: "#b3a3ef", Intermediate: "#8b78e8",
-  Advanced: "#6b52e2", Pro: "#5136da", PRIME: "#4b1eff",
-};
+// Six skill tiers are shades of the app's own accent (var(--level-*), theme.css,
+// via adminData's LEVEL_COLOR_VAR/LEVEL_TEXT_CLASS) running from almost-white
+// at Rookie to maximally saturated at PRIME. Admin borrows the *other* theme's
+// brand color so it stays visually distinct from the level shades in both themes.
+const CATEGORY_COLOR: Record<string, string> = { Admin: "var(--level-admin)", ...LEVEL_COLOR_VAR };
+const CATEGORY_TEXT_CLASS: Record<string, string> = { Admin: "text-[var(--level-admin)]", ...LEVEL_TEXT_CLASS };
 function CategoryIcon({ category, size = 20 }: { category: Category; size?: number }) {
   if (category === "Admin") {
     return (
@@ -36,7 +37,19 @@ function CategoryIcon({ category, size = 20 }: { category: Category; size?: numb
   return <SkillLevelIcon level={category} size={size} />;
 }
 
-const STATUSES = ["All", "Payment Pending", "Warnings", "No-show", "Disrespect", "Trust", "No Label"] as const;
+const STATUSES = ["All", "Payment Pending", "Warnings", "No-show", "Disrespect", "Trust", "No Label", "Skill Change", "Banned", "Suspended"] as const;
+// Action-feed statuses filter individual notes by what happened (and, unlike
+// the trust-label tabs, aren't deduped to one card per player) - Banned
+// includes Unbanned notes and Suspended includes Suspension Lifted notes, so
+// the tab reads as a history of that action rather than only its current state.
+const ACTION_STATUSES = ["Skill Change", "Banned", "Suspended"] as const;
+type ActionStatus = typeof ACTION_STATUSES[number];
+function matchesActionStatus(n: NoteRow, s: ActionStatus): boolean {
+  const b = n.body;
+  if (s === "Skill Change") return b.startsWith("Skill level changed");
+  if (s === "Banned")       return b.startsWith("Banned") || b === "Unbanned";
+  return b.startsWith("Suspended until") || b === "Suspension lifted";
+}
 type Status = typeof STATUSES[number];
 
 // How many recent-change cards each activity feed shows — the "Recent Admin
@@ -132,17 +145,22 @@ function classifyActivity(n: NoteRow, t: Dict): ActivityKind {
 // so a full unmount/remount - on every parent render).
 const PlayerActivityCard = memo(function PlayerActivityCard({
   avatar, name, color, title, subtitle, onClick,
-  playerId, selectMode = false, selected = false, onToggleSelect,
+  playerId, selectKey, selectMode = false, selected = false, onToggleSelect,
 }: {
   avatar: string | null; name: string; color: string; title: string; subtitle: React.ReactNode; onClick?: () => void;
   // When selectMode is on, tapping the card toggles selection instead of
-  // navigating - same behavior as AlertRow in Alerts.tsx.
-  playerId?: string; selectMode?: boolean; selected?: boolean; onToggleSelect?: (id: string) => void;
+  // navigating - same behavior as AlertRow in Alerts.tsx. selectKey is the
+  // per-card identity used for the checkbox (a note id when a player can
+  // have more than one card on screen, e.g. Recent Activity - playerId
+  // alone would check every card belonging to that player at once).
+  // playerId is always the one actually deleted.
+  playerId?: string; selectKey?: string; selectMode?: boolean; selected?: boolean; onToggleSelect?: (key: string, playerId: string) => void;
 }) {
-  const handleClick = selectMode && playerId && onToggleSelect ? () => onToggleSelect(playerId) : onClick;
+  const handleClick = selectMode && playerId && onToggleSelect ? () => onToggleSelect(selectKey ?? playerId, playerId) : onClick;
   return (
     <button
       type="button"
+      data-select-card=""
       onClick={handleClick}
       disabled={!handleClick}
       className="flex items-stretch w-full text-left rounded-2xl bg-[var(--surface-1)] overflow-hidden transition-colors disabled:cursor-default focus:outline-none"
@@ -180,44 +198,81 @@ const PlayerActivityCard = memo(function PlayerActivityCard({
   );
 });
 
-// Every player row on this page - category browsing, search results,
-// recently searched, the "No Label" status tab - shows the same thing the
-// Recent Admin Activity feed shows: this player's most recent note, not the
-// old avatar/skill/position/event-count summary. Players with no notes yet
-// get a neutral "No activity yet" card instead of being left out.
+const PlayerRowButton = memo(function PlayerRowButton({
+  p, t, onClick, selectMode = false, selected = false, onToggleSelect,
+}: {
+  p: Player; t: Dict; onClick: () => void;
+  selectMode?: boolean; selected?: boolean; onToggleSelect?: (key: string, playerId: string) => void;
+}) {
+  const eff = effectiveLabel(p.visible_trust_label, p.trust_label_set_at_events, p.eventsJoined);
+  const handleClick = selectMode && onToggleSelect ? () => onToggleSelect(p.id, p.id) : onClick;
+  return (
+    <button
+      type="button"
+      data-select-card=""
+      onClick={handleClick}
+      className="relative flex items-center gap-3 px-4 py-3 w-full text-left transition-colors hover:bg-[var(--surface-hover)] focus:outline-none before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden"
+    >
+      <div className="relative shrink-0">
+        {p.avatar
+          ? <img src={p.avatar} alt={p.name} loading="lazy" decoding="async" className="w-11 h-11 rounded-full border-2 border-[var(--surface-0)] object-cover" />
+          : <div className="w-11 h-11 rounded-full border-2 border-[var(--surface-0)] bg-[var(--ink)]/5" />}
+        <VerifiedBadge verified={p.is_verified} size={14} ringClassName="border-[var(--surface-0)]" />
+        <TrustDot label={eff?.label} opacity={eff?.opacity} size={11} ringClassName="border-[var(--surface-0)]" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-bold text-[var(--ink)] text-sm truncate">{p.name}</div>
+        <div className="flex items-center gap-1.5 text-[#79828b] text-[11px] uppercase tracking-wider">
+          <span className={CATEGORY_TEXT_CLASS[p.skill_level] ?? ""}>{levelLabel(p.skill_level, t)}</span>
+          {p.position && <span>· {positionLabel(p.position, t)}</span>}
+        </div>
+      </div>
+      {selectMode ? (
+        <span
+          className={`shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+            selected ? "bg-[var(--brand)] border-[var(--brand)]" : "border-[var(--ink)]/20"
+          }`}
+        >
+          {selected && <Check size={12} className="text-white" strokeWidth={3} />}
+        </span>
+      ) : (
+        <div className="text-right shrink-0 mr-1">
+          <div className="text-[var(--ink)] text-sm font-black">{p.eventsJoined}</div>
+          <div className="text-[#79828b] text-[10px]">events</div>
+        </div>
+      )}
+    </button>
+  );
+});
+
+// Category browsing, search results, and recently searched all show the
+// plain roster row (avatar/verified/trust-dot, name, level+position, event
+// count) - not the activity card, which is reserved for feeds that are
+// actually about a specific event (Recent Activity, the label status tabs,
+// No Label).
 function PlayerList({
-  list, empty, loading, t, onPlayerClick, notesByPlayer,
+  list, empty, loading, t, onPlayerClick,
   selectMode = false, selectedIds, onToggleSelect,
 }: {
   list: Player[]; empty: string; loading: boolean; t: Dict; onPlayerClick: (p: Player) => void;
-  notesByPlayer: Map<string, NoteRow>;
-  selectMode?: boolean; selectedIds?: Set<string>; onToggleSelect?: (id: string) => void;
+  selectMode?: boolean; selectedIds?: Set<string>; onToggleSelect?: (key: string, playerId: string) => void;
 }) {
   if (!loading && list.length === 0) {
     return <p className="text-[#79828b] text-sm text-center py-6">{empty}</p>;
   }
   return (
-    <div className="flex flex-col gap-2">
-      {list.map(p => {
-        const note = notesByPlayer.get(p.id);
-        const { color, title } = note ? classifyActivity(note, t) : { color: "#79828b", title: t.admin.noActivityYet };
-        const subtitle = note ? `${note.author_name} · ${timeAgo(note.created_at, t)}` : "—";
-        return (
-          <PlayerActivityCard
-            key={p.id}
-            avatar={p.avatar}
-            name={p.name}
-            color={color}
-            title={title}
-            subtitle={subtitle}
-            onClick={() => onPlayerClick(p)}
-            playerId={p.id}
-            selectMode={selectMode}
-            selected={selectedIds?.has(p.id) ?? false}
-            onToggleSelect={onToggleSelect}
-          />
-        );
-      })}
+    <div className="bg-[var(--surface-1)] rounded-2xl overflow-hidden">
+      {list.map(p => (
+        <PlayerRowButton
+          key={p.id}
+          p={p}
+          t={t}
+          onClick={() => onPlayerClick(p)}
+          selectMode={selectMode}
+          selected={selectedIds?.has(p.id) ?? false}
+          onToggleSelect={onToggleSelect}
+        />
+      ))}
     </div>
   );
 }
@@ -232,6 +287,7 @@ function SelectModeToggle({ active, onClick, selectLabel, cancelLabel }: {
   return (
     <button
       type="button"
+      data-select-toggle=""
       onClick={onClick}
       onPointerDown={ripple.onPointerDown}
       className={`relative overflow-hidden shrink-0 h-7 px-3.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-colors ${
@@ -262,6 +318,9 @@ export function AdminPlayers() {
     "Disrespect": t.admin.statusDisrespect,
     "Trust": t.admin.statusTrust,
     "No Label": t.admin.statusNoLabel,
+    "Skill Change": t.admin.statusSkillChange,
+    "Banned": t.admin.statusBanned,
+    "Suspended": t.admin.statusSuspended,
   };
   const searchRef = useRef<HTMLInputElement>(null);
   // Same drag-to-scroll behavior as the Home event feed filter bar, copied
@@ -287,23 +346,48 @@ export function AdminPlayers() {
   function fireToast(message: string, variant: "success" | "error") {
     setToast({ message, variant, visible: true });
   }
-  // Select + delete - same mechanic as Alerts.tsx: one selectedIds set shared
-  // by every player row on the page (they all render PlayerActivityCard now),
-  // so selection carries across tabs instead of resetting per section.
+  // Select + delete - same mechanic as Alerts.tsx, except the map is keyed
+  // by each card's own identity (a note id where a player can have more than
+  // one card on screen, e.g. Recent Activity), not by player id - otherwise
+  // tapping one of a player's several cards would mark all of that player's
+  // cards as selected. The map's values are the actual player ids to delete,
+  // deduped automatically since a player can only be deleted once.
   const [selectMode, setSelectMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Map<string, string>>(new Map());
+  const selectedPlayerIds = useMemo(() => new Set(selected.values()), [selected]);
+  const selectedKeys = useMemo(() => new Set(selected.keys()), [selected]);
   const [deleteOrigin, setDeleteOrigin] = useState<ModalOrigin>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const deleteBtnRef = useRef<HTMLButtonElement>(null);
 
   function toggleSelectMode() {
     setSelectMode(prev => !prev);
-    setSelectedIds(new Set());
+    setSelected(new Map());
   }
-  function toggleSelected(id: string) {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelected(new Map());
+  }
+  // Tapping anywhere that isn't a card or a select toggle, or scrolling the
+  // list, exits select mode - same "select is a transient mode, not a
+  // sticky one" behavior as Alerts.tsx. Skipped while the delete confirm is
+  // open so canceling it doesn't also blow away the selection.
+  function handleContainerClick(e: React.MouseEvent) {
+    if (!selectMode || showDeleteConfirm) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("[data-select-card], [data-select-toggle], [data-select-fab]")) return;
+    exitSelectMode();
+  }
+  useEffect(() => {
+    if (!selectMode || showDeleteConfirm) return;
+    const onScroll = () => exitSelectMode();
+    document.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    return () => document.removeEventListener("scroll", onScroll, true);
+  }, [selectMode, showDeleteConfirm]);
+  function toggleSelected(key: string, playerId: string) {
+    setSelected(prev => {
+      const next = new Map(prev);
+      if (next.has(key)) next.delete(key); else next.set(key, playerId);
       return next;
     });
   }
@@ -318,10 +402,10 @@ export function AdminPlayers() {
   // doesn't roll back the whole selection, and the toast reports exactly
   // which players went through.
   async function confirmDeleteSelected() {
-    const ids = [...selectedIds];
+    const ids = [...selectedPlayerIds];
     setShowDeleteConfirm(false);
     setSelectMode(false);
-    setSelectedIds(new Set());
+    setSelected(new Map());
     const results = await Promise.all(ids.map(async id => {
       const { error } = await supabase.from("profiles").delete().eq("id", id);
       return { id, ok: !error };
@@ -426,6 +510,9 @@ export function AdminPlayers() {
 
   function matchesStatus(p: Player, s: Status) {
     if (s === "All") return true;
+    // Skill Change/Banned/Suspended are action feeds over individual notes
+    // (see matchesActionStatus), not a per-player trust-label match.
+    if ((ACTION_STATUSES as readonly Status[]).includes(s)) return false;
     const eff = effectiveLabel(p.trust_label, p.trust_label_set_at_events, p.eventsJoined);
     if (s === "Payment Pending") return eff?.label === "payment";
     if (s === "Warnings")        return eff?.label === "warning";
@@ -497,6 +584,28 @@ export function AdminPlayers() {
     items.sort((a, b) => new Date(b.note.created_at).getTime() - new Date(a.note.created_at).getTime());
     return items.slice(0, ACTIVITY_LIMIT);
   }, [statusFiltered, latestLabelNoteByPlayer]);
+  // No Label tab: same card + same "most recent first" treatment as every
+  // other status tab, sourced from latestNoteByPlayer (any note, since a
+  // No Label player's note - if any - is never a labeled one) instead of
+  // statusFiltered's full roster - a No Label player with no note yet isn't
+  // "recent activity" and shouldn't get a card here.
+  const noLabelActivity = useMemo(() => {
+    const items: { player: Player; note: NoteRow }[] = [];
+    for (const p of statusFiltered) {
+      const n = latestNoteByPlayer.get(p.id);
+      if (n) items.push({ player: p, note: n });
+    }
+    items.sort((a, b) => new Date(b.note.created_at).getTime() - new Date(a.note.created_at).getTime());
+    return items.slice(0, ACTIVITY_LIMIT);
+  }, [statusFiltered, latestNoteByPlayer]);
+  // Skill Change/Banned/Suspended: every matching note, newest first - not
+  // deduped per player like the trust-label tabs, so e.g. Banned shows both
+  // the ban and a later unban as separate cards instead of collapsing to
+  // just the player's current state.
+  const actionActivity = useMemo(() => {
+    if (!(ACTION_STATUSES as readonly Status[]).includes(contentStatus)) return [];
+    return recentNotes.filter(n => matchesActionStatus(n, contentStatus as ActionStatus)).slice(0, ACTIVITY_LIMIT);
+  }, [recentNotes, contentStatus]);
   const categoryFiltered = useMemo(
     () => contentCategory
       ? players.filter(p => (contentCategory === "Admin" ? p.is_admin : p.skill_level === contentCategory) && matchesSearch(p)).sort(byName)
@@ -524,16 +633,14 @@ export function AdminPlayers() {
       ref={swipeRef}
       className="max-w-[640px] mx-auto px-4 py-8"
       style={swipeStyle}
+      onClick={handleContainerClick}
       {...swipeHandlers}
     >
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
 
       <div className="flex items-center justify-between mb-4">
         <h1 className="font-black italic text-2xl text-[var(--ink)] uppercase tracking-widest">{t.admin.players}</h1>
-        <div className="flex items-center gap-2.5">
-          <span className="text-[#79828b] text-xs font-bold">{players.length} {t.admin.total}</span>
-          <SelectModeToggle active={selectMode} onClick={toggleSelectMode} selectLabel={t.alerts.select} cancelLabel={t.alerts.cancelSelect} />
-        </div>
+        <span className="text-[#79828b] text-xs font-bold">{players.length} {t.admin.total}</span>
       </div>
 
       {/* Search — shrinks to make room for a round × once focused */}
@@ -602,7 +709,10 @@ export function AdminPlayers() {
 
           {contentStatus === "All" ? (
             <section>
-              <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">{t.admin.recentActivity}</h2>
+              <div className="flex items-center justify-between mb-2 px-0.5">
+                <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b]">{t.admin.recentActivity}</h2>
+                <SelectModeToggle active={selectMode} onClick={toggleSelectMode} selectLabel={t.alerts.select} cancelLabel={t.alerts.cancelSelect} />
+              </div>
               {activity.length === 0 ? (
                 <p className="text-[#79828b] text-sm text-center py-6">{t.admin.nothingYet}</p>
               ) : (
@@ -620,8 +730,9 @@ export function AdminPlayers() {
                         subtitle={`${n.author_name} · ${timeAgo(n.created_at, t)}`}
                         onClick={target ? () => goToPlayer(target) : undefined}
                         playerId={target?.id}
+                        selectKey={n.id}
                         selectMode={selectMode}
-                        selected={target ? selectedIds.has(target.id) : false}
+                        selected={selectedKeys.has(n.id)}
                         onToggleSelect={toggleSelected}
                       />
                     );
@@ -631,16 +742,80 @@ export function AdminPlayers() {
             </section>
           ) : contentStatus === "No Label" ? (
             <section>
-              <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">
-                {t.admin.matches(statusFiltered.length)}
-              </h2>
-              <PlayerList list={statusFiltered} empty={t.admin.noLabelPlayers} loading={loading} t={t} onPlayerClick={goToPlayer} notesByPlayer={latestNoteByPlayer} selectMode={selectMode} selectedIds={selectedIds} onToggleSelect={toggleSelected} />
+              <div className="flex items-center justify-between mb-2 px-0.5">
+                <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b]">
+                  {t.admin.matches(noLabelActivity.length)}
+                </h2>
+                <SelectModeToggle active={selectMode} onClick={toggleSelectMode} selectLabel={t.alerts.select} cancelLabel={t.alerts.cancelSelect} />
+              </div>
+              {!loading && noLabelActivity.length === 0 ? (
+                <p className="text-[#79828b] text-sm text-center py-6">{t.admin.noLabelPlayers}</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {noLabelActivity.map(({ player: p, note: n }) => {
+                    const { color, title } = classifyActivity(n, t);
+                    return (
+                      <PlayerActivityCard
+                        key={p.id}
+                        avatar={p.avatar}
+                        name={p.name}
+                        color={color}
+                        title={title}
+                        subtitle={`${n.author_name} · ${timeAgo(n.created_at, t)}`}
+                        onClick={() => goToPlayer(p)}
+                        playerId={p.id}
+                        selectMode={selectMode}
+                        selected={selectedKeys.has(p.id)}
+                        onToggleSelect={toggleSelected}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          ) : (ACTION_STATUSES as readonly Status[]).includes(contentStatus) ? (
+            <section>
+              <div className="flex items-center justify-between mb-2 px-0.5">
+                <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b]">
+                  {t.admin.matches(actionActivity.length)}
+                </h2>
+                <SelectModeToggle active={selectMode} onClick={toggleSelectMode} selectLabel={t.alerts.select} cancelLabel={t.alerts.cancelSelect} />
+              </div>
+              {!loading && actionActivity.length === 0 ? (
+                <p className="text-[#79828b] text-sm text-center py-6">{t.admin.noStatusMatch}</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {actionActivity.map(n => {
+                    const target = players.find(p => p.id === n.player_id);
+                    const { color, title } = classifyActivity(n, t);
+                    return (
+                      <PlayerActivityCard
+                        key={n.id}
+                        avatar={target?.avatar ?? null}
+                        name={target?.name ?? t.admin.unknownPlayer}
+                        color={color}
+                        title={title}
+                        subtitle={`${n.author_name} · ${timeAgo(n.created_at, t)}`}
+                        onClick={target ? () => goToPlayer(target) : undefined}
+                        playerId={target?.id}
+                        selectKey={n.id}
+                        selectMode={selectMode}
+                        selected={selectedKeys.has(n.id)}
+                        onToggleSelect={toggleSelected}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </section>
           ) : (
             <section>
-              <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">
-                {t.admin.matches(statusActivity.length)}
-              </h2>
+              <div className="flex items-center justify-between mb-2 px-0.5">
+                <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b]">
+                  {t.admin.matches(statusActivity.length)}
+                </h2>
+                <SelectModeToggle active={selectMode} onClick={toggleSelectMode} selectLabel={t.alerts.select} cancelLabel={t.alerts.cancelSelect} />
+              </div>
               {!loading && statusActivity.length === 0 ? (
                 <p className="text-[#79828b] text-sm text-center py-6">{t.admin.noStatusMatch}</p>
               ) : (
@@ -658,7 +833,7 @@ export function AdminPlayers() {
                         onClick={() => goToPlayer(p)}
                         playerId={p.id}
                         selectMode={selectMode}
-                        selected={selectedIds.has(p.id)}
+                        selected={selectedKeys.has(p.id)}
                         onToggleSelect={toggleSelected}
                       />
                     );
@@ -700,12 +875,12 @@ export function AdminPlayers() {
               <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">
                 {categoryFiltered.length} {t.admin.inLabel} {catLabel(contentCategory)}
               </h2>
-              <PlayerList list={categoryFiltered} empty={t.admin.noCategoryMatch} loading={loading} t={t} onPlayerClick={goToPlayer} notesByPlayer={latestNoteByPlayer} selectMode={selectMode} selectedIds={selectedIds} onToggleSelect={toggleSelected} />
+              <PlayerList list={categoryFiltered} empty={t.admin.noCategoryMatch} loading={loading} t={t} onPlayerClick={goToPlayer} selectMode={selectMode} selectedIds={selectedKeys} onToggleSelect={toggleSelected} />
             </section>
           ) : search.trim() ? (
             <section>
               <h2 className="text-[10px] font-black uppercase tracking-widest text-[#79828b] mb-2 px-0.5">{t.admin.results}</h2>
-              <PlayerList list={searchResults} empty={t.admin.noSearchMatch} loading={loading} t={t} onPlayerClick={goToPlayer} notesByPlayer={latestNoteByPlayer} selectMode={selectMode} selectedIds={selectedIds} onToggleSelect={toggleSelected} />
+              <PlayerList list={searchResults} empty={t.admin.noSearchMatch} loading={loading} t={t} onPlayerClick={goToPlayer} selectMode={selectMode} selectedIds={selectedKeys} onToggleSelect={toggleSelected} />
             </section>
           ) : (
             <section key={recentTick}>
@@ -724,24 +899,25 @@ export function AdminPlayers() {
               {recentPlayers.length === 0 ? (
                 <p className="text-[#79828b] text-sm text-center py-6">{t.admin.nothingSearched}</p>
               ) : (
-                <PlayerList list={recentPlayers} empty={t.admin.nothingSearched} loading={loading} t={t} onPlayerClick={goToPlayer} notesByPlayer={latestNoteByPlayer} selectMode={selectMode} selectedIds={selectedIds} onToggleSelect={toggleSelected} />
+                <PlayerList list={recentPlayers} empty={t.admin.nothingSearched} loading={loading} t={t} onPlayerClick={goToPlayer} selectMode={selectMode} selectedIds={selectedKeys} onToggleSelect={toggleSelected} />
               )}
             </section>
           )}
         </FadeIn>
       )}
 
-      {selectMode && selectedIds.size > 0 && (
+      {selectMode && selectedPlayerIds.size > 0 && (
         <button
           ref={deleteBtnRef}
           type="button"
+          data-select-fab=""
           aria-label={t.alerts.deleteLabel}
           onClick={openDeleteConfirm}
-          className="fixed bottom-6 right-6 z-30 w-12 h-12 rounded-full bg-[#ef4444] flex items-center justify-center"
+          className="fixed bottom-24 sm:bottom-6 right-6 z-[60] w-12 h-12 rounded-full bg-[#ef4444] flex items-center justify-center"
         >
           <Trash2 size={19} className="text-white" />
           <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--surface-0)] border-2 border-[var(--surface-0)] flex items-center justify-center text-[10px] font-bold text-[var(--ink)]">
-            {selectedIds.size}
+            {selectedPlayerIds.size}
           </span>
         </button>
       )}
@@ -751,7 +927,7 @@ export function AdminPlayers() {
           origin={deleteOrigin}
           icon={<Trash2 size={18} className="text-[#ef4444]" />}
           iconBg="bg-[#ef4444]/10 border-[#ef4444]/30"
-          title={t.admin.deletePlayersTitle(selectedIds.size)}
+          title={t.admin.deletePlayersTitle(selectedPlayerIds.size)}
           sub={t.admin.deletePlayersSub}
           cancelLabel={t.common.cancel}
           onCancel={() => setShowDeleteConfirm(false)}

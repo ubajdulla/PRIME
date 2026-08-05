@@ -189,6 +189,26 @@ export function Alerts() {
     setSelectMode(prev => !prev);
     setSelectedIds(new Set());
   }
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }
+  // Tapping anywhere that isn't a row or the select toggle, or scrolling the
+  // list, exits select mode - it's a transient mode, not a sticky one.
+  // Skipped while the delete confirm is open so canceling it doesn't also
+  // blow away the selection.
+  function handleContainerClick(e: React.MouseEvent) {
+    if (!selectMode || showDeleteConfirm) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("[data-select-card], [data-select-toggle], [data-select-fab]")) return;
+    exitSelectMode();
+  }
+  useEffect(() => {
+    if (!selectMode || showDeleteConfirm) return;
+    const onScroll = () => exitSelectMode();
+    document.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    return () => document.removeEventListener("scroll", onScroll, true);
+  }, [selectMode, showDeleteConfirm]);
 
   function toggleSelected(id: string) {
     setSelectedIds(prev => {
@@ -303,7 +323,7 @@ export function Alerts() {
   const isEmpty = filteredGroups.length === 0;
 
   return (
-    <div className="flex flex-col min-h-full bg-[var(--surface-0)] w-full">
+    <div className="flex flex-col min-h-full bg-[var(--surface-0)] w-full" onClick={handleContainerClick}>
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
       <div className="w-full max-w-[640px] mx-auto flex flex-col pt-8 pb-10 px-4">
 
@@ -395,9 +415,10 @@ export function Alerts() {
         <button
           ref={deleteBtnRef}
           type="button"
+          data-select-fab=""
           aria-label={t.alerts.deleteLabel}
           onClick={openDeleteConfirm}
-          className="fixed bottom-6 right-6 z-30 w-12 h-12 rounded-full bg-[#ef4444] flex items-center justify-center"
+          className="fixed bottom-24 sm:bottom-6 right-6 z-[60] w-12 h-12 rounded-full bg-[#ef4444] flex items-center justify-center"
         >
           <Trash2 size={19} className="text-white" />
           <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--surface-0)] border-2 border-[var(--surface-0)] flex items-center justify-center text-[10px] font-bold text-[var(--ink)]">
@@ -534,11 +555,11 @@ function AlertRow({
   }
 
   return alert.eventId ? (
-    <Link to={`${cfg.linkPrefix}${alert.eventId}`} state={{ hub: "alerts" }} onClick={handleRowClick} className={`block ${dividerClass}`}>
+    <Link to={`${cfg.linkPrefix}${alert.eventId}`} state={{ hub: "alerts" }} onClick={handleRowClick} data-select-card="" className={`block ${dividerClass}`}>
       {inner}
     </Link>
   ) : (
-    <div role="button" onClick={handleRowClick} className={`block w-full text-left cursor-pointer ${dividerClass}`}>
+    <div role="button" onClick={handleRowClick} data-select-card="" className={`block w-full text-left cursor-pointer ${dividerClass}`}>
       {inner}
     </div>
   );
@@ -559,6 +580,7 @@ function SelectModeToggle({
   return (
     <button
       type="button"
+      data-select-toggle=""
       onClick={onClick}
       onPointerDown={ripple.onPointerDown}
       className={`relative overflow-hidden shrink-0 h-7 px-3.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-colors ${

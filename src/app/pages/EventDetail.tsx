@@ -489,7 +489,7 @@ return (
               </a>
               {event.description && (
                 <div className="relative p-3 hover:bg-[var(--surface-hover)] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
-                  <p className="text-[#79828b] text-xs leading-relaxed">{event.description}</p>
+                  <p className="text-[#79828b] text-xs leading-relaxed whitespace-pre-wrap break-words">{event.description}</p>
                 </div>
               )}
               {event.attachment_url && (

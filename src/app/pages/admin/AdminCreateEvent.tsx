@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Camera, Check, ChevronDown, FileText, X } from "lucide-react";
 import { SKILL_ORDER } from "../../data/adminData";
@@ -52,6 +52,7 @@ export function AdminCreateEvent() {
   const { user: authUser } = useAuth();
   const isEditMode = !!editId;
   const saveRipple = useWaterRipple();
+  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -118,6 +119,16 @@ export function AdminCreateEvent() {
     })();
     return () => { active = false; };
   }, [editId]);
+
+  // Sizes the description textarea to its loaded content on entering edit
+  // mode, same as Add/Edit Note - otherwise a long existing description
+  // renders cramped in the fixed rows={2} box until the user types.
+  useLayoutEffect(() => {
+    const el = descriptionTextareaRef.current;
+    if (!el || loadingEdit) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [loadingEdit]);
 
   const s = (k: string, v: string) => setF(p => ({ ...p, [k]: v }));
 
@@ -299,9 +310,15 @@ export function AdminCreateEvent() {
               placeholder="e.g. PRO-AM INVITATIONAL #13" className={F_INPUT} />
           </Field>
           <Field label={t.admin.description}>
-            <textarea value={f.description} onChange={e => s("description", e.target.value)}
+            <textarea ref={descriptionTextareaRef} value={f.description}
+              onChange={e => {
+                s("description", e.target.value);
+                const el = e.target;
+                el.style.height = "auto";
+                el.style.height = `${el.scrollHeight}px`;
+              }}
               placeholder={t.admin.descriptionPlaceholder} rows={2}
-              className={`${F_INPUT} resize-none`} />
+              className={`${F_INPUT} max-h-[160px] resize-none overflow-y-auto`} />
           </Field>
           <Field label={t.admin.attachmentPdf}>
             {f.attachmentName ? (

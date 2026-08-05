@@ -17,6 +17,18 @@
   --ink-line: rgba(255, 255, 255, 0.15);
   --brand: #462ed1;
   --brand-hover: #5a3ff0;
+
+  /* Skill-level ring/badge scale (Players search, profile avatars) - shades
+     of the app's own accent, almost-white at Rookie to maximally saturated
+     at PRIME. Dark theme runs the violet side of --brand; Admin borrows the
+     light theme's brand blue so it stays visually distinct from the levels. */
+  --level-rookie: #d9d4f7;
+  --level-beginner: #b3a3ef;
+  --level-intermediate: #8b78e8;
+  --level-advanced: #6b52e2;
+  --level-pro: #5136da;
+  --level-prime: #4b1eff;
+  --level-admin: #3897f0;
 }
 
 :root[data-theme="light"] {
@@ -29,6 +41,16 @@
   --ink-line: rgba(24, 24, 24, 0.15);
   --brand: #3897f0;
   --brand-hover: #2f81cf;
+
+  /* Same scale, blue side of --brand - Admin borrows the dark theme's
+     brand violet so it still reads as distinct from the levels. */
+  --level-rookie: #e5f0fa;
+  --level-beginner: #c5dff7;
+  --level-intermediate: #9ac8f4;
+  --level-advanced: #73b5f2;
+  --level-pro: #55a6f1;
+  --level-prime: #3897f0;
+  --level-admin: #462ed1;
 }
 
 :root {
