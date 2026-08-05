@@ -1,6 +1,7 @@
 import { User, CheckCircle2 } from "lucide-react";
 import { VerifiedBadge } from "./VerifiedBadge";
 import { TrustDot } from "./TrustDot";
+import { useWaterRipple, RippleLayer } from "./useWaterRipple";
 
 // Shared clickable player/profile row — same component for the roster list
 // and for the moderator/organizer card, so hover + click-through behave the
@@ -51,16 +52,18 @@ export function ProfileRow({
   const rowClickable = clickable && !avatarOnly;
   const Tag = rowClickable ? "button" : "div";
   const shellClass = variant === "card" ? "bg-[var(--surface-1)] rounded-xl p-2.5" : "p-2.5";
-  // The background cue stays even in avatarOnly mode (nice on the card
-  // variant), just without `cursor-pointer` - the row itself no longer
+  // The background-hover cue stays even in avatarOnly mode (nice on the
+  // card variant), just without `cursor-pointer` - the row itself no longer
   // performs a click action, only the avatar+name button nested inside it
-  // does. `active:` (not a touch/scroll simulation) is what actually shows
-  // a "hover" on touch devices - it fires on whatever's under the finger at
-  // press time and works reliably here because tapCancelGuard.ts already
-  // has a window-level touchstart listener, which is the standard trick to
-  // make iOS Safari honor :active in the first place.
-  const hoverClass = clickable ? `hover:bg-[var(--surface-hover)] active:bg-[var(--surface-hover)] ${rowClickable ? "cursor-pointer" : ""} ${variant === "card" ? "rounded-xl" : ""}` : "";
+  // does. Press feedback on touch is the app's standard water-drop ripple
+  // (see feedback_no_scale_zoom_press_effects), not a CSS :active/:hover
+  // hack - those either don't fire reliably on touch or vanish before the
+  // tap even registers, which is why every clickable row needs the ripple.
+  const hoverClass = clickable ? `hover:bg-[var(--surface-hover)] ${rowClickable ? "cursor-pointer" : ""} ${variant === "card" ? "rounded-xl" : ""}` : "";
   const dividerClass = divider ? "relative before:absolute before:top-0 before:left-2.5 before:right-2.5 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden" : "";
+  // Shared between the two mutually-exclusive clickable branches below (row
+  // button vs. nested avatar+name button) - only one ever renders per row.
+  const ripple = useWaterRipple();
 
   const avatarInner = (
     <>
@@ -91,19 +94,21 @@ export function ProfileRow({
 
   return (
     <Tag
-      {...(rowClickable ? { type: "button" as const, onClick } : {})}
-      className={`flex items-center gap-3 w-full text-left transition-colors focus:outline-none ${shellClass} ${hoverClass} ${dividerClass} ${className}`}
+      {...(rowClickable ? { type: "button" as const, onClick, onPointerDown: ripple.onPointerDown } : {})}
+      className={`relative overflow-hidden flex items-center gap-3 w-full text-left transition-colors focus:outline-none ${shellClass} ${hoverClass} ${dividerClass} ${className}`}
     >
       {avatarOnly && clickable ? (
         <button
           type="button"
           onClick={e => { e.stopPropagation(); onClick(); }}
-          className="flex items-center gap-3 flex-1 min-w-0 text-left rounded-xl transition-colors hover:bg-[var(--surface-hover)] active:bg-[var(--surface-hover)]"
+          onPointerDown={ripple.onPointerDown}
+          className="relative overflow-hidden flex items-center gap-3 flex-1 min-w-0 text-left rounded-xl transition-colors hover:bg-[var(--surface-hover)]"
         >
           <div className="relative shrink-0" style={{ width: avatarSize, height: avatarSize }}>
             {avatarInner}
           </div>
           {nameBlock}
+          <RippleLayer ripples={ripple.ripples} />
         </button>
       ) : (
         <>
@@ -114,6 +119,7 @@ export function ProfileRow({
         </>
       )}
       {trailing}
+      {rowClickable && <RippleLayer ripples={ripple.ripples} />}
     </Tag>
   );
 }
