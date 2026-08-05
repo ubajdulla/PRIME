@@ -28,11 +28,6 @@ interface ProfileRowProps {
   variant?: "card" | "row";
   divider?: boolean;
   className?: string;
-  // Identifies this row for useTouchHoverList - set together with
-  // `touchHovered` so a finger dragging down the list highlights whichever
-  // row it's currently crossing, the touch equivalent of :hover.
-  rowId?: string;
-  touchHovered?: boolean;
 }
 
 export function ProfileRow({
@@ -51,18 +46,20 @@ export function ProfileRow({
   variant = "row",
   divider = false,
   className = "",
-  rowId,
-  touchHovered = false,
 }: ProfileRowProps) {
   const clickable = !!onClick;
   const rowClickable = clickable && !avatarOnly;
   const Tag = rowClickable ? "button" : "div";
   const shellClass = variant === "card" ? "bg-[var(--surface-1)] rounded-xl p-2.5" : "p-2.5";
-  // The background-hover cue stays even in avatarOnly mode (nice on the
-  // card variant), just without `cursor-pointer` - the row itself no longer
-  // performs a click action, only the avatar+name button nested inside it does.
-  const hoverClass = clickable ? `hover:bg-[var(--surface-hover)] ${rowClickable ? "cursor-pointer" : ""} ${variant === "card" ? "rounded-xl" : ""}` : "";
-  const touchHoverClass = touchHovered ? "bg-[var(--surface-hover)]" : "";
+  // The background cue stays even in avatarOnly mode (nice on the card
+  // variant), just without `cursor-pointer` - the row itself no longer
+  // performs a click action, only the avatar+name button nested inside it
+  // does. `active:` (not a touch/scroll simulation) is what actually shows
+  // a "hover" on touch devices - it fires on whatever's under the finger at
+  // press time and works reliably here because tapCancelGuard.ts already
+  // has a window-level touchstart listener, which is the standard trick to
+  // make iOS Safari honor :active in the first place.
+  const hoverClass = clickable ? `hover:bg-[var(--surface-hover)] active:bg-[var(--surface-hover)] ${rowClickable ? "cursor-pointer" : ""} ${variant === "card" ? "rounded-xl" : ""}` : "";
   const dividerClass = divider ? "relative before:absolute before:top-0 before:left-2.5 before:right-2.5 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden" : "";
 
   const avatarInner = (
@@ -95,14 +92,13 @@ export function ProfileRow({
   return (
     <Tag
       {...(rowClickable ? { type: "button" as const, onClick } : {})}
-      {...(rowId ? { "data-touch-hover-id": rowId } : {})}
-      className={`flex items-center gap-3 w-full text-left transition-colors focus:outline-none ${shellClass} ${hoverClass} ${touchHoverClass} ${dividerClass} ${className}`}
+      className={`flex items-center gap-3 w-full text-left transition-colors focus:outline-none ${shellClass} ${hoverClass} ${dividerClass} ${className}`}
     >
       {avatarOnly && clickable ? (
         <button
           type="button"
           onClick={e => { e.stopPropagation(); onClick(); }}
-          className="flex items-center gap-3 flex-1 min-w-0 text-left rounded-full transition-opacity hover:opacity-80"
+          className="flex items-center gap-3 flex-1 min-w-0 text-left rounded-xl transition-colors hover:bg-[var(--surface-hover)] active:bg-[var(--surface-hover)]"
         >
           <div className="relative shrink-0" style={{ width: avatarSize, height: avatarSize }}>
             {avatarInner}

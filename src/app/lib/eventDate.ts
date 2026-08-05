@@ -48,22 +48,23 @@ export function formatEventDate(dateStr: string, t: Dict): string {
 }
 
 // Google Calendar "add event" link, prefilled with the event's date/time.
-// event_time is stored as "HH:MM - HH:MM" (see AdminCreateEvent.tsx), so the
-// real end time is used when present; a bare "HH:MM" (no end) falls back to
-// a 2h block. Times are converted through the device's local zone so the
-// event lands on the calendar at the same wall-clock time shown in the app.
+// event_time is usually "HH:MM - HH:MM" (see AdminCreateEvent.tsx), so the
+// real end time is used when present; a bare "HH:MM" falls back to a 2h
+// block. This is called inline during render (EventDetail.tsx), so it must
+// never throw regardless of what's actually stored - any unparseable date
+// just omits the prefilled time instead of taking the whole page down.
 export function addToCalendarUrl(dateStr: string, timeStr: string, title: string, location?: string): string {
+  const params = new URLSearchParams({ action: "TEMPLATE", text: title });
+  if (location) params.set("location", location);
+
   const [startRaw, endRaw] = timeStr.split(" - ").map(s => s.trim());
   const start = new Date(`${dateStr}T${startRaw}`);
   const end = endRaw ? new Date(`${dateStr}T${endRaw}`) : new Date(start.getTime() + 2 * 60 * 60 * 1000);
-  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: title,
-    dates: `${fmt(start)}/${fmt(end)}`,
-    ctz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  });
-  if (location) params.set("location", location);
+  if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+    const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+    params.set("dates", `${fmt(start)}/${fmt(end)}`);
+    params.set("ctz", Intl.DateTimeFormat().resolvedOptions().timeZone);
+  }
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
