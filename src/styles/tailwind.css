@@ -12,6 +12,7 @@
   --animate-check-flash: check-flash 1.3s ease-in-out;
   --animate-dropdown-in: dropdown-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
   --animate-row-in: row-in 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-fab-pop: fab-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes water-drop {
@@ -58,6 +59,14 @@
 @keyframes row-in {
   0%   { opacity: 0; transform: translateX(12px); }
   100% { opacity: 1; transform: translateX(0); }
+}
+
+/* Delete FAB entrance (select mode) - the back-out easing on the var makes
+   this single 0->1 scale overshoot past 1 then settle, reading as a bouncy
+   pop instead of a flat fade-in. */
+@keyframes fab-pop {
+  0%   { opacity: 0; transform: scale(0.3); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 /* Chrome/Edge paint autofilled inputs with their own white background,

@@ -414,7 +414,7 @@ export function Alerts() {
           data-select-fab=""
           aria-label={t.alerts.deleteLabel}
           onClick={openDeleteConfirm}
-          className="fixed bottom-24 sm:bottom-6 right-6 z-[60] w-12 h-12 rounded-full bg-[#ef4444] flex items-center justify-center"
+          className="fixed bottom-24 sm:bottom-6 right-6 z-[60] w-12 h-12 rounded-full bg-[#ef4444] flex items-center justify-center animate-fab-pop"
         >
           <Trash2 size={19} className="text-white" />
           <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--surface-0)] border-2 border-[var(--surface-0)] flex items-center justify-center text-[10px] font-bold text-[var(--ink)]">
