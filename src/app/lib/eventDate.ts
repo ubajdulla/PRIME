@@ -47,6 +47,26 @@ export function formatEventDate(dateStr: string, t: Dict): string {
   return shortDate(dateStr, t);
 }
 
+// Google Calendar "add event" link, prefilled with the event's date/time.
+// event_time is stored as "HH:MM - HH:MM" (see AdminCreateEvent.tsx), so the
+// real end time is used when present; a bare "HH:MM" (no end) falls back to
+// a 2h block. Times are converted through the device's local zone so the
+// event lands on the calendar at the same wall-clock time shown in the app.
+export function addToCalendarUrl(dateStr: string, timeStr: string, title: string, location?: string): string {
+  const [startRaw, endRaw] = timeStr.split(" - ").map(s => s.trim());
+  const start = new Date(`${dateStr}T${startRaw}`);
+  const end = endRaw ? new Date(`${dateStr}T${endRaw}`) : new Date(start.getTime() + 2 * 60 * 60 * 1000);
+  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: title,
+    dates: `${fmt(start)}/${fmt(end)}`,
+    ctz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  });
+  if (location) params.set("location", location);
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
 // Full weekday name (or "Today"/"Tomorrow") - the secondary label under the
 // short date on the home feed's date rail.
 export function weekdayLabel(dateStr: string, t: Dict): string {

@@ -978,7 +978,7 @@ export function AdminEventDetail() {
                   leavingWaitlistIds.has(player.id) ? "opacity-0 -translate-x-3 pointer-events-none" : "opacity-100"
                 } ${enteringWaitlistIds.has(player.id) ? "animate-row-in" : ""}`}
               >
-                <div className="flex items-center gap-2 p-3 bg-[var(--surface-1)] rounded-xl transition-colors hover:bg-[var(--surface-hover)]">
+                <div className="flex items-center gap-2 p-3 bg-[var(--surface-1)] rounded-xl transition-colors">
                   <button
                     type="button"
                     onClick={() => openProfile(player)}

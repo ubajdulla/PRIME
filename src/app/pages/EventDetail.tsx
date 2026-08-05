@@ -29,7 +29,8 @@ import { PositionList } from "../components/ui/PositionList";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { computeJoinStatus } from "../lib/joinType";
-import { shortDate, isRosterLocked } from "../lib/eventDate";
+import { shortDate, isRosterLocked, addToCalendarUrl } from "../lib/eventDate";
+import { useTouchHoverList } from "../lib/useTouchHoverList";
 import { POSITIONS, positionLabel } from "../data/adminData";
 
 type EventRow = {
@@ -76,11 +77,12 @@ export function EventDetail() {
   const { t } = useLang();
   const { user: authUser, profile, isLoggedIn, isAdmin } = useAuth();
   const joinRipple = useWaterRipple();
-  // On mobile, only the avatar navigates to a profile (ProfileRow's
-  // avatarOnly) so a mis-tap while scrolling the roster can't accidentally
-  // open someone's profile. Desktop keeps the whole row clickable, same as
-  // before - mispointing with a mouse isn't the same risk as a touch scroll.
+  // On mobile, only the avatar+name navigate to a profile (ProfileRow's
+  // avatarOnly) so a mis-tap on the trailing badge while scrolling the
+  // roster can't accidentally open someone's profile. Desktop keeps the
+  // whole row clickable, same as before.
   const isMobile = useIsMobile();
+  const { containerRef: rosterHoverRef, hoveredId: rosterHoveredId } = useTouchHoverList<HTMLDivElement>();
 
   function playerProfilePath(playerId: string) {
     return isAdmin ? `/admin/player/${playerId}` : `/players/${playerId}`;
@@ -461,10 +463,15 @@ return (
           <div className="relative">
             {event.level && <LevelBookmark level={event.level} insufficient={isRequestOnly} />}
             <div className="bg-[var(--surface-1)] rounded-2xl overflow-hidden">
-              <div className="relative flex items-center gap-2.5 p-3 hover:bg-[var(--surface-hover)] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
+              <a
+                href={addToCalendarUrl(event.event_date, event.event_time, title, event.location)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative flex items-center gap-2.5 p-3 hover:bg-[var(--surface-hover)] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden"
+              >
                 <Calendar size={16} className={theme.primary} />
                 <span className="text-sm font-semibold text-[var(--ink)]/90">{shortDate(event.event_date, t, true)} · {event.event_time}</span>
-              </div>
+              </a>
               <div className="relative flex items-center gap-2.5 p-3 hover:bg-[var(--surface-hover)] transition-colors before:absolute before:top-0 before:left-3 before:right-3 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden">
                 <Ticket size={16} className={theme.primary} />
                 <span className="text-sm font-semibold text-[var(--ink)]/90">{event.price_label ?? "FREE"}</span>
@@ -505,7 +512,7 @@ return (
         </div>
 
         {/* ROSTER SECTION */}
-        <div>
+        <div ref={rosterHoverRef}>
           <div className="flex justify-between items-center mb-3 px-1">
             <h2 className="font-bold text-lg text-[var(--ink)]">
               {currentCapacity}{" "}
@@ -570,7 +577,6 @@ return (
               {roster.map((player) => {
                 const clickable = isLoggedIn && !player.isGuest;
                 const isMe = player.id === authUser?.id;
-                const isOrganizer = player.id === event.moderator_id;
                 return (
                   <ProfileRow
                     key={player.id}
@@ -580,6 +586,8 @@ return (
                     trustLabel={player.trustLabel}
                     divider
                     avatarOnly={isMobile}
+                    rowId={player.id}
+                    touchHovered={rosterHoveredId === player.id}
                     onClick={clickable ? () => { navDir.forward(); navigate(playerProfilePath(player.id), { state: { hub } }); } : undefined}
                     primary={
                       requiresTeamName ? (
@@ -602,9 +610,9 @@ return (
                       ) : undefined
                     }
                     trailing={
-                      (isOrganizer || isMe) && (
+                      isMe && (
                         <span className="text-[10px] font-bold uppercase tracking-widest text-[#79828b] shrink-0">
-                          {isOrganizer ? "Organizer" : "You"}
+                          {t.event.you}
                         </span>
                       )
                     }
@@ -627,6 +635,8 @@ return (
                   trustLabel={player.trustLabel}
                   divider
                   avatarOnly={isMobile}
+                  rowId={player.id}
+                  touchHovered={rosterHoveredId === player.id}
                   onClick={() => { if (isMe) navigate("/profile", { state: { hub } }); else { navDir.forward(); navigate(playerProfilePath(player.id), { state: { hub } }); } }}
                   primary={
                     <span className={`font-bold text-sm block truncate ${isMe ? theme.primary : "text-[var(--ink)]"}`}>{player.name}</span>

@@ -25,6 +25,7 @@ import { StatusBadge } from "../../components/ui/StatusBadge";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../lib/AuthContext";
 import { isPastDate } from "../../lib/eventDate";
+import { stripHandle, displayHandle } from "../../lib/handle";
 import { encodeNotification } from "../../lib/notificationText";
 import { LABEL_META, SENTIMENT_COLOR, effectiveLabel, labelName, type TrustLabel } from "../../lib/trustLabel";
 import { useExclusiveOpen } from "../../lib/exclusiveOpen";
@@ -286,8 +287,8 @@ export function AdminPlayerProfile() {
       birth_date: detailsDraft.birthDate || null,
       phone: detailsDraft.phone || null,
       email: detailsDraft.email || null,
-      telegram: detailsDraft.telegram || null,
-      instagram: detailsDraft.instagram || null,
+      telegram: stripHandle(detailsDraft.telegram) || null,
+      instagram: stripHandle(detailsDraft.instagram) || null,
     });
     setEditingDetails(false);
     fireToast("Details updated");
@@ -716,17 +717,19 @@ export function AdminPlayerProfile() {
             />
             <ContactRow
               editing={editingDetails}
-              href={`https://t.me/${(player.telegram ?? "").replace("@", "")}`} external
+              href={`https://t.me/${stripHandle(player.telegram)}`} external
               icon={<Send size={14} className="text-white -ml-0.5" />} iconBg="bg-[var(--brand)]"
-              label={t.profile.telegram} displayValue={player.telegram ?? ""} editValue={detailsDraft.telegram}
-              onChange={v => setDetailsField("telegram", v)}
+              label={t.profile.telegram} displayValue={displayHandle(player.telegram)} editValue={detailsDraft.telegram}
+              prefix="@"
+              onChange={v => setDetailsField("telegram", stripHandle(v))}
             />
             <ContactRow
               editing={editingDetails}
-              href={`https://instagram.com/${(player.instagram ?? "").replace("@", "")}`} external
+              href={`https://instagram.com/${stripHandle(player.instagram)}`} external
               icon={<Instagram size={14} className="text-white" />} iconBg="bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888]"
-              label={t.profile.instagram} displayValue={player.instagram ? `@${player.instagram.replace("@", "")}` : ""} editValue={detailsDraft.instagram}
-              onChange={v => setDetailsField("instagram", v)}
+              label={t.profile.instagram} displayValue={displayHandle(player.instagram)} editValue={detailsDraft.instagram}
+              prefix="@"
+              onChange={v => setDetailsField("instagram", stripHandle(v))}
             />
           </div>
         </section>

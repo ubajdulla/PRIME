@@ -19,15 +19,20 @@ interface ProfileRowProps {
   verified?: boolean;
   trustLabel?: string | null;
   onClick?: () => void;
-  // When true, only the avatar navigates to the profile - the rest of the
-  // row (name, trailing actions) stays inert. Needed anywhere `trailing`
-  // holds its own interactive button: making the whole row a <button> would
-  // nest a <button> inside a <button>, which browsers handle inconsistently
-  // (the outer row swallows the inner button's click).
+  // When true, only the avatar + name navigate to the profile - `trailing`
+  // stays inert. Needed anywhere `trailing` holds its own interactive
+  // button: making the whole row a <button> would nest a <button> inside a
+  // <button>, which browsers handle inconsistently (the outer row swallows
+  // the inner button's click).
   avatarOnly?: boolean;
   variant?: "card" | "row";
   divider?: boolean;
   className?: string;
+  // Identifies this row for useTouchHoverList - set together with
+  // `touchHovered` so a finger dragging down the list highlights whichever
+  // row it's currently crossing, the touch equivalent of :hover.
+  rowId?: string;
+  touchHovered?: boolean;
 }
 
 export function ProfileRow({
@@ -46,6 +51,8 @@ export function ProfileRow({
   variant = "row",
   divider = false,
   className = "",
+  rowId,
+  touchHovered = false,
 }: ProfileRowProps) {
   const clickable = !!onClick;
   const rowClickable = clickable && !avatarOnly;
@@ -53,8 +60,9 @@ export function ProfileRow({
   const shellClass = variant === "card" ? "bg-[var(--surface-1)] rounded-xl p-2.5" : "p-2.5";
   // The background-hover cue stays even in avatarOnly mode (nice on the
   // card variant), just without `cursor-pointer` - the row itself no longer
-  // performs a click action, only the avatar button nested inside it does.
+  // performs a click action, only the avatar+name button nested inside it does.
   const hoverClass = clickable ? `hover:bg-[var(--surface-hover)] ${rowClickable ? "cursor-pointer" : ""} ${variant === "card" ? "rounded-xl" : ""}` : "";
+  const touchHoverClass = touchHovered ? "bg-[var(--surface-hover)]" : "";
   const dividerClass = divider ? "relative before:absolute before:top-0 before:left-2.5 before:right-2.5 before:h-px before:bg-[var(--ink)]/[0.06] first:before:hidden" : "";
 
   const avatarInner = (
@@ -76,30 +84,39 @@ export function ProfileRow({
     </>
   );
 
+  const nameBlock = (
+    <div className="flex-1 min-w-0">
+      {eyebrow && <div className="text-[10px] font-bold text-[#79828b] uppercase tracking-widest leading-tight">{eyebrow}</div>}
+      {primary}
+      {secondary}
+    </div>
+  );
+
   return (
     <Tag
       {...(rowClickable ? { type: "button" as const, onClick } : {})}
-      className={`flex items-center gap-3 w-full text-left transition-colors focus:outline-none ${shellClass} ${hoverClass} ${dividerClass} ${className}`}
+      {...(rowId ? { "data-touch-hover-id": rowId } : {})}
+      className={`flex items-center gap-3 w-full text-left transition-colors focus:outline-none ${shellClass} ${hoverClass} ${touchHoverClass} ${dividerClass} ${className}`}
     >
       {avatarOnly && clickable ? (
         <button
           type="button"
           onClick={e => { e.stopPropagation(); onClick(); }}
-          className="relative shrink-0 rounded-full transition-opacity hover:opacity-80"
-          style={{ width: avatarSize, height: avatarSize }}
+          className="flex items-center gap-3 flex-1 min-w-0 text-left rounded-full transition-opacity hover:opacity-80"
         >
-          {avatarInner}
+          <div className="relative shrink-0" style={{ width: avatarSize, height: avatarSize }}>
+            {avatarInner}
+          </div>
+          {nameBlock}
         </button>
       ) : (
-        <div className="relative shrink-0" style={{ width: avatarSize, height: avatarSize }}>
-          {avatarInner}
-        </div>
+        <>
+          <div className="relative shrink-0" style={{ width: avatarSize, height: avatarSize }}>
+            {avatarInner}
+          </div>
+          {nameBlock}
+        </>
       )}
-      <div className="flex-1 min-w-0">
-        {eyebrow && <div className="text-[10px] font-bold text-[#79828b] uppercase tracking-widest leading-tight">{eyebrow}</div>}
-        {primary}
-        {secondary}
-      </div>
       {trailing}
     </Tag>
   );

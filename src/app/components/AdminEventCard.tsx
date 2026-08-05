@@ -78,7 +78,7 @@ export function AdminEventCard({
 
   return (
     <div
-      className={`group relative bg-[var(--surface-1)] rounded-xl transition-colors overflow-hidden cursor-pointer hover:border-[var(--ink)]/10 ${treatment.border} ${treatment.opacity}`}
+      className={`group relative bg-[var(--surface-1)] rounded-xl transition-colors overflow-hidden cursor-pointer hover:border-[var(--ink)]/10 hover:bg-[var(--surface-hover)] ${treatment.border} ${treatment.opacity}`}
       onClick={() => onNavigate(`/admin/events/${event.id}`)}
       onPointerDown={cardRipple.onPointerDown}
     >

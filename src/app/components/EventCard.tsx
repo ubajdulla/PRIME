@@ -47,7 +47,7 @@ export const EventCard = memo(function EventCard({
   return (
     <Link
       to={`/events/${id}`}
-      className={`block relative group rounded-2xl bg-[var(--surface-1)] shadow-sm hover:shadow-md transition-shadow overflow-hidden ${
+      className={`block relative group rounded-2xl bg-[var(--surface-1)] shadow-sm hover:shadow-md hover:bg-[var(--surface-hover)] transition-[box-shadow,background-color] overflow-hidden ${
         horizontal ? 'min-w-[280px] w-[280px] flex-shrink-0' : 'w-full'
       }`}
     >

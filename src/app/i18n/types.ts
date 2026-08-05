@@ -246,6 +246,12 @@ export interface Dict {
     inLabel: string;
     total: string;
     unknownPlayer: string;
+    noActivityYet: string;
+    deletePlayersTitle: (n: number) => string;
+    deletePlayersSub: string;
+    playersDeleted: (n: number) => string;
+    playersDeleteFailedAll: string;
+    playersDeletePartial: (deleted: number, failed: number) => string;
     statusAll: string;
     statusPaymentPending: string;
     statusWarnings: string;

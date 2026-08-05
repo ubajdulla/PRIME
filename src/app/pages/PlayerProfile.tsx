@@ -10,6 +10,7 @@ import { SkillLevelIcon } from "../components/ui/SkillLevelIcon";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { shortDate, isPastDate } from "../lib/eventDate";
+import { stripHandle, displayHandle } from "../lib/handle";
 import { getHub } from "../lib/hub";
 import { useLang } from "../i18n";
 
@@ -138,26 +139,26 @@ export function PlayerProfile() {
             </div>
             <div className="bg-[var(--surface-1)] rounded-xl overflow-hidden">
               {player.telegram && player.show_telegram !== false && (
-                <a href={`https://t.me/${player.telegram.replace("@", "")}`} target="_blank" rel="noopener noreferrer"
+                <a href={`https://t.me/${stripHandle(player.telegram)}`} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-hover)] active:bg-[var(--surface-active)] transition-colors">
                   <div className="w-8 h-8 rounded-full bg-[var(--brand)] flex items-center justify-center shrink-0">
                     <Send size={14} className="text-white -ml-0.5" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[11px] text-[#aaa] mb-0.5">{t.profile.telegram}</div>
-                    <div className="text-sm text-[var(--ink)]">{player.telegram}</div>
+                    <div className="text-sm text-[var(--ink)]">{displayHandle(player.telegram)}</div>
                   </div>
                 </a>
               )}
               {player.instagram && player.show_instagram !== false && (
-                <a href={`https://instagram.com/${player.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer"
+                <a href={`https://instagram.com/${stripHandle(player.instagram)}`} target="_blank" rel="noopener noreferrer"
                   className={`relative flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-hover)] active:bg-[var(--surface-active)] transition-colors ${player.telegram && player.show_telegram !== false ? "before:absolute before:top-0 before:left-4 before:right-4 before:h-px before:bg-[var(--ink)]/[0.06]" : ""}`}>
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888] flex items-center justify-center shrink-0">
                     <Instagram size={14} className="text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[11px] text-[#aaa] mb-0.5">{t.profile.instagram}</div>
-                    <div className="text-sm text-[var(--ink)]">@{player.instagram.replace("@", "")}</div>
+                    <div className="text-sm text-[var(--ink)]">{displayHandle(player.instagram)}</div>
                   </div>
                 </a>
               )}

@@ -6,6 +6,7 @@ import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { SKILL_STYLE, levelLabel, POSITIONS, positionLabel } from "../data/adminData";
 import { shortDate, isPastDate } from "../lib/eventDate";
+import { stripHandle, displayHandle } from "../lib/handle";
 import {
   Phone, Mail, Instagram, Send, MapPin, Calendar, Clock,
   Pencil, Camera, LogOut, User, MoreVertical, OctagonX, ThumbsUp, Flag, Globe,
@@ -331,29 +332,29 @@ export function Profile() {
             />
             <ContactRow
               editing={editingContact}
-              href={`https://t.me/${profile.telegram ?? ""}`}
+              href={`https://t.me/${stripHandle(profile.telegram)}`}
               external
               icon={<Send size={14} className="text-white -ml-0.5" />}
               iconBg="bg-[var(--brand)]"
               label={t.profile.telegram}
-              displayValue={`@${profile.telegram ?? ""}`}
+              displayValue={displayHandle(profile.telegram)}
               editValue={draft.telegram}
               prefix="@"
-              onChange={v => setDraftField("telegram", v.replace(/^@/, ""))}
+              onChange={v => setDraftField("telegram", stripHandle(v))}
               showToOthers={profile.show_telegram}
               onToggleShowToOthers={() => updateProfile({ show_telegram: !profile.show_telegram })}
             />
             <ContactRow
               editing={editingContact}
-              href={`https://instagram.com/${profile.instagram ?? ""}`}
+              href={`https://instagram.com/${stripHandle(profile.instagram)}`}
               external
               icon={<Instagram size={15} className="text-white" />}
               iconBg="bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888]"
               label={t.profile.instagram}
-              displayValue={`@${profile.instagram ?? ""}`}
+              displayValue={displayHandle(profile.instagram)}
               editValue={draft.instagram}
               prefix="@"
-              onChange={v => setDraftField("instagram", v.replace(/^@/, ""))}
+              onChange={v => setDraftField("instagram", stripHandle(v))}
               showToOthers={profile.show_instagram}
               onToggleShowToOthers={() => updateProfile({ show_instagram: !profile.show_instagram })}
             />
