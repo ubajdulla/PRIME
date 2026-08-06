@@ -252,6 +252,11 @@ export interface Dict {
     playersDeleted: (n: number) => string;
     playersDeleteFailedAll: string;
     playersDeletePartial: (deleted: number, failed: number) => string;
+    deleteNotesTitle: (n: number) => string;
+    deleteNotesSub: string;
+    notesDeleted: (n: number) => string;
+    notesDeleteFailedAll: string;
+    notesDeletePartial: (deleted: number, failed: number) => string;
     statusAll: string;
     statusPaymentPending: string;
     statusWarnings: string;

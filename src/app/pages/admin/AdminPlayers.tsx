@@ -8,6 +8,7 @@ import { VerifiedBadge } from "../../components/ui/VerifiedBadge";
 import { SkillLevelIcon } from "../../components/ui/SkillLevelIcon";
 import { Toast } from "../../components/ui/Toast";
 import { ConfirmModal, type ModalOrigin } from "../../components/ui/Modal";
+import { ModAvatarIcon } from "../../components/ui/ModAvatarIcon";
 import { useWaterRipple, RippleLayer } from "../../components/ui/useWaterRipple";
 import { LABEL_META, SENTIMENT_COLOR, effectiveLabel, labelName } from "../../lib/trustLabel";
 import { navDir } from "../../lib/navDir";
@@ -44,6 +45,10 @@ const STATUSES = ["All", "Payment Pending", "Warnings", "No-show", "Disrespect",
 // the tab reads as a history of that action rather than only its current state.
 const ACTION_STATUSES = ["Skill Change", "Banned", "Suspended"] as const;
 type ActionStatus = typeof ACTION_STATUSES[number];
+// Sections whose cards are individual player_notes log entries rather than
+// deduped per-player state - Select + Delete here removes the note itself
+// (see confirmDeleteSelected), not the player it's about.
+const NOTE_LOG_STATUSES: readonly Status[] = ["All", ...ACTION_STATUSES];
 function matchesActionStatus(n: NoteRow, s: ActionStatus): boolean {
   const b = n.body;
   if (s === "Skill Change") return b.startsWith("Skill level changed");
@@ -145,18 +150,21 @@ function classifyActivity(n: NoteRow, t: Dict): ActivityKind {
 // so a full unmount/remount - on every parent render).
 const PlayerActivityCard = memo(function PlayerActivityCard({
   avatar, name, color, title, subtitle, onClick,
-  playerId, selectKey, selectMode = false, selected = false, onToggleSelect,
+  deleteId, selectKey, selectMode = false, selected = false, onToggleSelect,
 }: {
   avatar: string | null; name: string; color: string; title: string; subtitle: React.ReactNode; onClick?: () => void;
   // When selectMode is on, tapping the card toggles selection instead of
   // navigating - same behavior as AlertRow in Alerts.tsx. selectKey is the
   // per-card identity used for the checkbox (a note id when a player can
-  // have more than one card on screen, e.g. Recent Activity - playerId
-  // alone would check every card belonging to that player at once).
-  // playerId is always the one actually deleted.
-  playerId?: string; selectKey?: string; selectMode?: boolean; selected?: boolean; onToggleSelect?: (key: string, playerId: string) => void;
+  // have more than one card on screen, e.g. Recent Activity - the player id
+  // alone would check every card belonging to that player at once). deleteId
+  // is whatever actually gets deleted on confirm - a note id in note-log
+  // sections (Recent Activity, Skill Change/Banned/Suspended), a player id
+  // everywhere else - so it stays selectable even for a note whose player
+  // no longer resolves (onClick is undefined then, but deletion still works).
+  deleteId?: string; selectKey?: string; selectMode?: boolean; selected?: boolean; onToggleSelect?: (key: string, deleteId: string) => void;
 }) {
-  const handleClick = selectMode && playerId && onToggleSelect ? () => onToggleSelect(selectKey ?? playerId, playerId) : onClick;
+  const handleClick = selectMode && deleteId && onToggleSelect ? () => onToggleSelect(selectKey ?? deleteId, deleteId) : onClick;
   return (
     <button
       type="button"
@@ -350,11 +358,13 @@ export function AdminPlayers() {
   // by each card's own identity (a note id where a player can have more than
   // one card on screen, e.g. Recent Activity), not by player id - otherwise
   // tapping one of a player's several cards would mark all of that player's
-  // cards as selected. The map's values are the actual player ids to delete,
-  // deduped automatically since a player can only be deleted once.
+  // cards as selected. The map's values are whatever confirmDeleteSelected
+  // actually deletes: a player_notes id in note-log sections (see
+  // NOTE_LOG_STATUSES/deleteMode below), a profiles id everywhere else -
+  // deduped automatically since the same row can only be deleted once.
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Map<string, string>>(new Map());
-  const selectedPlayerIds = useMemo(() => new Set(selected.values()), [selected]);
+  const selectedIds = useMemo(() => new Set(selected.values()), [selected]);
   const selectedKeys = useMemo(() => new Set(selected.keys()), [selected]);
   const [deleteOrigin, setDeleteOrigin] = useState<ModalOrigin>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -383,10 +393,10 @@ export function AdminPlayers() {
     if (target.closest("[data-select-card], [data-select-toggle], [data-select-fab]")) return;
     exitSelectMode();
   }
-  function toggleSelected(key: string, playerId: string) {
+  function toggleSelected(key: string, id: string) {
     setSelected(prev => {
       const next = new Map(prev);
-      if (next.has(key)) next.delete(key); else next.set(key, playerId);
+      if (next.has(key)) next.delete(key); else next.set(key, id);
       return next;
     });
   }
@@ -395,16 +405,36 @@ export function AdminPlayers() {
     setDeleteOrigin(rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null);
     setShowDeleteConfirm(true);
   }
-  // profiles.id has no cascade/set-null from events.moderator_id, so deleting
-  // a player who ever moderated an event fails at the DB level - each id is
-  // deleted individually (not one batched .in() call) so one FK failure
-  // doesn't roll back the whole selection, and the toast reports exactly
-  // which players went through.
+  // Branches on deleteMode (defined below, once contentStatus exists):
+  // note-log sections delete the player_notes row itself, leaving the player
+  // untouched - everywhere else this still deletes the player. profiles.id
+  // has no cascade/set-null from events.moderator_id, so deleting a player
+  // who ever moderated an event fails at the DB level - each id is deleted
+  // individually (not one batched .in() call) so one failure doesn't roll
+  // back the whole selection, and the toast reports exactly how many went
+  // through.
   async function confirmDeleteSelected() {
-    const ids = [...selectedPlayerIds];
+    const ids = [...selectedIds];
+    const mode = deleteMode;
     setShowDeleteConfirm(false);
     setSelectMode(false);
     setSelected(new Map());
+    if (mode === "notes") {
+      const results = await Promise.all(ids.map(async id => {
+        const { error } = await supabase.from("player_notes").delete().eq("id", id);
+        return { id, ok: !error };
+      }));
+      const succeeded = results.filter(r => r.ok).map(r => r.id);
+      const failed = results.length - succeeded.length;
+      if (succeeded.length) {
+        setActivity(prev => prev.filter(n => !succeeded.includes(n.id)));
+        setRecentNotes(prev => prev.filter(n => !succeeded.includes(n.id)));
+      }
+      if (failed === 0) fireToast(t.admin.notesDeleted(succeeded.length), "success");
+      else if (succeeded.length === 0) fireToast(t.admin.notesDeleteFailedAll, "error");
+      else fireToast(t.admin.notesDeletePartial(succeeded.length, failed), "error");
+      return;
+    }
     const results = await Promise.all(ids.map(async id => {
       const { error } = await supabase.from("profiles").delete().eq("id", id);
       return { id, ok: !error };
@@ -445,6 +475,7 @@ export function AdminPlayers() {
   const [, startTransition] = useTransition();
   const handleStatusClick = (s: Status) => {
     setStatus(s);
+    setSelected(new Map());
     startTransition(() => setContentStatus(s));
   };
   // category drives the circle's opacity highlight and updates synchronously
@@ -457,8 +488,27 @@ export function AdminPlayers() {
   const handleCategoryClick = (c: Category) => {
     const next = category === c ? null : c;
     setCategory(next);
+    setSelected(new Map());
     startTransition(() => setContentCategory(next));
   };
+  // Which table Select + Delete targets for whatever section is currently
+  // visible - a note-log section (Recent Activity, Skill Change/Banned/
+  // Suspended) deletes the player_notes row; every other section (category
+  // browse, search, recently searched, the trust-label status tabs, No
+  // Label) deletes the player. Selection is cleared on every switch above so
+  // stale ids from one mode never carry into the other.
+  const deleteMode: "notes" | "players" =
+    !focused && (NOTE_LOG_STATUSES as readonly Status[]).includes(contentStatus) ? "notes" : "players";
+  // Ban/Suspend/Skill-change all personalize their confirm icon with the
+  // affected player's photo (ModAvatarIcon) instead of a generic glyph - the
+  // delete confirm matches that for the common single-item case, falling
+  // back to an empty frame once more than one thing is selected.
+  const soleSelectedAvatar = useMemo(() => {
+    if (selectedIds.size !== 1) return null;
+    const id = [...selectedIds][0];
+    const playerId = deleteMode === "notes" ? recentNotes.find(n => n.id === id)?.player_id : id;
+    return players.find(p => p.id === playerId)?.avatar ?? null;
+  }, [selectedIds, deleteMode, recentNotes, players]);
   const [recentTick, setRecentTick] = useState(0);
   // Players whose notes mention the current search text — kept separate from
   // the player fields since it needs its own (debounced) query instead of a
@@ -528,12 +578,13 @@ export function AdminPlayers() {
     navigate(`/admin/player/${p.id}`);
   }
 
-  function enterFocus() { setFocused(true); }
+  function enterFocus() { setFocused(true); setSelected(new Map()); }
   function exitFocus() {
     setFocused(false);
     setSearch("");
     setCategory(null);
     setContentCategory(null);
+    setSelected(new Map());
     searchRef.current?.blur();
   }
 
@@ -728,8 +779,7 @@ export function AdminPlayers() {
                         title={title}
                         subtitle={`${n.author_name} · ${timeAgo(n.created_at, t)}`}
                         onClick={target ? () => goToPlayer(target) : undefined}
-                        playerId={target?.id}
-                        selectKey={n.id}
+                        deleteId={n.id}
                         selectMode={selectMode}
                         selected={selectedKeys.has(n.id)}
                         onToggleSelect={toggleSelected}
@@ -762,7 +812,7 @@ export function AdminPlayers() {
                         title={title}
                         subtitle={`${n.author_name} · ${timeAgo(n.created_at, t)}`}
                         onClick={() => goToPlayer(p)}
-                        playerId={p.id}
+                        deleteId={p.id}
                         selectMode={selectMode}
                         selected={selectedKeys.has(p.id)}
                         onToggleSelect={toggleSelected}
@@ -796,8 +846,7 @@ export function AdminPlayers() {
                         title={title}
                         subtitle={`${n.author_name} · ${timeAgo(n.created_at, t)}`}
                         onClick={target ? () => goToPlayer(target) : undefined}
-                        playerId={target?.id}
-                        selectKey={n.id}
+                        deleteId={n.id}
                         selectMode={selectMode}
                         selected={selectedKeys.has(n.id)}
                         onToggleSelect={toggleSelected}
@@ -830,7 +879,7 @@ export function AdminPlayers() {
                         title={title}
                         subtitle={`${n.author_name} · ${timeAgo(n.created_at, t)}`}
                         onClick={() => goToPlayer(p)}
-                        playerId={p.id}
+                        deleteId={p.id}
                         selectMode={selectMode}
                         selected={selectedKeys.has(p.id)}
                         onToggleSelect={toggleSelected}
@@ -905,7 +954,7 @@ export function AdminPlayers() {
         </FadeIn>
       )}
 
-      {selectMode && selectedPlayerIds.size > 0 && !showDeleteConfirm && (
+      {selectMode && selectedIds.size > 0 && !showDeleteConfirm && (
         <button
           ref={deleteBtnRef}
           type="button"
@@ -916,7 +965,7 @@ export function AdminPlayers() {
         >
           <Trash2 size={19} className="text-white" />
           <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--surface-0)] border-2 border-[var(--surface-0)] flex items-center justify-center text-[10px] font-bold text-[var(--ink)]">
-            {selectedPlayerIds.size}
+            {selectedIds.size}
           </span>
         </button>
       )}
@@ -924,10 +973,10 @@ export function AdminPlayers() {
       {showDeleteConfirm && (
         <ConfirmModal
           origin={deleteOrigin}
-          icon={<Trash2 size={18} className="text-[#ef4444]" />}
-          iconBg="bg-[#ef4444]/10 border-[#ef4444]/30"
-          title={t.admin.deletePlayersTitle(selectedPlayerIds.size)}
-          sub={t.admin.deletePlayersSub}
+          icon={<ModAvatarIcon avatar={soleSelectedAvatar} tint="bg-[#7f1d1d]/45" icon={<Trash2 size={18} className="text-white" />} />}
+          iconBg="border-[#ef4444]/30"
+          title={deleteMode === "notes" ? t.admin.deleteNotesTitle(selectedIds.size) : t.admin.deletePlayersTitle(selectedIds.size)}
+          sub={deleteMode === "notes" ? t.admin.deleteNotesSub : t.admin.deletePlayersSub}
           cancelLabel={t.common.cancel}
           onCancel={() => {
             setShowDeleteConfirm(false);
