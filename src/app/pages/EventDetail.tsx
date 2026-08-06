@@ -171,7 +171,6 @@ export function EventDetail() {
     }
     setEvent(row);
 
-    const moderatorId = row.moderator_id;
     const rosterList: RosterPlayer[] = isGuestViewer
       ? ((participantRows ?? []) as unknown as { id: string; name: string; avatar: string | null; position: string | null; team_name: string | null; is_verified: boolean; is_guest: boolean }[]).map(p => ({
           id: p.id,
@@ -193,7 +192,6 @@ export function EventDetail() {
           verified: p.profiles?.is_verified ?? false,
           isGuest: !p.player_id,
         }));
-    rosterList.sort((a, b) => (a.id === moderatorId ? -1 : 0) - (b.id === moderatorId ? -1 : 0));
     setRoster(rosterList);
 
     // Requests (pending approval on REQUEST ONLY events) show up in the same
