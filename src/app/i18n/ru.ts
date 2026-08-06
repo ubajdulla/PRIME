@@ -381,6 +381,7 @@ export const ru: Dict = {
     uploadPdf: "Загрузить PDF",
     uploading: "Загрузка...",
     eventImage: "Изображение события",
+    uploadCoverPhoto: "Загрузить обложку",
     category: "Категория",
     level: "Уровень",
     startTime: "Начало",

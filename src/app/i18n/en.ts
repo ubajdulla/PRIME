@@ -367,6 +367,7 @@ export const en: Dict = {
     uploadPdf: "Upload PDF",
     uploading: "Uploading...",
     eventImage: "Event Image",
+    uploadCoverPhoto: "Upload cover photo",
     category: "Category",
     level: "Level",
     startTime: "Start Time",

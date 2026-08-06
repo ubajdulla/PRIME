@@ -364,6 +364,7 @@ export interface Dict {
     uploadPdf: string;
     uploading: string;
     eventImage: string;
+    uploadCoverPhoto: string;
     category: string;
     level: string;
     startTime: string;

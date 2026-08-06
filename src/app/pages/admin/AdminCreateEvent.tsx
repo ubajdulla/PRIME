@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Camera, Check, ChevronDown, FileText, X } from "lucide-react";
+import { Camera, Check, ChevronDown, FileText, Upload, X } from "lucide-react";
 import { SKILL_ORDER } from "../../data/adminData";
 import { BackBar } from "../../components/ui/BackBar";
 import { SelectField } from "../../components/ui/SelectField";
@@ -52,6 +52,7 @@ export function AdminCreateEvent() {
   const { user: authUser } = useAuth();
   const isEditMode = !!editId;
   const saveRipple = useWaterRipple();
+  const imageRipple = useWaterRipple();
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [done, setDone] = useState(false);
@@ -340,25 +341,40 @@ export function AdminCreateEvent() {
           </Field>
         </FieldGroup>
 
-        {/* Image — defaults to the category art; tap the icon to upload a custom
-            cover. Sized/rounded exactly like the feed EventCard's image slot
-            (px-3 pt-3 wrapper + h-36 md:h-44 rounded-xl) so this preview shows
-            the real size players will see, not an approximation. */}
+        {/* Image — two honest states, not one icon trying to cover both. No
+            custom upload yet means the category art is a placeholder, not
+            "your" photo, so it gets a dashed dropzone frame + explicit
+            upload prompt. Once a real image is set, that prompt would be
+            redundant, so it steps back to a quiet corner badge (same
+            pattern as the avatar pickers on Profile/AdminPlayerProfile). */}
         <div>
           <span className="block text-[#79828b] text-[11px] font-black uppercase tracking-widest mb-2">{t.admin.eventImage}</span>
-          <div className="bg-[var(--surface-1)] rounded-2xl px-3 pt-3 pb-3 border border-[var(--ink)]/10">
-            <label className="relative block cursor-pointer">
-              <div className="w-full h-36 md:h-44 rounded-xl overflow-hidden bg-[var(--surface-0)]">
-                <img src={f.imageUrl || image} alt="" className={`w-full h-full object-cover transition-opacity ${uploadingImage ? "opacity-50" : ""}`} />
-              </div>
-              <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className="w-14 h-14 rounded-full bg-[var(--brand)] border-2 border-[var(--surface-0)] flex items-center justify-center">
-                  <Camera size={22} className="text-white" />
+          <label onPointerDown={imageRipple.onPointerDown} className={`group relative block cursor-pointer rounded-2xl overflow-hidden transition-colors ${
+            f.imageUrl ? "border border-[var(--ink)]/10" : "border-2 border-dashed border-[#79828b]/50 hover:border-[#79828b]"
+          }`}>
+            <div className="w-full h-40 md:h-48 bg-[var(--surface-1)]">
+              <img src={f.imageUrl || image} alt="" className={`w-full h-full object-cover transition-[filter,opacity] group-hover:brightness-90 ${uploadingImage ? "opacity-50" : ""}`} />
+            </div>
+            {f.imageUrl ? (
+              <>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+                <span className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-[var(--brand)] border-2 border-[var(--surface-0)] flex items-center justify-center pointer-events-none transition-colors group-hover:bg-[var(--brand-hover)]">
+                  <Camera size={16} className="text-white" />
                 </span>
+              </>
+            ) : (
+              // Dark scrim behind the prompt, not just the icon/text on their own -
+              // the category photo underneath is a real, busy image (not a blank
+              // placeholder), so white-on-photo alone washed out depending on what
+              // was in frame. The scrim guarantees contrast no matter the photo.
+              <span className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center gap-1.5 pointer-events-none transition-colors group-hover:bg-black/65">
+                <Upload size={20} className="text-white" />
+                <span className="text-white text-[11.5px] font-extrabold">{t.admin.uploadCoverPhoto}</span>
               </span>
-              <input type="file" accept="image/*" className="hidden" disabled={uploadingImage} onChange={handleImageChange} />
-            </label>
-          </div>
+            )}
+            <RippleLayer ripples={imageRipple.ripples} />
+            <input type="file" accept="image/*" className="hidden" disabled={uploadingImage} onChange={handleImageChange} />
+          </label>
         </div>
 
         {/* Category + Level */}
