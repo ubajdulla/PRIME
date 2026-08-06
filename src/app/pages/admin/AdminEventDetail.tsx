@@ -139,7 +139,6 @@ export function AdminEventDetail() {
     if (error || !eventRow) { setNotFound(true); setLoading(false); return; }
 
     setEvent(eventRow as unknown as EventRow);
-    const moderatorId = (eventRow as unknown as EventRow).moderator_id;
     const rosterMapped = (participantRows ?? []).map(p => ({
       id: p.profiles?.id ?? `guest-${p.id}`,
       rowId: p.id,
@@ -153,7 +152,7 @@ export function AdminEventDetail() {
       trustLabel: p.profiles?.visible_trust_label ?? null,
       sortOrder: p.sort_order,
     }));
-    setRoster([...rosterMapped].sort((a, b) => (a.id === moderatorId ? -1 : 0) - (b.id === moderatorId ? -1 : 0)));
+    setRoster(rosterMapped);
     setRequests((requestRows ?? []).filter(r => r.kind === "request").map(r => ({
       id: r.profiles?.id ?? r.player_id, name: r.profiles?.name ?? "Unknown", avatar: r.profiles?.avatar ?? null,
       position: r.position ?? r.profiles?.position ?? null,
