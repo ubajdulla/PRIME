@@ -150,8 +150,8 @@ export function EventDetail() {
     const [{ data: eventRow, error: eventErr }, { data: participantRows }, { data: requestRows }] = await Promise.all([
       supabase.from("events").select("*, moderator:profiles!moderator_id(id, name, avatar)").eq("id", eventId).single(),
       isGuestViewer
-        ? supabase.from("public_roster").select("id, name, avatar, position, team_name, is_verified, is_guest").eq("event_id", eventId).order("joined_at", { ascending: true })
-        : supabase.from("event_participants").select("id, player_id, guest_name, joined_at, position, team_name, profiles(id, name, avatar, position, is_verified, visible_trust_label)").eq("event_id", eventId).order("joined_at", { ascending: true }),
+        ? supabase.from("public_roster").select("id, name, avatar, position, team_name, is_verified, is_guest").eq("event_id", eventId).order("sort_order", { ascending: true })
+        : supabase.from("event_participants").select("id, player_id, guest_name, joined_at, position, team_name, profiles(id, name, avatar, position, is_verified, visible_trust_label)").eq("event_id", eventId).order("sort_order", { ascending: true }),
       isGuestViewer
         ? Promise.resolve({ data: [] as { player_id: string; kind: string; profiles: { id: string; name: string; avatar: string | null; is_verified: boolean; visible_trust_label: string | null } | null }[] })
         : supabase.from("event_requests").select("player_id, kind, profiles(id, name, avatar, is_verified, visible_trust_label)").eq("event_id", eventId),

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router";
 import {
-  ChevronDown, MoreVertical,
+  ChevronDown, ChevronUp, MoreVertical,
   CreditCard, Banknote, User, ArrowDownToLine,
   Trash2, CheckCheck, Share2, Send, Ban, RotateCcw, UserPlus, UserMinus,
   MapPin, Calendar, Clock, Ticket, Pencil, X, ArrowLeftRight, Lock, Unlock,
@@ -49,7 +49,7 @@ type EventRow = {
   moderator: { id: string; name: string; avatar: string | null } | null;
 };
 
-type RosterEntry = { id: string; rowId: string; name: string; avatar: string | null; position: string | null; teamName: string | null; paymentStatus: PaymentStatus; isGuest: boolean; verified: boolean; trustLabel: string | null };
+type RosterEntry = { id: string; rowId: string; name: string; avatar: string | null; position: string | null; teamName: string | null; paymentStatus: PaymentStatus; isGuest: boolean; verified: boolean; trustLabel: string | null; sortOrder: number };
 type PersonEntry = { id: string; name: string; avatar: string | null; position: string | null; teamName: string | null };
 
 export function AdminEventDetail() {
@@ -132,7 +132,7 @@ export function AdminEventDetail() {
   async function load(eventId: string) {
     const [{ data: eventRow, error }, { data: participantRows }, { data: requestRows }] = await Promise.all([
       supabase.from("events").select("*, moderator:profiles!moderator_id(id, name, avatar)").eq("id", eventId).single(),
-      supabase.from("event_participants").select("id, player_id, guest_name, payment_status, joined_at, position, team_name, profiles(id, name, avatar, position, is_verified, visible_trust_label)").eq("event_id", eventId).order("joined_at", { ascending: true }),
+      supabase.from("event_participants").select("id, player_id, guest_name, payment_status, joined_at, position, team_name, sort_order, profiles(id, name, avatar, position, is_verified, visible_trust_label)").eq("event_id", eventId).order("sort_order", { ascending: true }),
       supabase.from("event_requests").select("player_id, kind, created_at, position, team_name, profiles(id, name, avatar)").eq("event_id", eventId).order("created_at", { ascending: true }),
     ]);
 
@@ -151,6 +151,7 @@ export function AdminEventDetail() {
       isGuest: !p.player_id,
       verified: p.profiles?.is_verified ?? false,
       trustLabel: p.profiles?.visible_trust_label ?? null,
+      sortOrder: p.sort_order,
     }));
     setRoster([...rosterMapped].sort((a, b) => (a.id === moderatorId ? -1 : 0) - (b.id === moderatorId ? -1 : 0)));
     setRequests((requestRows ?? []).filter(r => r.kind === "request").map(r => ({
@@ -240,6 +241,20 @@ export function AdminEventDetail() {
   async function confirmPayment(rowId: string, newStatus: PaymentStatus) {
     setRoster(prev => prev.map(p => p.rowId === rowId ? { ...p, paymentStatus: newStatus } : p));
     await supabase.from("event_participants").update({ payment_status: newStatus }).eq("id", rowId);
+  }
+
+  function moveRoster(rowId: string, direction: "up" | "down") {
+    const idx = roster.findIndex(p => p.rowId === rowId);
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= roster.length) return;
+    const a = roster[idx];
+    const b = roster[swapIdx];
+    const next = [...roster];
+    next[idx] = { ...b, sortOrder: a.sortOrder };
+    next[swapIdx] = { ...a, sortOrder: b.sortOrder };
+    setRoster(next);
+    supabase.from("event_participants").update({ sort_order: b.sortOrder }).eq("id", a.rowId).then();
+    supabase.from("event_participants").update({ sort_order: a.sortOrder }).eq("id", b.rowId).then();
   }
 
   async function removeFromEvent(rowId: string) {
@@ -910,6 +925,24 @@ export function AdminEventDetail() {
                         )}
                       </>
                     )}
+                  </div>
+                  <div className="flex flex-col shrink-0" onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      disabled={i === 0}
+                      onClick={() => moveRoster(player.rowId, "up")}
+                      className="w-5 h-4 flex items-center justify-center text-[#79828b] hover:text-[var(--ink)] disabled:opacity-20 disabled:pointer-events-none transition-colors"
+                    >
+                      <ChevronUp size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={i === roster.length - 1}
+                      onClick={() => moveRoster(player.rowId, "down")}
+                      className="w-5 h-4 flex items-center justify-center text-[#79828b] hover:text-[var(--ink)] disabled:opacity-20 disabled:pointer-events-none transition-colors"
+                    >
+                      <ChevronDown size={13} />
+                    </button>
                   </div>
                   {event.price > 0 && (
                     <div onClick={e => e.stopPropagation()}>
