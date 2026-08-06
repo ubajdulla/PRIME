@@ -5,6 +5,11 @@ const SWIPE_THRESHOLD_PX = 80;
 // swipe rather than a normal down-the-page scroll.
 const DIRECTION_RATIO = 1.5;
 const SPRING_MS = 220;
+// A touch starting this close to the left edge is left untracked when
+// onSwipeRight is wired up, so it doesn't compete with iOS/Android's own
+// edge-swipe-back gesture (installed PWAs can't have that gesture disabled
+// from JS, so the only fix is to not fight it for touches that start there).
+const EDGE_DEAD_ZONE_PX = 24;
 
 /**
  * Drag-to-navigate between adjacent tabs (e.g. AdminLayout's Events/Players
@@ -54,6 +59,11 @@ export function useHorizontalSwipe(
       const t = e.touches[0];
       if (!t) return;
       if (ignoreRef?.current?.contains(e.target as Node)) {
+        start.current = null;
+        tracking.current = false;
+        return;
+      }
+      if (onSwipeRight && t.clientX < EDGE_DEAD_ZONE_PX) {
         start.current = null;
         tracking.current = false;
         return;
