@@ -54,6 +54,7 @@ export function MainLayout() {
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   useExclusiveOpen(showLangDropdown, () => setShowLangDropdown(false));
   const [unreadAlerts, setUnreadAlerts] = useState(0);
+  const [adminHasNewSignups, setAdminHasNewSignups] = useState(false);
   const { isAdmin, user } = useAuth();
   // Hide the mobile chrome (top header, bottom tab bar) whenever the
   // on-screen keyboard is open - otherwise both stay in the layout taking
@@ -76,6 +77,14 @@ export function MainLayout() {
       .eq("recipient_id", user.id).eq("read", false)
       .then(({ count }) => setUnreadAlerts(count ?? 0));
   }, [user?.id, location.pathname]);
+
+  // Same re-check-on-every-navigation approach as unreadAlerts above, just a
+  // plain dot instead of a count - see admin_has_new_signups() (038).
+  useEffect(() => {
+    if (!isAdmin || !user) { setAdminHasNewSignups(false); return; }
+    supabase.rpc("admin_has_new_signups", { p_admin_id: user.id })
+      .then(({ data }) => setAdminHasNewSignups(!!data));
+  }, [user?.id, isAdmin, location.pathname]);
 
   // Once per session, not per navigation - checking is a couple of light
   // queries, no need to repeat it on every route change.
@@ -126,7 +135,7 @@ export function MainLayout() {
           <NavItem to="/" end icon={<Calendar size={22} />} label={t.nav.events} />
           <NavItem to="/alerts"  icon={<Bell size={22} />}        label={t.nav.alerts}  badge={unreadAlerts} />
           <NavItem to="/profile" icon={<User size={22} />}        label={t.nav.profile} />
-          {isAdmin && <NavItem to="/admin" icon={<ShieldCheck size={22} />} label={t.nav.admin} />}
+          {isAdmin && <NavItem to="/admin" icon={<ShieldCheck size={22} />} label={t.nav.admin} dot={adminHasNewSignups} />}
         </nav>
 
         {/* Desktop lang button — dropdown opens to the right */}
@@ -249,13 +258,13 @@ export function MainLayout() {
         <MobileNavItem to="/" end icon={<Calendar size={24} />} label={t.nav.events} />
         <MobileNavItem to="/alerts"  icon={<Bell size={24} />}  label={t.nav.alerts}  badge={unreadAlerts} />
         <MobileNavItem to="/profile" icon={<User size={24} />}  label={t.nav.profile} />
-        {isAdmin && <MobileNavItem to="/admin" icon={<ShieldCheck size={24} />} label={t.nav.admin} />}
+        {isAdmin && <MobileNavItem to="/admin" icon={<ShieldCheck size={24} />} label={t.nav.admin} dot={adminHasNewSignups} />}
       </nav>
     </div>
   );
 }
 
-function NavItem({ to, icon, label, end, badge }: { to: string; icon: React.ReactNode; label: string; end?: boolean; badge?: number }) {
+function NavItem({ to, icon, label, end, badge, dot }: { to: string; icon: React.ReactNode; label: string; end?: boolean; badge?: number; dot?: boolean }) {
   return (
     <NavLink
       to={to}
@@ -274,11 +283,14 @@ function NavItem({ to, icon, label, end, badge }: { to: string; icon: React.Reac
           {badge > 9 ? "9+" : badge}
         </span>
       )}
+      {!badge && dot && (
+        <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[var(--brand)]" />
+      )}
     </NavLink>
   );
 }
 
-function MobileNavItem({ to, icon, label, end, badge }: { to: string; icon: React.ReactNode; label: string; end?: boolean; badge?: number }) {
+function MobileNavItem({ to, icon, label, end, badge, dot }: { to: string; icon: React.ReactNode; label: string; end?: boolean; badge?: number; dot?: boolean }) {
   return (
     <NavLink
       to={to}
@@ -297,6 +309,9 @@ function MobileNavItem({ to, icon, label, end, badge }: { to: string; icon: Reac
           <span className="absolute -top-1 -right-1.5 min-w-[14px] h-3.5 px-1 rounded-full bg-[var(--brand)] text-white text-[9px] font-bold flex items-center justify-center">
             {badge > 9 ? "9+" : badge}
           </span>
+        )}
+        {!badge && dot && (
+          <span className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-[var(--brand)]" />
         )}
       </div>
       <span className="text-[10px] font-bold">{label}</span>

@@ -173,6 +173,16 @@ export function AdminEventDetail() {
     load(id);
   }, [id]);
 
+  // Clears this event's contribution to the Admin nav dot (038) - opening it
+  // is what "I've seen this event's new signups/requests" means.
+  useEffect(() => {
+    if (!event || !authUser) return;
+    supabase.from("admin_event_seen").upsert(
+      { admin_id: authUser.id, event_id: event.id, seen_at: new Date().toISOString() },
+      { onConflict: "admin_id,event_id" },
+    );
+  }, [event?.id, authUser?.id]);
+
   useEffect(() => {
     if (!confirmRemoveId) return;
     const t = setTimeout(() => setConfirmRemoveId(null), 3000);
