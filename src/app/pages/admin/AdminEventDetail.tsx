@@ -56,7 +56,7 @@ export function AdminEventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useLang();
-  const { user: authUser, profile: authProfile } = useAuth();
+  const { user: authUser, profile: authProfile, refreshAdminActivity } = useAuth();
   const statusRipple = useWaterRipple();
 
   const [event, setEvent] = useState<EventRow | null>(null);
@@ -173,14 +173,16 @@ export function AdminEventDetail() {
     load(id);
   }, [id]);
 
-  // Clears this event's contribution to the Admin nav dot (038) - opening it
-  // is what "I've seen this event's new signups/requests" means.
+  // Clears this event's contribution to the Admin nav dot (038, 039) -
+  // opening it is what "I've seen this event's new signups/requests" means.
+  // Explicitly re-checks afterwards so the dot disappears instantly instead
+  // of waiting for the next route change to notice.
   useEffect(() => {
     if (!event || !authUser) return;
     supabase.from("admin_event_seen").upsert(
       { admin_id: authUser.id, event_id: event.id, seen_at: new Date().toISOString() },
       { onConflict: "admin_id,event_id" },
-    );
+    ).then(() => refreshAdminActivity());
   }, [event?.id, authUser?.id]);
 
   useEffect(() => {

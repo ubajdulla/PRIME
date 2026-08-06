@@ -11,6 +11,7 @@ import { useHorizontalSwipe } from "../../lib/useHorizontalSwipe";
 import { navDir } from "../../lib/navDir";
 import { useLang } from "../../i18n";
 import { useExclusiveOpen } from "../../lib/exclusiveOpen";
+import { useAuth } from "../../lib/AuthContext";
 
 type FilterValue = "active" | "past";
 
@@ -28,11 +29,13 @@ type EventRow = {
   published_at: string | null;
   moderator: { name: string; avatar: string | null } | null;
   event_participants: { payment_status: string }[] | null;
+  last_activity_at: string | null;
 };
 
 export function AdminEvents() {
   const navigate = useNavigate();
   const { t } = useLang();
+  const { user: authUser } = useAuth();
   const FILTER_OPTIONS: { label: string; value: FilterValue }[] = [
     { label: t.admin.filterActive, value: "active" },
     { label: t.admin.filterPast,   value: "past" },
@@ -65,12 +68,19 @@ export function AdminEvents() {
       // move into the "Past" tab in the first place - see filterGroup below.
       const cutoff = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000);
       const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, "0")}-${String(cutoff.getDate()).padStart(2, "0")}`;
-      const { data } = await supabase
-        .from("events")
-        .select("id, title, event_date, event_time, location, price, price_label, capacity, category, status, published_at, moderator:profiles!moderator_id(name, avatar), event_participants(payment_status)")
-        .or(`event_date.gte.${cutoffStr},status.neq.upcoming`)
-        .order("event_date", { ascending: false });
+      const [{ data }, { data: seenRows }] = await Promise.all([
+        supabase
+          .from("events")
+          .select("id, title, event_date, event_time, location, price, price_label, capacity, category, status, published_at, last_activity_at, moderator:profiles!moderator_id(name, avatar), event_participants(payment_status)")
+          .or(`event_date.gte.${cutoffStr},status.neq.upcoming`)
+          .order("event_date", { ascending: false }),
+        authUser
+          ? supabase.from("admin_event_seen").select("event_id, seen_at").eq("admin_id", authUser.id)
+          : Promise.resolve({ data: [] as { event_id: string; seen_at: string }[] }),
+      ]);
       if (!active) return;
+
+      const seenMap = new Map((seenRows ?? []).map(r => [r.event_id, r.seen_at]));
 
       const mapped: (AdminEventCardData & { filterGroup: FilterValue; rawDate: string })[] = ((data as unknown as EventRow[]) ?? []).map(row => {
         const participants = row.event_participants ?? [];
@@ -79,6 +89,11 @@ export function AdminEvents() {
         // Drafts and canceled events always stay under "Active" (they never move to "Past");
         // only an event that actually happened as scheduled becomes "Past".
         const filterGroup: FilterValue = row.status === "upcoming" && isPast ? "past" : "active";
+        // Mirrors admin_has_new_signups() (038, 039): only "Active" events count,
+        // and only when nobody's opened this event since its last self-signup.
+        const seenAt = seenMap.get(row.id);
+        const hasNewActivity = filterGroup === "active" && !!row.last_activity_at
+          && (!seenAt || seenAt < row.last_activity_at);
         return {
           id: row.id,
           title: row.title,
@@ -97,6 +112,7 @@ export function AdminEvents() {
           rosterCount: participants.length,
           paidCount: participants.length - unpaidCount,
           unpaidCount,
+          hasNewActivity,
           filterGroup,
           rawDate: row.event_date,
         };
@@ -106,7 +122,7 @@ export function AdminEvents() {
     }
     load();
     return () => { active = false; };
-  }, []);
+  }, [authUser?.id]);
 
   const chronoAsc  = (a: typeof events[number], b: typeof events[number]) => a.rawDate.localeCompare(b.rawDate);
   const chronoDesc = (a: typeof events[number], b: typeof events[number]) => b.rawDate.localeCompare(a.rawDate);

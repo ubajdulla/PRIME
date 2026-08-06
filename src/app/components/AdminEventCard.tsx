@@ -53,6 +53,7 @@ export type AdminEventCardData = {
   rosterCount: number;
   paidCount: number;
   unpaidCount: number;
+  hasNewActivity?: boolean;
 };
 
 export function AdminEventCard({
@@ -83,6 +84,10 @@ export function AdminEventCard({
       onPointerDown={cardRipple.onPointerDown}
     >
       <RippleLayer ripples={cardRipple.ripples} />
+
+      {event.hasNewActivity && (
+        <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-[var(--brand)] ring-2 ring-[var(--surface-1)]" />
+      )}
 
       {/* Content: info left, revenue right */}
       <div className="flex items-stretch gap-0 px-4 pt-4 pb-3">

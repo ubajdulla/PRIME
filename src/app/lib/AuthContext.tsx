@@ -41,6 +41,8 @@ type AuthContextValue = {
   signUp: (fields: SignUpFields) => Promise<{ error: string | null; needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  adminHasNewSignups: boolean;
+  refreshAdminActivity: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -49,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [adminHasNewSignups, setAdminHasNewSignups] = useState(false);
 
   async function loadProfile(userId: string) {
     const { data } = await supabase
@@ -109,6 +112,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) await loadProfile(user.id);
   }
 
+  // Shared here (rather than local state in MainLayout) so AdminEventDetail
+  // can call this itself right after marking an event seen - the dot then
+  // clears instantly instead of waiting for the next route change to
+  // re-check it.
+  async function refreshAdminActivity() {
+    if (!user || !profile?.is_admin) { setAdminHasNewSignups(false); return; }
+    const { data } = await supabase.rpc("admin_has_new_signups", { p_admin_id: user.id });
+    setAdminHasNewSignups(!!data);
+  }
+
   const value: AuthContextValue = {
     user,
     profile,
@@ -119,6 +132,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp,
     signOut,
     refreshProfile,
+    adminHasNewSignups,
+    refreshAdminActivity,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

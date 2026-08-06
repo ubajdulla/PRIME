@@ -54,8 +54,7 @@ export function MainLayout() {
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   useExclusiveOpen(showLangDropdown, () => setShowLangDropdown(false));
   const [unreadAlerts, setUnreadAlerts] = useState(0);
-  const [adminHasNewSignups, setAdminHasNewSignups] = useState(false);
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, adminHasNewSignups, refreshAdminActivity } = useAuth();
   // Hide the mobile chrome (top header, bottom tab bar) whenever the
   // on-screen keyboard is open - otherwise both stay in the layout taking
   // up their normal space (they're not position: fixed, just flex children
@@ -79,11 +78,12 @@ export function MainLayout() {
   }, [user?.id, location.pathname]);
 
   // Same re-check-on-every-navigation approach as unreadAlerts above, just a
-  // plain dot instead of a count - see admin_has_new_signups() (038).
+  // plain dot instead of a count - see admin_has_new_signups() (038, 039).
+  // State itself lives in AuthContext so AdminEventDetail can also trigger
+  // an instant re-check right after marking an event seen.
   useEffect(() => {
-    if (!isAdmin || !user) { setAdminHasNewSignups(false); return; }
-    supabase.rpc("admin_has_new_signups", { p_admin_id: user.id })
-      .then(({ data }) => setAdminHasNewSignups(!!data));
+    if (!isAdmin || !user) return;
+    refreshAdminActivity();
   }, [user?.id, isAdmin, location.pathname]);
 
   // Once per session, not per navigation - checking is a couple of light
