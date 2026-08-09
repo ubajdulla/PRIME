@@ -119,19 +119,31 @@ export function useHorizontalSwipe(
       const dy = t ? t.clientY - s.y : 0;
       const cleared = Math.abs(dx) >= SWIPE_THRESHOLD_PX && Math.abs(dx) >= Math.abs(dy) * DIRECTION_RATIO;
       const dest = dx < 0 ? onSwipeLeft : onSwipeRight;
+      const target = cleared && dest ? (dx < 0 ? -(el?.offsetWidth ?? window.innerWidth) : (el?.offsetWidth ?? window.innerWidth)) : 0;
+
+      // Write the spring target straight to the DOM (not just through
+      // setDragX/setSpringing) - onTouchMove wrote the drag position the
+      // same way, bypassing React, so if the gesture ends back at the same
+      // dragX React already had (e.g. springing back to a resting 0), the
+      // setState below is a same-value no-op React skips entirely, and the
+      // element would stay stuck at onTouchMove's last imperative transform
+      // forever. The direct write guarantees the visual reset happens
+      // regardless of whether React considers the state "changed".
+      el!.style.transition = `transform ${SPRING_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`;
+      el!.style.transform = `translateX(${target}px)`;
       setSpringing(true);
+      setDragX(target);
+
       if (cleared && dest) {
-        const width = el?.offsetWidth ?? window.innerWidth;
-        setDragX(dx < 0 ? -width : width);
         window.setTimeout(() => {
           dest();
           if (resetOnComplete) {
+            el!.style.transition = "none";
+            el!.style.transform = "translateX(0px)";
             setSpringing(false);
             setDragX(0);
           }
         }, SPRING_MS);
-      } else {
-        setDragX(0);
       }
     }
 
