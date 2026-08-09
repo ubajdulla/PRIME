@@ -1294,7 +1294,7 @@ function PaymentToggle({ status, onConfirm }: { status: PaymentStatus; onConfirm
       // (К оплате/наличкой/картой), so anything content-based would make the
       // pill visibly resize itself as it cycles. Sized to fit the longest of
       // all of them so it's identical across every state and language.
-      className={`relative w-24 h-8 rounded-full overflow-hidden shrink-0 select-none touch-none ${
+      className={`relative w-24 h-8 rounded-full overflow-hidden shrink-0 select-none touch-pan-y ${
         confirmedAndSet ? `${confirmedBg}` : "bg-[var(--ink)]/5"
       }`}
     >
