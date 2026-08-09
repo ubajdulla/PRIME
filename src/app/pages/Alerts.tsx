@@ -24,6 +24,7 @@ import { Toast } from "../components/ui/Toast";
 import { FilterPill, FilterPillTrack } from "../components/ui/FilterPill";
 import { ConfirmModal, type ModalOrigin } from "../components/ui/Modal";
 import { useWaterRipple, RippleLayer } from "../components/ui/useWaterRipple";
+import { useHorizontalSwipe } from "../lib/useHorizontalSwipe";
 import { encodeNotification, renderNotification } from "../lib/notificationText";
 
 const RETENTION_DAYS = 14;
@@ -320,6 +321,21 @@ export function Alerts() {
 
   const isEmpty = filteredGroups.length === 0;
 
+  // Swipe left/right through the two tabs - same drag-follows-finger,
+  // spring-back-or-complete gesture as AdminEvents/AdminPlayers' sub-navbar
+  // swipe (same edge dead-zone so it doesn't fight iOS/Android's own
+  // edge-swipe-back in the installed PWA), but resetOnComplete=true since
+  // this swaps content in place rather than navigating to another route.
+  // Disabled in select mode so a stray horizontal drag while multi-selecting
+  // rows doesn't also switch tabs out from under the selection.
+  const { containerRef: swipeRef, handlers: swipeHandlers, style: swipeStyle } = useHorizontalSwipe(
+    filter === "all" ? () => handleFilterClick("unread") : undefined,
+    filter === "unread" ? () => handleFilterClick("all") : undefined,
+    undefined,
+    !selectMode,
+    true
+  );
+
   return (
     <div className="flex flex-col min-h-full bg-[var(--surface-0)] w-full" onClick={handleContainerClick}>
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
@@ -352,6 +368,9 @@ export function Alerts() {
           </div>
           <MarkAllReadButton totalUnread={totalUnread} onMarkAll={markAllRead} label={t.alerts.markAllRead} />
         </div>
+
+        {/* Swipeable content - drags between the All/Unread tabs */}
+        <div ref={swipeRef} style={swipeStyle} {...swipeHandlers}>
 
         {/* Empty state */}
         {isEmpty && (
@@ -405,6 +424,8 @@ export function Alerts() {
               </div>
             </div>
           ))}
+        </div>
+
         </div>
 
       </div>

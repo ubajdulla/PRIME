@@ -21,6 +21,15 @@ const EDGE_DEAD_ZONE_PX = 24;
  * `enabled` (default true) lets a caller suspend tracking without unmounting
  * the gesture (e.g. while a search field is focused).
  *
+ * `resetOnComplete` (default false) is for swiping between same-page tab
+ * content (e.g. Alerts' All/Unread) rather than navigating to a different
+ * route: once a completed swipe has carried the old content fully off-
+ * screen, it snaps the transform back to 0 with no transition in the same
+ * tick as the destination callback's state update. Since that update swaps
+ * in the new tab's content while still off-screen, the snap is invisible -
+ * it reads as the old content sliding away and the new content already
+ * being in place, not as a page navigating away for good.
+ *
  * Bound as real (non-passive) DOM listeners in an effect, not JSX props:
  * React's synthetic touch handlers are passive by default, so `preventDefault`
  * inside `onTouchMove` is a silent no-op there. Without it, once a drag
@@ -36,7 +45,8 @@ export function useHorizontalSwipe(
   onSwipeLeft?: () => void,
   onSwipeRight?: () => void,
   ignoreRef?: RefObject<HTMLElement>,
-  enabled = true
+  enabled = true,
+  resetOnComplete = false
 ) {
   const start = useRef<{ x: number; y: number } | null>(null);
   const tracking = useRef(false);
@@ -113,7 +123,13 @@ export function useHorizontalSwipe(
       if (cleared && dest) {
         const width = el?.offsetWidth ?? window.innerWidth;
         setDragX(dx < 0 ? -width : width);
-        window.setTimeout(dest, SPRING_MS);
+        window.setTimeout(() => {
+          dest();
+          if (resetOnComplete) {
+            setSpringing(false);
+            setDragX(0);
+          }
+        }, SPRING_MS);
       } else {
         setDragX(0);
       }
@@ -131,7 +147,7 @@ export function useHorizontalSwipe(
       el.removeEventListener("touchend", onTouchEnd);
       el.removeEventListener("touchcancel", onTouchEnd);
     };
-  }, [onSwipeLeft, onSwipeRight, ignoreRef]);
+  }, [onSwipeLeft, onSwipeRight, ignoreRef, resetOnComplete]);
 
   return {
     containerRef,
