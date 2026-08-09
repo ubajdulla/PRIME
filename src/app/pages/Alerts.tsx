@@ -339,7 +339,7 @@ export function Alerts() {
   return (
     <div className="flex flex-col min-h-full bg-[var(--surface-0)] w-full" onClick={handleContainerClick}>
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
-      <div className="w-full max-w-[640px] mx-auto flex flex-col pt-8 pb-10 px-4">
+      <div className="w-full max-w-[640px] mx-auto flex-1 flex flex-col pt-8 pb-10 px-4">
 
         {/* Header */}
         <h2 className="font-black italic text-[var(--ink)] tracking-widest uppercase text-2xl mb-6">
@@ -369,8 +369,12 @@ export function Alerts() {
           <MarkAllReadButton totalUnread={totalUnread} onMarkAll={markAllRead} label={t.alerts.markAllRead} />
         </div>
 
-        {/* Swipeable content - drags between the All/Unread tabs */}
-        <div ref={swipeRef} style={swipeStyle} {...swipeHandlers}>
+        {/* Swipeable content - drags between the All/Unread tabs. flex-1 so
+            it fills the rest of the page (not just its own content height) -
+            otherwise a short list (e.g. a near-empty Unread tab) left the
+            blank space below it, right where a thumb naturally rests,
+            outside the swipe-tracked element entirely. */}
+        <div ref={swipeRef} className="flex-1" style={swipeStyle} {...swipeHandlers}>
 
         {/* Empty state */}
         {isEmpty && (
