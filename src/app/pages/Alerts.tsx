@@ -116,8 +116,13 @@ export function Alerts() {
   // nothing unread, rather than opening on a dead "all caught up" screen.
   // Only applied once per mount so it doesn't fight the user's own taps
   // later (e.g. reading everything while on the Unread tab shouldn't yank
-  // them over to All).
+  // them over to All). The filter bar + list stay unrendered until this is
+  // resolved (see `loaded` below) - otherwise they'd first mount showing
+  // Unread and then visibly flip to All a moment later once the data comes
+  // back empty, which read as the app randomly bouncing you off the tab
+  // you were looking at.
   const defaultAppliedRef = useRef(false);
+  const [loaded, setLoaded] = useState(false);
   const [swapStatus, setSwapStatus] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error"; visible: boolean }>({ message: "", variant: "success", visible: false });
   const [selectMode, setSelectMode] = useState(false);
@@ -149,6 +154,7 @@ export function Alerts() {
         setFilter("all");
         setContentFilter("all");
       }
+      setLoaded(true);
     }
 
     const swapIds = [...new Set(list.filter(r => r.type === "moderator_swap_request" && r.related_id).map(r => r.related_id!))];
@@ -160,6 +166,7 @@ export function Alerts() {
 
   useEffect(() => {
     defaultAppliedRef.current = false;
+    setLoaded(false);
     loadNotifications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUser?.id]);
@@ -343,7 +350,18 @@ export function Alerts() {
   // this swaps content in place rather than navigating to another route.
   // Disabled in select mode so a stray horizontal drag while multi-selecting
   // rows doesn't also switch tabs out from under the selection.
-  const { containerRef: swipeRef, handlers: swipeHandlers, style: swipeStyle } = useHorizontalSwipe(
+  // containerRef is the full page (so a thumb can start the drag from
+  // anywhere, including blank space below a short list) but contentRef is
+  // the narrower notification-list element - only that visibly slides, so
+  // the "Alerts" title, filter pills and select button stay put instead of
+  // sliding along with the drag.
+  const {
+    containerRef: swipeRef,
+    contentRef: swipeContentRef,
+    handlers: swipeHandlers,
+    containerStyle: swipeContainerStyle,
+    contentStyle: swipeContentStyle,
+  } = useHorizontalSwipe(
     filter === "all" ? () => handleFilterClick("unread") : undefined,
     filter === "unread" ? () => handleFilterClick("all") : undefined,
     undefined,
@@ -354,13 +372,13 @@ export function Alerts() {
   return (
     <div className="flex flex-col min-h-full bg-[var(--surface-0)] w-full" onClick={handleContainerClick}>
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
-      {/* Swipeable page - drags between the All/Unread tabs anywhere on the
-          page (header and filter bar included, not just the list below it).
-          Safe to wrap the whole thing since Toast and the select-mode FAB/
-          confirm modal below are siblings, not descendants - their own
-          fixed positioning never rides along with this element's drag
-          transform. */}
-      <div ref={swipeRef} className="w-full max-w-[640px] mx-auto flex-1 flex flex-col pt-8 pb-10 px-4" style={swipeStyle} {...swipeHandlers}>
+      {/* Swipe gesture surface - covers the full page (header and filter bar
+          included) so a thumb can start the drag from anywhere, not just
+          where the list happens to be. Safe to wrap the whole thing since
+          Toast and the select-mode FAB/confirm modal below are siblings, not
+          descendants - their own fixed positioning is unaffected either
+          way, since it's the narrower contentRef below that actually moves. */}
+      <div ref={swipeRef} className="w-full max-w-[640px] mx-auto flex-1 flex flex-col pt-8 pb-10 px-4" style={swipeContainerStyle} {...swipeHandlers}>
 
         {/* Header */}
         <h2 className="font-black italic text-[var(--ink)] tracking-widest uppercase text-2xl mb-6">
@@ -372,77 +390,88 @@ export function Alerts() {
           )}
         </h2>
 
-        {/* Filter bar */}
-        <div className="flex items-center justify-between gap-3 mb-8">
-          <div className="flex gap-1 bg-[var(--surface-1)] rounded-full p-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.12)]">
-            <FilterPillTrack activeKey={filter}>
-              {(["all", "unread"] as Filter[]).map(f => (
-                <FilterPill
-                  key={f}
-                  pillKey={f}
-                  active={filter === f}
-                  onClick={() => handleFilterClick(f)}
-                  label={f === "unread" && totalUnread > 0 ? t.alerts.unreadCount(totalUnread) : f === "unread" ? t.alerts.filterUnread : t.alerts.filterAll}
-                />
-              ))}
-            </FilterPillTrack>
-          </div>
-          <MarkAllReadButton totalUnread={totalUnread} onMarkAll={markAllRead} label={t.alerts.markAllRead} />
-        </div>
-
-        {/* Empty state */}
-        {isEmpty && (
-          <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <div className="w-16 h-16 rounded-full bg-[var(--surface-1)] flex items-center justify-center">
-              <Bell size={32} className="text-[var(--brand)]" />
-            </div>
-            <h3 className="text-xl font-bold text-[var(--ink)]">
-              {contentFilter === "unread" ? t.alerts.allCaughtUp : t.alerts.noAlerts}
-            </h3>
-            <p className="text-[#79828b] text-center text-sm max-w-xs leading-relaxed">
-              {contentFilter === "unread" ? t.alerts.emptyUnreadDesc : t.alerts.emptyAllDesc}
-            </p>
-          </div>
-        )}
-
-        {/* Alert groups */}
-        <div className="flex flex-col gap-6">
-          {filteredGroups.map(({ group, items }, idx) => (
-            <div key={group}>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[#79828b] text-[11px] font-bold uppercase tracking-widest">
-                  {t.alerts[group]}
-                </p>
-                {idx === 0 && (
-                  <SelectModeToggle
-                    active={selectMode}
-                    onClick={toggleSelectMode}
-                    selectLabel={t.alerts.select}
-                    cancelLabel={t.alerts.cancelSelect}
-                  />
-                )}
+        {/* Filter bar + list wait for the first load to resolve (see `loaded`
+            above) so they mount with the right default tab already showing,
+            instead of appearing on Unread and then visibly jumping to All. */}
+        {loaded && (
+          <>
+            <div className="flex items-center justify-between gap-3 mb-8">
+              <div className="flex gap-1 bg-[var(--surface-1)] rounded-full p-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.12)]">
+                <FilterPillTrack activeKey={filter}>
+                  {(["all", "unread"] as Filter[]).map(f => (
+                    <FilterPill
+                      key={f}
+                      pillKey={f}
+                      active={filter === f}
+                      onClick={() => handleFilterClick(f)}
+                      label={f === "unread" && totalUnread > 0 ? t.alerts.unreadCount(totalUnread) : f === "unread" ? t.alerts.filterUnread : t.alerts.filterAll}
+                    />
+                  ))}
+                </FilterPillTrack>
               </div>
-              <div className="flex flex-col rounded-2xl bg-[var(--surface-1)] overflow-hidden">
-                {items.map(alert => (
-                  <AlertRow
-                    key={alert.id}
-                    alert={alert}
-                    swapStatus={swapStatus}
-                    onRead={markRead}
-                    onAccept={acceptSwap}
-                    onDecline={declineSwap}
-                    acceptLabel={t.alerts.accept}
-                    declineLabel={t.alerts.decline}
-                    unavailableLabel={t.alerts.swapUnavailable}
-                    selectMode={selectMode}
-                    selected={selectedIds.has(alert.id)}
-                    onToggleSelect={toggleSelected}
-                  />
+              <MarkAllReadButton totalUnread={totalUnread} onMarkAll={markAllRead} label={t.alerts.markAllRead} />
+            </div>
+
+            {/* Notification list - the part that actually slides on swipe */}
+            <div ref={swipeContentRef} style={swipeContentStyle}>
+
+              {/* Empty state */}
+              {isEmpty && (
+                <div className="flex flex-col items-center justify-center py-24 gap-4">
+                  <div className="w-16 h-16 rounded-full bg-[var(--surface-1)] flex items-center justify-center">
+                    <Bell size={32} className="text-[var(--brand)]" />
+                  </div>
+                  <h3 className="text-xl font-bold text-[var(--ink)]">
+                    {contentFilter === "unread" ? t.alerts.allCaughtUp : t.alerts.noAlerts}
+                  </h3>
+                  <p className="text-[#79828b] text-center text-sm max-w-xs leading-relaxed">
+                    {contentFilter === "unread" ? t.alerts.emptyUnreadDesc : t.alerts.emptyAllDesc}
+                  </p>
+                </div>
+              )}
+
+              {/* Alert groups */}
+              <div className="flex flex-col gap-6">
+                {filteredGroups.map(({ group, items }, idx) => (
+                  <div key={group}>
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[#79828b] text-[11px] font-bold uppercase tracking-widest">
+                        {t.alerts[group]}
+                      </p>
+                      {idx === 0 && (
+                        <SelectModeToggle
+                          active={selectMode}
+                          onClick={toggleSelectMode}
+                          selectLabel={t.alerts.select}
+                          cancelLabel={t.alerts.cancelSelect}
+                        />
+                      )}
+                    </div>
+                    <div className="flex flex-col rounded-2xl bg-[var(--surface-1)] overflow-hidden">
+                      {items.map(alert => (
+                        <AlertRow
+                          key={alert.id}
+                          alert={alert}
+                          swapStatus={swapStatus}
+                          onRead={markRead}
+                          onAccept={acceptSwap}
+                          onDecline={declineSwap}
+                          acceptLabel={t.alerts.accept}
+                          declineLabel={t.alerts.decline}
+                          unavailableLabel={t.alerts.swapUnavailable}
+                          selectMode={selectMode}
+                          selected={selectedIds.has(alert.id)}
+                          onToggleSelect={toggleSelected}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
+
             </div>
-          ))}
-        </div>
+          </>
+        )}
 
       </div>
 

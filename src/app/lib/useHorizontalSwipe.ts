@@ -30,6 +30,16 @@ const EDGE_DEAD_ZONE_PX = 24;
  * it reads as the old content sliding away and the new content already
  * being in place, not as a page navigating away for good.
  *
+ * `containerRef` is the gesture surface - it hears the touch events, so it
+ * should cover the full area a thumb might swipe from (e.g. Alerts' whole
+ * page, including the header and filter bar, so a short list doesn't leave
+ * dead space below it). `contentRef` is optional and, when attached to a
+ * *different* element, is what actually gets the drag transform - so the
+ * header/filter bar stay put while only that inner element (e.g. Alerts'
+ * notification list) visibly slides. Left unattached, the container is both
+ * the gesture surface and the thing that moves (AdminEvents/AdminPlayers'
+ * whole-page swipe-to-navigate).
+ *
  * Bound as real (non-passive) DOM listeners in an effect, not JSX props:
  * React's synthetic touch handlers are passive by default, so `preventDefault`
  * inside `onTouchMove` is a silent no-op there. Without it, once a drag
@@ -52,6 +62,7 @@ export function useHorizontalSwipe(
   const tracking = useRef(false);
   const committed = useRef(false); // decided this is a horizontal swipe, not a scroll
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const enabledRef = useRef(enabled);
   const [dragX, setDragX] = useState(0);
   const [springing, setSpringing] = useState(false);
@@ -63,6 +74,10 @@ export function useHorizontalSwipe(
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    // The element that actually visibly slides - contentRef when a caller
+    // attached it to a narrower inner element, otherwise the same gesture
+    // surface that's listening for the touch events.
+    const target = contentRef.current ?? el;
 
     function onTouchStart(e: TouchEvent) {
       if (!enabledRef.current) return;
@@ -103,8 +118,8 @@ export function useHorizontalSwipe(
       // Committed: take the gesture over from the browser entirely so its
       // native scroll can't keep fighting our transform underneath.
       e.preventDefault();
-      el!.style.transition = "none";
-      el!.style.transform = `translateX(${dx}px)`;
+      target.style.transition = "none";
+      target.style.transform = `translateX(${dx}px)`;
     }
 
     function onTouchEnd(e: TouchEvent) {
@@ -119,7 +134,7 @@ export function useHorizontalSwipe(
       const dy = t ? t.clientY - s.y : 0;
       const cleared = Math.abs(dx) >= SWIPE_THRESHOLD_PX && Math.abs(dx) >= Math.abs(dy) * DIRECTION_RATIO;
       const dest = dx < 0 ? onSwipeLeft : onSwipeRight;
-      const target = cleared && dest ? (dx < 0 ? -(el?.offsetWidth ?? window.innerWidth) : (el?.offsetWidth ?? window.innerWidth)) : 0;
+      const spring = cleared && dest ? (dx < 0 ? -target.offsetWidth : target.offsetWidth) : 0;
 
       // Write the spring target straight to the DOM (not just through
       // setDragX/setSpringing) - onTouchMove wrote the drag position the
@@ -129,17 +144,17 @@ export function useHorizontalSwipe(
       // element would stay stuck at onTouchMove's last imperative transform
       // forever. The direct write guarantees the visual reset happens
       // regardless of whether React considers the state "changed".
-      el!.style.transition = `transform ${SPRING_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`;
-      el!.style.transform = `translateX(${target}px)`;
+      target.style.transition = `transform ${SPRING_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`;
+      target.style.transform = `translateX(${spring}px)`;
       setSpringing(true);
-      setDragX(target);
+      setDragX(spring);
 
       if (cleared && dest) {
         window.setTimeout(() => {
           dest();
           if (resetOnComplete) {
-            el!.style.transition = "none";
-            el!.style.transform = "translateX(0px)";
+            target.style.transition = "none";
+            target.style.transform = "translateX(0px)";
             setSpringing(false);
             setDragX(0);
           }
@@ -161,20 +176,33 @@ export function useHorizontalSwipe(
     };
   }, [onSwipeLeft, onSwipeRight, ignoreRef, resetOnComplete]);
 
+  const dragStyle: React.CSSProperties = {
+    transform: dragX ? `translateX(${dragX}px)` : undefined,
+    transition: springing ? `transform ${SPRING_MS}ms cubic-bezier(0.16, 1, 0.3, 1)` : undefined,
+  };
+  // Tells the browser upfront that the gesture surface only pans vertically
+  // on its own - horizontal gestures are ours, so it never spins up a
+  // competing native recognizer in the first place (belt-and-suspenders
+  // alongside the preventDefault above).
+  const touchActionStyle: React.CSSProperties = { touchAction: "pan-y" };
+
   return {
     containerRef,
+    // Optional - only attach this to a narrower inner element when the
+    // gesture surface (containerRef) should be bigger than the part that
+    // visibly slides. Unattached, containerRef is used for both.
+    contentRef,
     // Gesture is bound via native listeners in the effect above, not JSX
     // props - kept as an empty object so existing `{...swipeHandlers}`
     // call sites don't need to change.
     handlers: {},
-    style: {
-      transform: dragX ? `translateX(${dragX}px)` : undefined,
-      transition: springing ? `transform ${SPRING_MS}ms cubic-bezier(0.16, 1, 0.3, 1)` : undefined,
-      // Tells the browser upfront that this element only pans vertically on
-      // its own - horizontal gestures are ours, so it never spins up a
-      // competing native recognizer in the first place (belt-and-suspenders
-      // alongside the preventDefault above).
-      touchAction: "pan-y",
-    } as React.CSSProperties,
+    // Apply to containerRef's element.
+    containerStyle: touchActionStyle,
+    // Apply to contentRef's element (or containerRef's, if contentRef is unused).
+    contentStyle: dragStyle,
+    // Single-element callers (AdminEvents/AdminPlayers) that only use
+    // containerRef and never attach contentRef: apply this instead of the
+    // two split styles above.
+    style: { ...dragStyle, ...touchActionStyle },
   };
 }
