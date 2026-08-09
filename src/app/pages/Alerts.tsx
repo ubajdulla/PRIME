@@ -111,6 +111,13 @@ export function Alerts() {
     startTransition(() => setContentFilter(f));
   };
   const [rows, setRows] = useState<NotificationRow[]>([]);
+  // Unread is the default tab, but only when there's actually something
+  // unread to show - falls back to All on the first load if the user has
+  // nothing unread, rather than opening on a dead "all caught up" screen.
+  // Only applied once per mount so it doesn't fight the user's own taps
+  // later (e.g. reading everything while on the Unread tab shouldn't yank
+  // them over to All).
+  const defaultAppliedRef = useRef(false);
   const [swapStatus, setSwapStatus] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error"; visible: boolean }>({ message: "", variant: "success", visible: false });
   const [selectMode, setSelectMode] = useState(false);
@@ -136,6 +143,13 @@ export function Alerts() {
       .order("created_at", { ascending: false });
     const list = (data ?? []) as NotificationRow[];
     setRows(list);
+    if (!defaultAppliedRef.current) {
+      defaultAppliedRef.current = true;
+      if (!list.some(r => !r.read)) {
+        setFilter("all");
+        setContentFilter("all");
+      }
+    }
 
     const swapIds = [...new Set(list.filter(r => r.type === "moderator_swap_request" && r.related_id).map(r => r.related_id!))];
     if (swapIds.length) {
@@ -145,6 +159,7 @@ export function Alerts() {
   }
 
   useEffect(() => {
+    defaultAppliedRef.current = false;
     loadNotifications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUser?.id]);
@@ -339,7 +354,13 @@ export function Alerts() {
   return (
     <div className="flex flex-col min-h-full bg-[var(--surface-0)] w-full" onClick={handleContainerClick}>
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
-      <div className="w-full max-w-[640px] mx-auto flex-1 flex flex-col pt-8 pb-10 px-4">
+      {/* Swipeable page - drags between the All/Unread tabs anywhere on the
+          page (header and filter bar included, not just the list below it).
+          Safe to wrap the whole thing since Toast and the select-mode FAB/
+          confirm modal below are siblings, not descendants - their own
+          fixed positioning never rides along with this element's drag
+          transform. */}
+      <div ref={swipeRef} className="w-full max-w-[640px] mx-auto flex-1 flex flex-col pt-8 pb-10 px-4" style={swipeStyle} {...swipeHandlers}>
 
         {/* Header */}
         <h2 className="font-black italic text-[var(--ink)] tracking-widest uppercase text-2xl mb-6">
@@ -368,13 +389,6 @@ export function Alerts() {
           </div>
           <MarkAllReadButton totalUnread={totalUnread} onMarkAll={markAllRead} label={t.alerts.markAllRead} />
         </div>
-
-        {/* Swipeable content - drags between the All/Unread tabs. flex-1 so
-            it fills the rest of the page (not just its own content height) -
-            otherwise a short list (e.g. a near-empty Unread tab) left the
-            blank space below it, right where a thumb naturally rests,
-            outside the swipe-tracked element entirely. */}
-        <div ref={swipeRef} className="flex-1" style={swipeStyle} {...swipeHandlers}>
 
         {/* Empty state */}
         {isEmpty && (
@@ -428,8 +442,6 @@ export function Alerts() {
               </div>
             </div>
           ))}
-        </div>
-
         </div>
 
       </div>
