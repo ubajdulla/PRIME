@@ -99,6 +99,11 @@ export function EventDetail() {
   const joinModalBoxRef = useRef<HTMLDivElement>(null);
   const [joinModalOrigin, setJoinModalOrigin] = useState<{ x: number; y: number } | null>(null);
   const [joinModalEntered, setJoinModalEntered] = useState(false);
+  const [showLeaveInfoModal, setShowLeaveInfoModal] = useState(false);
+  const leaveInfoBtnRef = useRef<HTMLButtonElement>(null);
+  const leaveInfoModalBoxRef = useRef<HTMLDivElement>(null);
+  const [leaveInfoModalOrigin, setLeaveInfoModalOrigin] = useState<{ x: number; y: number } | null>(null);
+  const [leaveInfoModalEntered, setLeaveInfoModalEntered] = useState(false);
   const [waitlistOpen, setWaitlistOpen] = useState(false);
   const waitlistBoxRef = useRef<HTMLDivElement>(null);
   const waitlistRowsRef = useRef<HTMLDivElement>(null);
@@ -301,6 +306,33 @@ export function EventDetail() {
     return () => cancelAnimationFrame(raf);
   }, [showJoinModal, joinModalOrigin]);
 
+  useLayoutEffect(() => {
+    if (!showLeaveInfoModal || !leaveInfoModalBoxRef.current) return;
+    const box = leaveInfoModalBoxRef.current;
+    const rect = box.getBoundingClientRect();
+    if (leaveInfoModalOrigin) {
+      box.style.transformOrigin = `${leaveInfoModalOrigin.x - rect.left}px ${leaveInfoModalOrigin.y - rect.top}px`;
+    }
+    box.style.transition = "none";
+    box.style.transform = "scale(0.01)";
+    box.style.opacity = "0";
+    void box.offsetHeight;
+    const raf = requestAnimationFrame(() => {
+      box.style.transition = "transform 320ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease-out";
+      box.style.transform = "scale(1)";
+      box.style.opacity = "1";
+      setLeaveInfoModalEntered(true);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [showLeaveInfoModal, leaveInfoModalOrigin]);
+
+  function handleRequestLeaveClick() {
+    const rect = leaveInfoBtnRef.current?.getBoundingClientRect();
+    setLeaveInfoModalOrigin(rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null);
+    setLeaveInfoModalEntered(false);
+    setShowLeaveInfoModal(true);
+  }
+
   async function confirmJoin() {
     if (!authUser || !event || busy) return;
     setBusy(true);
@@ -414,6 +446,24 @@ return (
         </ModalOverlay>
       )}
 
+      {showLeaveInfoModal && (
+        <ModalOverlay
+          rounded="rounded-[2rem]"
+          overlayClassName={`transition-opacity duration-200 ${leaveInfoModalEntered ? "opacity-100" : "opacity-0"}`}
+          boxRef={leaveInfoModalBoxRef}
+        >
+          <h3 className="font-black italic uppercase tracking-widest text-[var(--ink)] text-lg mb-1">
+            {t.event.requestLeaveTitle}
+          </h3>
+          <p className="text-[#79828b] text-sm mb-5">{t.event.requestLeaveDesc}</p>
+          <button
+            onClick={() => setShowLeaveInfoModal(false)}
+            className={`w-full py-2.5 rounded-full font-bold text-sm transition-all ${theme.button}`}
+          >
+            {t.event.requestLeaveClose}
+          </button>
+        </ModalOverlay>
+      )}
 
       <BackBar label={t.nav.events} to="/">
         <button
@@ -521,7 +571,17 @@ return (
               <span className="w-48 py-3 flex items-center justify-center rounded-xl font-bold text-sm tracking-wide bg-[#ef4444]/10 text-[#ef4444] cursor-default">
                 {t.event.canceled.toUpperCase()}
               </span>
-            ) : myStatus === "joined" && rosterLocked ? null : (
+            ) : myStatus === "joined" && rosterLocked ? (
+              <button
+                ref={leaveInfoBtnRef}
+                onClick={handleRequestLeaveClick}
+                onPointerDown={joinRipple.onPointerDown}
+                className="relative overflow-hidden w-48 py-3 flex items-center justify-center rounded-xl font-bold text-sm tracking-wide bg-[var(--ink)]/5 hover:bg-[var(--ink)]/10 text-[#79828b] transition-colors focus:outline-none"
+              >
+                <span className="relative z-10">{t.event.requestLeaveBtn}</span>
+                <RippleLayer ripples={joinRipple.ripples} />
+              </button>
+            ) : (
               <button
                 ref={joinBtnRef}
                 onClick={handleJoinClick}

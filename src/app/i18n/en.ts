@@ -171,6 +171,10 @@ export const en: Dict = {
     teamName: "Team name",
     teamNamePlaceholder: "Enter your team's name",
     keep: "Keep",
+    requestLeaveBtn: "Request to Leave",
+    requestLeaveTitle: "Roster is Locked",
+    requestLeaveDesc: "Once locked, you can't remove yourself from the roster anymore - if you genuinely can't make it, message the organizer, they can sort it out.",
+    requestLeaveClose: "Got it",
   },
   signin: {
     logIn: "Log in",

@@ -168,6 +168,10 @@ export interface Dict {
     teamName: string;
     teamNamePlaceholder: string;
     keep: string;
+    requestLeaveBtn: string;
+    requestLeaveTitle: string;
+    requestLeaveDesc: string;
+    requestLeaveClose: string;
   };
   signin: {
     logIn: string;

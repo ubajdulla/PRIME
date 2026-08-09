@@ -183,6 +183,10 @@ export const ru: Dict = {
     teamName: "Название команды",
     teamNamePlaceholder: "Введите название вашей команды",
     keep: "Оставить",
+    requestLeaveBtn: "Запросить выход",
+    requestLeaveTitle: "Состав закрыт",
+    requestLeaveDesc: "После закрытия состава ты уже не можешь выйти из него сам - если правда не можешь прийти, напиши организатору, он разберётся.",
+    requestLeaveClose: "Понятно",
   },
   signin: {
     logIn: "Войти",

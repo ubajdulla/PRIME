@@ -114,7 +114,14 @@ export function AdminEventDetail() {
   const [otherAdmins,          setOtherAdmins]          = useState<{ id: string; name: string; avatar: string | null }[]>([]);
   const [pendingSwap,          setPendingSwap]          = useState<{ id: string; to_admin_name: string } | null>(null);
   const [showSwapMenu,         setShowSwapMenu]         = useState(false);
-  useExclusiveOpen(showSwapMenu, () => setShowSwapMenu(false));
+  const swapBtnRef = useRef<HTMLButtonElement>(null);
+  const swapMenuRef = useRef<HTMLDivElement>(null);
+  useExclusiveOpen(
+    showSwapMenu,
+    () => setShowSwapMenu(false),
+    t => (swapBtnRef.current?.contains(t) || swapMenuRef.current?.contains(t)) ?? false,
+    swapBtnRef.current
+  );
   const [swapMenuPos,          setSwapMenuPos]          = useState<{ top: number; right: number } | null>(null);
   const [anonymousName,        setAnonymousName]        = useState("Guest");
   const [anonymousAddCount,    setAnonymousAddCount]    = useState<string>("1");
@@ -619,6 +626,7 @@ export function AdminEventDetail() {
                   </div>
                 ) : (
                   <button
+                    ref={swapBtnRef}
                     onMouseDown={e => e.stopPropagation()}
                     onClick={openSwapMenu}
                     className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[var(--surface-hover)] transition-colors text-[#79828b]"
@@ -631,6 +639,7 @@ export function AdminEventDetail() {
 
             {showSwapMenu && swapMenuPos && createPortal(
               <div
+                ref={swapMenuRef}
                 onMouseDown={e => e.stopPropagation()}
                 style={{ position: "fixed", top: swapMenuPos.top, right: swapMenuPos.right, zIndex: 40 }}
                 className="origin-top-right animate-dropdown-in bg-[var(--surface-1)] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] w-64 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
@@ -1209,6 +1218,8 @@ function PaymentToggle({ status, onConfirm }: { status: PaymentStatus; onConfirm
   const [progress, setProgress] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startRef = useRef(0);
+  const startPosRef = useRef({ x: 0, y: 0 });
+  const movedRef = useRef(false);
 
   useEffect(() => { setPending(status); }, [status]);
 
@@ -1217,8 +1228,10 @@ function PaymentToggle({ status, onConfirm }: { status: PaymentStatus; onConfirm
     setProgress(0);
   }
 
-  function onPointerDown() {
+  function onPointerDown(e: React.PointerEvent) {
     startRef.current = Date.now();
+    startPosRef.current = { x: e.clientX, y: e.clientY };
+    movedRef.current = false;
     intervalRef.current = setInterval(() => {
       const pct = Math.min(((Date.now() - startRef.current) / 1500) * 100, 100);
       setProgress(pct);
@@ -1236,10 +1249,26 @@ function PaymentToggle({ status, onConfirm }: { status: PaymentStatus; onConfirm
     }, 16);
   }
 
+  // A finger that drifts while "holding" is scrolling the roster, not
+  // pressing the pill - cancel the hold outright so it can't complete or
+  // register as a tap once the pointer lifts.
+  const MOVE_CANCEL_PX = 10;
+
+  function onPointerMove(e: React.PointerEvent) {
+    if (!intervalRef.current || movedRef.current) return;
+    const dx = e.clientX - startPosRef.current.x;
+    const dy = e.clientY - startPosRef.current.y;
+    if (Math.hypot(dx, dy) > MOVE_CANCEL_PX) {
+      movedRef.current = true;
+      stopHold();
+    }
+  }
+
   function onPointerUp() {
     const held = Date.now() - startRef.current;
+    const wasMoved = movedRef.current;
     stopHold();
-    if (held < 300 && status === "unpaid") {
+    if (!wasMoved && held < 300 && status === "unpaid") {
       setPending(prev => PAYMENT_CYCLE[(PAYMENT_CYCLE.indexOf(prev) + 1) % PAYMENT_CYCLE.length]);
     }
   }
@@ -1256,8 +1285,10 @@ function PaymentToggle({ status, onConfirm }: { status: PaymentStatus; onConfirm
   return (
     <button
       onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerLeave={stopHold}
+      onPointerCancel={stopHold}
       // Fixed width, not min-width - the label cycles between differently
       // sized words both per payment state (Unpaid/Cash/Card) and per locale
       // (К оплате/наличкой/картой), so anything content-based would make the
