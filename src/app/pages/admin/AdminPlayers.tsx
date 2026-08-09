@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useTransition, memo } from "react
 import { useNavigate } from "react-router";
 import { Search, X, OctagonX, CheckCircle2, Clock, BadgeCheck, ChevronDown, Flag, MessageSquare, Brush, Check, Trash2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { FilterPill, FilterPillTrack, useEdgeFadeMask } from "../../components/ui/FilterPill";
+import { FilterBar } from "../../components/ui/FilterPill";
 import { TrustDot } from "../../components/ui/TrustDot";
 import { VerifiedBadge } from "../../components/ui/VerifiedBadge";
 import { SkillLevelIcon } from "../../components/ui/SkillLevelIcon";
@@ -331,22 +331,9 @@ export function AdminPlayers() {
     "Suspended": t.admin.statusSuspended,
   };
   const searchRef = useRef<HTMLInputElement>(null);
-  // Same drag-to-scroll behavior as the Home event feed filter bar, copied
-  // 1:1 so both bars feel like the same component everywhere in the app.
+  // Shared with useHorizontalSwipe below as ignoreRef, so dragging the
+  // status pills isn't misread as a page-swipe back to Events.
   const filterScrollRef = useRef<HTMLDivElement>(null);
-  const dragState = useRef<{ active: boolean; startX: number; scrollLeft: number }>({ active: false, startX: 0, scrollLeft: 0 });
-  useEdgeFadeMask(filterScrollRef);
-
-  useEffect(() => {
-    const el = filterScrollRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      el.scrollBy({ left: e.deltaY + e.deltaX, behavior: "auto" });
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, []);
 
   const [players, setPlayers] = useState<Player[]>([]);
   const [activity, setActivity] = useState<NoteRow[]>([]);
@@ -721,41 +708,16 @@ export function AdminPlayers() {
 
       {!focused ? (
         <FadeIn key="landing">
-          {/* Status filter bar — the exact Home event-feed filter bar component (same
-              container, edge-fade mask, and click-drag-to-scroll behavior) */}
-          <div className="relative mb-6 w-full bg-[var(--surface-1)] rounded-full p-1.5 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.12)]">
-            <div
-              ref={filterScrollRef}
-              className="overflow-x-auto overscroll-x-contain touch-pan-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] select-none"
-              style={{ cursor: "grab" }}
-              onMouseDown={e => {
-                const el = filterScrollRef.current;
-                if (!el) return;
-                dragState.current = { active: true, startX: e.pageX - el.offsetLeft, scrollLeft: el.scrollLeft };
-                el.style.cursor = "grabbing";
-              }}
-              onMouseMove={e => {
-                const el = filterScrollRef.current;
-                if (!el || !dragState.current.active) return;
-                const x = e.pageX - el.offsetLeft;
-                el.scrollLeft = dragState.current.scrollLeft - (x - dragState.current.startX);
-              }}
-              onMouseUp={() => {
-                dragState.current.active = false;
-                if (filterScrollRef.current) filterScrollRef.current.style.cursor = "grab";
-              }}
-              onMouseLeave={() => {
-                dragState.current.active = false;
-                if (filterScrollRef.current) filterScrollRef.current.style.cursor = "";
-              }}
-            >
-              <FilterPillTrack activeKey={status}>
-                {STATUSES.map(s => (
-                  <FilterPill key={s} pillKey={s} label={STATUS_LABEL[s]} active={status === s} onClick={() => handleStatusClick(s)} />
-                ))}
-              </FilterPillTrack>
-            </div>
-          </div>
+          {/* Status filter bar — the same shared FilterBar as Home's event feed
+              and Alerts (container, edge-fade mask, click-drag-to-scroll). */}
+          <FilterBar
+            className="mb-6"
+            scrollRef={filterScrollRef}
+            items={STATUSES}
+            activeKey={status}
+            onSelect={handleStatusClick}
+            getLabel={s => STATUS_LABEL[s]}
+          />
 
           {contentStatus === "All" ? (
             <section>

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useTransition } from "react";
+import { useState, useEffect, useMemo, useTransition } from "react";
 import { Link } from "react-router";
 import { UserCircle } from "lucide-react";
 import { Instagram, Send } from "lucide-react";
@@ -10,7 +10,7 @@ import { SKILL_STYLE, levelLabel, positionLabel } from "../data/adminData";
 import { computeJoinStatus } from "../lib/joinType";
 import { formatEventDate, weekdayLabel } from "../lib/eventDate";
 import { categoryImage } from "../lib/eventImages";
-import { FilterPill, FilterPillTrack, useEdgeFadeMask } from "../components/ui/FilterPill";
+import { FilterBar } from "../components/ui/FilterPill";
 
 type EventRow = {
   id: string;
@@ -61,20 +61,6 @@ export function Home() {
     setActiveFilter(f);
     startTransition(() => setContentFilter(f));
   };
-  const filterScrollRef = useRef<HTMLDivElement>(null);
-  const dragState = useRef<{ active: boolean; startX: number; scrollLeft: number }>({ active: false, startX: 0, scrollLeft: 0 });
-  useEdgeFadeMask(filterScrollRef);
-
-  useEffect(() => {
-    const el = filterScrollRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      el.scrollBy({ left: e.deltaY + e.deltaX, behavior: "auto" });
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, []);
   const { isLoggedIn, profile } = useAuth();
 
   const [events, setEvents] = useState<(EventCardProps & { rawDate: string })[]>([]);
@@ -251,43 +237,13 @@ export function Home() {
         </h2>
 
         {/* ── Filter bar ───────────────────────────────────────────── */}
-        <div className="relative mb-8 w-full bg-[var(--surface-1)] rounded-full p-1.5 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.12)]">
-          {/* Edge fade via mask-image (not an overlay) — actually fades the pills'
-              own pixels near the edges, so a colored/active pill scrolled under it
-              dims out cleanly instead of getting visually blended with an opaque
-              background-colored rectangle painted on top of it. */}
-          <div
-            ref={filterScrollRef}
-            className="overflow-x-auto overscroll-x-contain touch-pan-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] select-none"
-            style={{ cursor: "grab" }}
-            onMouseDown={e => {
-              const el = filterScrollRef.current;
-              if (!el) return;
-              dragState.current = { active: true, startX: e.pageX - el.offsetLeft, scrollLeft: el.scrollLeft };
-              el.style.cursor = "grabbing";
-            }}
-            onMouseMove={e => {
-              const el = filterScrollRef.current;
-              if (!el || !dragState.current.active) return;
-              const x = e.pageX - el.offsetLeft;
-              el.scrollLeft = dragState.current.scrollLeft - (x - dragState.current.startX);
-            }}
-            onMouseUp={() => {
-              dragState.current.active = false;
-              if (filterScrollRef.current) filterScrollRef.current.style.cursor = "grab";
-            }}
-            onMouseLeave={() => {
-              dragState.current.active = false;
-              if (filterScrollRef.current) filterScrollRef.current.style.cursor = "";
-            }}
-          >
-            <FilterPillTrack activeKey={activeFilter}>
-              {ALL_FILTERS.map(f => (
-                <FilterPill key={f} pillKey={f} label={t.home.filters[FILTER_KEY[f]]} active={activeFilter === f} onClick={() => handleFilterClick(f)} />
-              ))}
-            </FilterPillTrack>
-          </div>
-        </div>
+        <FilterBar
+          className="mb-8"
+          items={ALL_FILTERS}
+          activeKey={activeFilter}
+          onSelect={handleFilterClick}
+          getLabel={f => t.home.filters[FILTER_KEY[f]]}
+        />
 
         {/* ── Chronological timeline ────────────────────────────────── */}
         <div className="flex flex-col">

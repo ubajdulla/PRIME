@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useWaterRipple, RippleLayer } from "./useWaterRipple";
 
 // Drives the left/right edge-fade mask on a horizontally scrollable pill row.
@@ -119,5 +119,86 @@ export function FilterPill({
       {label}
       <RippleLayer ripples={ripple.ripples} />
     </button>
+  );
+}
+
+// The full filter bar chrome - rounded surface-1 pill, edge-fade mask, and
+// click-and-drag horizontal scroll - shared by Home's event feed, Alerts,
+// and AdminPlayers' status filter, so all three are the same component
+// instead of three copies that can drift out of sync with each other.
+// `scrollRef` is optional: pass one in when a caller also needs the scroll
+// element elsewhere (e.g. AdminPlayers wires it up as the `ignoreRef` for
+// its own page-swipe gesture, so dragging the pills isn't misread as a
+// swipe back to Events) - otherwise the bar manages its own internally.
+export function FilterBar<T extends string>({
+  items,
+  activeKey,
+  onSelect,
+  getLabel,
+  scrollRef,
+  className = "",
+}: {
+  items: readonly T[];
+  activeKey: T;
+  onSelect: (item: T) => void;
+  getLabel: (item: T) => string;
+  scrollRef?: RefObject<HTMLDivElement | null>;
+  className?: string;
+}) {
+  const ownRef = useRef<HTMLDivElement>(null);
+  const filterScrollRef = scrollRef ?? ownRef;
+  const dragState = useRef<{ active: boolean; startX: number; scrollLeft: number }>({ active: false, startX: 0, scrollLeft: 0 });
+  useEdgeFadeMask(filterScrollRef);
+
+  useEffect(() => {
+    const el = filterScrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      el.scrollBy({ left: e.deltaY + e.deltaX, behavior: "auto" });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className={`relative w-full bg-[var(--surface-1)] rounded-full p-1.5 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.12)] ${className}`}>
+      {/* Edge fade via mask-image (not an overlay) - actually fades the pills'
+          own pixels near the edges, so a colored/active pill scrolled under it
+          dims out cleanly instead of getting visually blended with an opaque
+          background-colored rectangle painted on top of it. */}
+      <div
+        ref={filterScrollRef}
+        className="overflow-x-auto overscroll-x-contain touch-pan-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] select-none"
+        style={{ cursor: "grab" }}
+        onMouseDown={e => {
+          const el = filterScrollRef.current;
+          if (!el) return;
+          dragState.current = { active: true, startX: e.pageX - el.offsetLeft, scrollLeft: el.scrollLeft };
+          el.style.cursor = "grabbing";
+        }}
+        onMouseMove={e => {
+          const el = filterScrollRef.current;
+          if (!el || !dragState.current.active) return;
+          const x = e.pageX - el.offsetLeft;
+          el.scrollLeft = dragState.current.scrollLeft - (x - dragState.current.startX);
+        }}
+        onMouseUp={() => {
+          dragState.current.active = false;
+          if (filterScrollRef.current) filterScrollRef.current.style.cursor = "grab";
+        }}
+        onMouseLeave={() => {
+          dragState.current.active = false;
+          if (filterScrollRef.current) filterScrollRef.current.style.cursor = "";
+        }}
+      >
+        <FilterPillTrack activeKey={activeKey}>
+          {items.map(item => (
+            <FilterPill key={item} pillKey={item} label={getLabel(item)} active={activeKey === item} onClick={() => onSelect(item)} />
+          ))}
+        </FilterPillTrack>
+      </div>
+    </div>
   );
 }

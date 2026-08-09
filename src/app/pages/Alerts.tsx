@@ -21,7 +21,7 @@ import { useLang } from "../i18n";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { Toast } from "../components/ui/Toast";
-import { FilterPill, FilterPillTrack } from "../components/ui/FilterPill";
+import { FilterBar } from "../components/ui/FilterPill";
 import { ConfirmModal, type ModalOrigin } from "../components/ui/Modal";
 import { useWaterRipple, RippleLayer } from "../components/ui/useWaterRipple";
 import { useHorizontalSwipe } from "../lib/useHorizontalSwipe";
@@ -390,88 +390,82 @@ export function Alerts() {
           )}
         </h2>
 
-        {/* Filter bar + list wait for the first load to resolve (see `loaded`
-            above) so they mount with the right default tab already showing,
-            instead of appearing on Unread and then visibly jumping to All. */}
-        {loaded && (
-          <>
-            <div className="flex items-center justify-between gap-3 mb-8">
-              <div className="flex gap-1 bg-[var(--surface-1)] rounded-full p-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.12)]">
-                <FilterPillTrack activeKey={filter}>
-                  {(["all", "unread"] as Filter[]).map(f => (
-                    <FilterPill
-                      key={f}
-                      pillKey={f}
-                      active={filter === f}
-                      onClick={() => handleFilterClick(f)}
-                      label={f === "unread" && totalUnread > 0 ? t.alerts.unreadCount(totalUnread) : f === "unread" ? t.alerts.filterUnread : t.alerts.filterAll}
+        {/* Filter bar - same shared FilterBar as Home's event feed and
+            AdminPlayers, mounted immediately (not gated on the notifications
+            load) so its own entrance is never held up waiting on the list
+            below it. */}
+        <div className="flex items-center justify-between gap-3 mb-8">
+          <FilterBar
+            className="flex-1"
+            items={["all", "unread"] as const}
+            activeKey={filter}
+            onSelect={handleFilterClick}
+            getLabel={f => f === "unread" && totalUnread > 0 ? t.alerts.unreadCount(totalUnread) : f === "unread" ? t.alerts.filterUnread : t.alerts.filterAll}
+          />
+          <MarkAllReadButton totalUnread={totalUnread} onMarkAll={markAllRead} label={t.alerts.markAllRead} />
+        </div>
+
+        {/* Notification list - the part that actually slides on swipe. The
+            empty state waits for `loaded` (same as Home gating its "no
+            events" message on !loadingEvents) so it doesn't flash "All
+            caught up" before the real data - and the auto Unread->All
+            default (further up) has already landed by the time anything
+            here paints, so there's nothing to visibly jump between either. */}
+        <div ref={swipeContentRef} style={swipeContentStyle}>
+
+          {isEmpty && loaded && (
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+              <div className="w-16 h-16 rounded-full bg-[var(--surface-1)] flex items-center justify-center">
+                <Bell size={32} className="text-[var(--brand)]" />
+              </div>
+              <h3 className="text-xl font-bold text-[var(--ink)]">
+                {contentFilter === "unread" ? t.alerts.allCaughtUp : t.alerts.noAlerts}
+              </h3>
+              <p className="text-[#79828b] text-center text-sm max-w-xs leading-relaxed">
+                {contentFilter === "unread" ? t.alerts.emptyUnreadDesc : t.alerts.emptyAllDesc}
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-6">
+            {filteredGroups.map(({ group, items }, idx) => (
+              <div key={group}>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[#79828b] text-[11px] font-bold uppercase tracking-widest">
+                    {t.alerts[group]}
+                  </p>
+                  {idx === 0 && (
+                    <SelectModeToggle
+                      active={selectMode}
+                      onClick={toggleSelectMode}
+                      selectLabel={t.alerts.select}
+                      cancelLabel={t.alerts.cancelSelect}
+                    />
+                  )}
+                </div>
+                <div className="flex flex-col rounded-2xl bg-[var(--surface-1)] overflow-hidden">
+                  {items.map(alert => (
+                    <AlertRow
+                      key={alert.id}
+                      alert={alert}
+                      swapStatus={swapStatus}
+                      onRead={markRead}
+                      onAccept={acceptSwap}
+                      onDecline={declineSwap}
+                      acceptLabel={t.alerts.accept}
+                      declineLabel={t.alerts.decline}
+                      unavailableLabel={t.alerts.swapUnavailable}
+                      selectMode={selectMode}
+                      selected={selectedIds.has(alert.id)}
+                      onToggleSelect={toggleSelected}
                     />
                   ))}
-                </FilterPillTrack>
-              </div>
-              <MarkAllReadButton totalUnread={totalUnread} onMarkAll={markAllRead} label={t.alerts.markAllRead} />
-            </div>
-
-            {/* Notification list - the part that actually slides on swipe */}
-            <div ref={swipeContentRef} style={swipeContentStyle}>
-
-              {/* Empty state */}
-              {isEmpty && (
-                <div className="flex flex-col items-center justify-center py-24 gap-4">
-                  <div className="w-16 h-16 rounded-full bg-[var(--surface-1)] flex items-center justify-center">
-                    <Bell size={32} className="text-[var(--brand)]" />
-                  </div>
-                  <h3 className="text-xl font-bold text-[var(--ink)]">
-                    {contentFilter === "unread" ? t.alerts.allCaughtUp : t.alerts.noAlerts}
-                  </h3>
-                  <p className="text-[#79828b] text-center text-sm max-w-xs leading-relaxed">
-                    {contentFilter === "unread" ? t.alerts.emptyUnreadDesc : t.alerts.emptyAllDesc}
-                  </p>
                 </div>
-              )}
-
-              {/* Alert groups */}
-              <div className="flex flex-col gap-6">
-                {filteredGroups.map(({ group, items }, idx) => (
-                  <div key={group}>
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-[#79828b] text-[11px] font-bold uppercase tracking-widest">
-                        {t.alerts[group]}
-                      </p>
-                      {idx === 0 && (
-                        <SelectModeToggle
-                          active={selectMode}
-                          onClick={toggleSelectMode}
-                          selectLabel={t.alerts.select}
-                          cancelLabel={t.alerts.cancelSelect}
-                        />
-                      )}
-                    </div>
-                    <div className="flex flex-col rounded-2xl bg-[var(--surface-1)] overflow-hidden">
-                      {items.map(alert => (
-                        <AlertRow
-                          key={alert.id}
-                          alert={alert}
-                          swapStatus={swapStatus}
-                          onRead={markRead}
-                          onAccept={acceptSwap}
-                          onDecline={declineSwap}
-                          acceptLabel={t.alerts.accept}
-                          declineLabel={t.alerts.decline}
-                          unavailableLabel={t.alerts.swapUnavailable}
-                          selectMode={selectMode}
-                          selected={selectedIds.has(alert.id)}
-                          onToggleSelect={toggleSelected}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
               </div>
+            ))}
+          </div>
 
-            </div>
-          </>
-        )}
+        </div>
 
       </div>
 
