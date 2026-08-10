@@ -396,7 +396,6 @@ export function Alerts() {
             below it. */}
         <div className="flex items-center justify-between gap-3 mb-8">
           <FilterBar
-            className="flex-1"
             items={["all", "unread"] as const}
             activeKey={filter}
             onSelect={handleFilterClick}

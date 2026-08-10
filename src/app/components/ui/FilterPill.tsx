@@ -163,7 +163,12 @@ export function FilterBar<T extends string>({
   }, []);
 
   return (
-    <div className={`relative w-full bg-[var(--surface-1)] rounded-full p-1.5 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.12)] ${className}`}>
+    // No width set here on purpose - it "hugs" its content (the pills) and
+    // relies on the caller's layout for sizing: a flex-col/block parent
+    // (Home, AdminPlayers) stretches it to full width by default, while a
+    // flex row (Alerts, alongside its mark-all-read button) leaves it sized
+    // to just its two pills instead of stretching across the whole row.
+    <div className={`relative bg-[var(--surface-1)] rounded-full p-1.5 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.12)] ${className}`}>
       {/* Edge fade via mask-image (not an overlay) - actually fades the pills'
           own pixels near the edges, so a colored/active pill scrolled under it
           dims out cleanly instead of getting visually blended with an opaque
